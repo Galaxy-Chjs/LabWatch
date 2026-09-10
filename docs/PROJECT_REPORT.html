@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LabWatch Lite — Project Report v1.0.0</title>
+    <style>
+      :root {
+        --canvas: #0a0e14;
+        --surface: #111823;
+        --surface-2: #17202e;
+        --line: #243044;
+        --ink: #e6edf7;
+        --muted: #94a3b8;
+        --faint: #64748b;
+        --accent: #38bdf8;
+        --ok: #34d399;
+        --warn: #fbbf24;
+        --crit: #f87171;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--ink);
+        font: 15px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 24px 96px; }
+      header.top { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 32px; }
+      h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
+      .sub { color: var(--muted); margin: 0; }
+      .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+      .chip {
+        border: 1px solid var(--line); background: var(--surface-2); color: var(--muted);
+        border-radius: 999px; padding: 3px 11px; font-size: 12px;
+      }
+      .chip.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+      h2 {
+        font-size: 13px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--faint);
+        margin: 44px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+      }
+      h3 { font-size: 16px; margin: 26px 0 8px; }
+      p { color: #cbd5e1; }
+      a { color: var(--accent); }
+      code {
+        font-family: var(--mono); font-size: 0.88em; background: var(--surface-2);
+        border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px;
+      }
+      pre {
+        font-family: var(--mono); font-size: 12.5px; line-height: 1.55; background: var(--surface);
+        border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto;
+        color: #cbd5e1;
+      }
+      pre code { background: none; border: 0; padding: 0; }
+      table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+      th {
+        text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em;
+        color: var(--faint); font-weight: 500; border-bottom: 1px solid var(--line); padding: 8px 10px;
+      }
+      td { border-bottom: 1px solid var(--line); padding: 9px 10px; color: #cbd5e1; vertical-align: top; }
+      td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+      .ok { color: var(--ok); }
+      .warn { color: var(--warn); }
+      .crit { color: var(--crit); }
+      .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin: 18px 0; }
+      .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+      .stat .v { font-family: var(--mono); font-size: 24px; font-variant-numeric: tabular-nums; }
+      .stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); margin-top: 4px; }
+      figure { margin: 18px 0; }
+      figure img { width: 100%; border: 1px solid var(--line); border-radius: 10px; display: block; }
+      figcaption { color: var(--faint); font-size: 12.5px; margin-top: 8px; }
+      .note {
+        border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 8px 8px 0;
+        padding: 12px 16px; margin: 16px 0; color: #cbd5e1;
+      }
+      footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--faint); font-size: 13px; }
+      ul { color: #cbd5e1; }
+      li { margin: 5px 0; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <h1>LabWatch Lite — Project Report</h1>
+        <p class="sub">A lightweight self-hosted dashboard for monitoring NVIDIA GPUs and AI development servers.</p>
+        <div class="meta">
+          <span class="chip ok">v1.0.0 release-ready</span>
+          <span class="chip">Single host · multiple GPUs</span>
+          <span class="chip">112 backend tests</span>
+          <span class="chip">75 frontend tests</span>
+          <span class="chip">8 browser E2E tests</span>
+          <span class="chip">Docker + GPU verified</span>
+          <span class="chip">MIT</span>
+        </div>
+      </header>
+
+      <h2>1. What was built</h2>
+      <p>
+        LabWatch answers, on one self-refreshing page, the questions that otherwise require an SSH
+        session and repeated <code>nvidia-smi</code>, <code>htop</code> and <code>df -h</code> runs:
+        which GPU is free, what is running on it, who owns those processes, how long they have been
+        running, whether RAM or disk is about to run out, and what utilisation looked like over the
+        last hour, six hours or day.
+      </p>
+
+      <div class="grid">
+        <div class="stat"><div class="v">2 s</div><div class="k">Live refresh interval</div></div>
+        <div class="stat"><div class="v">10 s</div><div class="k">History write interval</div></div>
+        <div class="stat"><div class="v">24 h</div><div class="k">Default retention</div></div>
+        <div class="stat"><div class="v">94 %</div><div class="k">Backend line coverage</div></div>
+      </div>
+
+      <h3>Implemented features</h3>
+      <table>
+        <thead><tr><th>Area</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td>GPU telemetry</td><td>Utilisation, VRAM used/total and %, temperature, power draw, enforced power limit and derived %, fan, SM and memory clocks, persistence mode, process count.</td></tr>
+          <tr><td>GPU processes</td><td>NVML compute PIDs joined with psutil: user, full command line, CPU %, resident memory, status, start time, runtime (human and clock form).</td></tr>
+          <tr><td>Host telemetry</td><td>CPU usage, physical/logical cores, frequency, load average, per-core breakdown; RAM used/total/available/%; disk with the primary mount plus optional extra mounts; hostname, OS, kernel, platform, uptime.</td></tr>
+          <tr><td>History</td><td>Host and per-GPU samples persisted to SQLite (WAL), background collector, retention pruning plus a hard row cap, and 1H/6H/24H series endpoints.</td></tr>
+          <tr><td>Dashboard</td><td>Host tiles, one card per GPU, sortable/filterable/searchable process table, four history charts, sticky header with connection state, system/light/dark themes applied before first paint.</td></tr>
+          <tr><td>Resilience</td><td>Missing driver, missing GPU, unsupported sensors, vanishing processes and database faults all degrade locally instead of breaking the page or the API.</td></tr>
+          <tr><td>Demo mode</td><td>Deterministic synthetic GPUs, processes and history, labelled <strong>Demo Data</strong>, so the project is demonstrable and testable without an NVIDIA card.</td></tr>
+          <tr><td>Operations</td><td>Multi-stage Docker image, Compose deployment with a named volume, environment-variable configuration, health endpoint, CI pipeline with a container smoke test.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>2. Architecture</h2>
+      <figure>
+        <img src="architecture.svg" alt="Architecture diagram" />
+        <figcaption>One host, one container, three data sources: NVML, psutil and SQLite.</figcaption>
+      </figure>
+      <p>
+        The browser polls a single aggregated endpoint (<code>/api/overview</code>) so one refresh is
+        one round trip. Polling pauses while the tab is hidden. A background asyncio task samples the
+        collectors every ten seconds in a worker thread (NVML and psutil are blocking) and writes to
+        SQLite. NVML is initialised lazily, exactly once, behind a lock, because the library is not
+        thread safe.
+      </p>
+      <p>
+        v1 deliberately has no WebSockets, no message queue, no cache layer and no authentication:
+        at a two second refresh they would add operational surface without changing the experience.
+      </p>
+
+      <h2>3. Screenshots</h2>
+      <p>
+        Captures below come from the production container image. The first two are demo mode; the
+        third is the same image reading a real RTX 4060 through NVML.
+      </p>
+      <figure>
+        <img src="images/hero.png" alt="LabWatch dashboard" />
+        <figcaption>Demo data: host tiles, one card per GPU, the GPU process table and the start of the history section. The <strong>Demo Data</strong> chip is always visible so synthetic values cannot be mistaken for real ones.</figcaption>
+      </figure>
+      <figure>
+        <img src="images/gpu-cards.png" alt="GPU cards" />
+        <figcaption>GPU cards: the four headline metrics are readable at a glance; secondary stats are quieter.</figcaption>
+      </figure>
+      <figure>
+        <img src="images/hero-real.png" alt="LabWatch reading a real RTX 4060" />
+        <figcaption>Real hardware, no demo data: the RTX 4060 on this development host, and the empty state rendered when nothing holds GPU memory.</figcaption>
+      </figure>
+      <figure>
+        <img src="images/process-table.png" alt="GPU process table" />
+        <figcaption>Process table with search, per-GPU filter chips and click-to-sort columns.</figcaption>
+      </figure>
+      <figure>
+        <img src="images/history-1h.png" alt="History charts" />
+        <figcaption>History: host utilisation, per-GPU utilisation, VRAM as a percentage of capacity, and temperature.</figcaption>
+      </figure>
+      <figure>
+        <img src="images/hero-light.png" alt="Light theme" />
+        <figcaption>Light theme, driven by the same design tokens.</figcaption>
+      </figure>
+
+      <h2>4. Tests and results</h2>
+      <table>
+        <thead><tr><th>Suite</th><th class="num">Tests</th><th>Result</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Backend (pytest)</td><td class="num">112</td><td class="ok">pass</td><td>94 % line coverage over <code>app/</code>; NVML replaced by a configurable fake. Verified stable over eight consecutive runs.</td></tr>
+          <tr><td>Frontend (Vitest)</td><td class="num">75</td><td class="ok">pass</td><td>Formatting, theme, API client, host tiles, GPU cards, process table sorting/filtering/search, empty and no-GPU states.</td></tr>
+          <tr><td>End-to-end (Playwright)</td><td class="num">8</td><td class="ok">pass</td><td>Real Chromium against a demo backend and the dev server; also asserts zero console errors.</td></tr>
+          <tr><td>Ruff lint</td><td class="num">—</td><td class="ok">clean</td><td><code>ruff check app tests</code></td></tr>
+          <tr><td>TypeScript</td><td class="num">—</td><td class="ok">clean</td><td><code>tsc -b</code> with <code>strict</code>, <code>noUnusedLocals</code>, <code>noUnusedParameters</code>.</td></tr>
+          <tr><td>Production build</td><td class="num">—</td><td class="ok">pass</td><td><code>vite build</code>; ~633 kB JS / ~21 kB CSS before gzip.</td></tr>
+          <tr><td>Docker image</td><td class="num">—</td><td class="ok">pass</td><td>Multi-stage build, 302 MB, runs as uid 10001.</td></tr>
+          <tr><td>Container smoke test</td><td class="num">—</td><td class="ok">pass</td><td>Healthy in 2 s; dashboard, assets, SPA fallback and every API endpoint verified inside the container.</td></tr>
+          <tr><td>Container with GPU passthrough</td><td class="num">—</td><td class="ok">pass</td><td><code>--gpus all</code>: NVML initialised in-container (driver 581.80) and reported the real device.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Collector failure modes explicitly covered</h3>
+      <ul>
+        <li>NVML shared library missing, <code>nvmlInit</code> raising, and <code>nvidia-ml-py</code> not installed</li>
+        <li>A driver that initialises but reports zero devices</li>
+        <li>Unsupported power, fan, clock, persistence and memory sensors, each degrading to <code>N/A</code> independently</li>
+        <li>A process exiting between the NVML query and the psutil lookup</li>
+        <li>NVML's "unknown memory" sentinel value not being reported as a real figure</li>
+        <li>A pid on two GPUs, duplicate pids, and the per-sample process limit</li>
+        <li>psutil raising for memory, disk or CPU; a missing partition table; a <code>getloadavg</code> that is absent or not callable</li>
+        <li>Pseudo filesystems and container-injected single-file mounts being rejected as disks</li>
+        <li>A database that is gone (health reports <code>degraded</code> rather than crashing)</li>
+        <li>Collector sample and write failures not killing the background loop</li>
+      </ul>
+
+      <h3>Verification against real hardware</h3>
+      <p>
+        The development host has an NVIDIA GeForce RTX 4060 Laptop GPU (driver 581.80, CUDA driver
+        13.0). LabWatch's readings were compared against <code>nvidia-smi</code> both natively and
+        from inside the container.
+      </p>
+      <table>
+        <thead><tr><th>Metric</th><th>nvidia-smi</th><th>LabWatch</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr><td>Utilisation</td><td class="num">9 % / 40 %</td><td class="num">10 % / 40 %</td><td class="ok">within one sample</td></tr>
+          <tr><td>VRAM total</td><td class="num">8188 MiB</td><td class="num">8188 MiB</td><td class="ok">exact</td></tr>
+          <tr><td>VRAM used</td><td class="num">1369 MiB</td><td class="num">1599 MiB</td><td class="ok">within sample skew</td></tr>
+          <tr><td>Temperature</td><td class="num">58 °C / 71 °C</td><td class="num">57 °C / 71 °C</td><td class="ok">within one sample</td></tr>
+          <tr><td>Power draw</td><td class="num">3.95 W</td><td class="num">4.0 W</td><td class="ok">exact to 1 dp</td></tr>
+          <tr><td>Power limit</td><td class="num">[N/A]</td><td class="num">N/A</td><td class="ok">correctly absent</td></tr>
+        </tbody>
+      </table>
+      <p>
+        The GPU process list matches <code>nvidia-smi --query-compute-apps</code> pid for pid, with
+        additional user, command, CPU and runtime detail that <code>nvidia-smi</code> does not
+        provide. History was left running and read back: 361 host points at a 10 second interval for
+        the 1H window, and an 8641 point 24H series after a restart.
+      </p>
+
+      <h2>5. Bugs found and fixed during development</h2>
+      <p>These were found by the tests, by looking at the rendered UI, or by comparing against the driver — not by reading code alone.</p>
+      <table>
+        <thead><tr><th>#</th><th>Bug</th><th>Impact</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><code>/api/health</code> read <code>last_history_write</code> from a context field that is only assigned during shutdown.</td>
+            <td>A running server always reported <code>null</code>, so the collector looked dead and the value could not be monitored.</td>
+            <td>Read the live value from the history service and expose collector writes, errors, interval and stored point count.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Per-process CPU deltas were discarded: the psutil priming cache was cleared on every poll.</td>
+            <td>Process CPU % could never accumulate a real delta and stayed at zero.</td>
+            <td>Keep baselines keyed by pid, prime before enrichment, and prune pids that disappear.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>NVML graphics-running-processes made the table unusable on Windows (about 30 desktop apps).</td>
+            <td>The GPU process table was dominated by compositing noise instead of workloads.</td>
+            <td>Default to compute processes (matching <code>nvidia-smi --query-compute-apps</code>) with an opt-in flag for graphics contexts.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Demo disk usage was computed from hours since the Unix epoch (about 490,000 h).</td>
+            <td>The disk tile showed 99 % <span class="crit">critical</span> in every screenshot, which is both wrong and alarming.</td>
+            <td>Anchor the growth curve to the current year plus nine months and clamp it, giving a realistic 62 %.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Demo signals were sampled at one second regardless of chart resolution.</td>
+            <td>The 24H chart was an unreadable solid block; the 1H chart looked like a synthetic sine wave.</td>
+            <td>Scale jitter amplitude, jitter period and the load envelope with the requested window.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td><code>os.getloadavg</code> was called without guarding against <code>TypeError</code> on platforms that expose it as <code>None</code>.</td>
+            <td>CPU collection raised instead of reporting <code>N/A</code> for load average.</td>
+            <td>Treat missing or non-callable implementations as <code>N/A</code>.</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>The screenshot script located sections by loose heading patterns such as <code>/host/i</code>.</td>
+            <td>Playwright strict mode failed once chart titles like "Host utilisation" existed — a latent test-suite break.</td>
+            <td>Target section containers by <code>data-testid</code>, and match section headings exactly.</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td><code>Dockerfile</code> carried a <code># syntax=docker/dockerfile:1</code> directive it did not need.</td>
+            <td>The build failed on any host that cannot reach the Docker frontend image registry.</td>
+            <td>Remove the directive; the file only uses portable instructions.</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>Two tests were genuinely flaky: a CPU-burn assumption, and a race where the health check was polled on <code>last_history_write</code> while the first sample was still in flight.</td>
+            <td>Intermittent red builds that would erode trust in CI.</td>
+            <td>Assert deterministic signals, and poll on the definitive completion counter instead.</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>Primary disk detection picked the longest matching mount point, so inside a container it selected <code>/etc/resolv.conf</code> — a 2.5 GB ext4 bind mount.</td>
+            <td>Found only by rendering the dashboard against the real container: the disk tile showed a config file instead of the filesystem. A plausible-looking but meaningless number is worse than no number.</td>
+            <td>Ignore pseudo filesystems and container-injected file mounts, prefer the root filesystem, and otherwise take the shallowest real mount.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>6. Known limitations</h2>
+      <table>
+        <thead><tr><th>Limitation</th><th>Reason / mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Single host only</td><td>An explicit v1 scope decision. Multi-server aggregation is on the roadmap.</td></tr>
+          <tr><td>No authentication</td><td>Intended for trusted private networks. The README warns that process command lines may be sensitive. Put it behind an authenticating reverse proxy if exposed.</td></tr>
+          <tr><td>NVIDIA only</td><td>Telemetry comes from NVML. AMD and Intel GPUs are not read.</td></tr>
+          <tr><td>Noisy graphics contexts on Windows</td><td>WDDM exposes every compositing application as a compute process. Linux targets are unaffected; an opt-in flag includes graphics contexts.</td></tr>
+          <tr><td>Sampled, not streamed history</td><td>A 10 second write interval can miss brief spikes. Lower <code>LABWATCH_HISTORY_INTERVAL</code> if that matters.</td></tr>
+          <tr><td>Load average is <code>N/A</code> on Windows</td><td>The platform does not expose it; the UI shows <code>N/A</code> rather than a fabricated zero.</td></tr>
+          <tr><td>Per-process CPU needs two polls</td><td>CPU usage is a counter delta, so the first sample after startup reports <code>N/A</code> for process CPU. Documented behaviour, not a defect.</td></tr>
+          <tr><td>Container disk figures describe the container</td><td>When the root filesystem is an <code>overlay</code> (Docker Desktop), LabWatch falls back to the shallowest real mount, which may be a data volume. Run LabWatch natively for host disk numbers.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>7. Repository hygiene</h2>
+      <ul>
+        <li>No scratch scripts, no <code>tmp/</code>, no <code>debug.json</code>, no stray logs. Every tracked file is source, test, documentation, deployment configuration or a referenced image.</li>
+        <li>Generated and runtime artifacts are ignored: <code>backend/data/</code>, <code>*.db*</code>, <code>node_modules/</code>, <code>dist/</code>, coverage, Playwright reports, <code>.env</code>.</li>
+        <li>One report document (this file) plus <a href="ACCEPTANCE.md">ACCEPTANCE.md</a>; screenshots live in <code>docs/images/</code> and every one is referenced by the README or this report.</li>
+        <li>Screenshots are reproducible with <code>frontend/scripts/capture-screenshots.mjs</code> instead of being pasted in by hand.</li>
+        <li>No hard-coded machine paths in the application: configuration is entirely environment-driven.</li>
+      </ul>
+
+      <h2>8. Release readiness</h2>
+      <table>
+        <thead><tr><th>Definition-of-done item</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Core monitoring works</td><td class="ok">verified against the driver</td></tr>
+          <tr><td>Multiple GPUs on one host</td><td class="ok">per-device cards, series and filters</td></tr>
+          <tr><td>GPU process mapping works</td><td class="ok">NVML pids joined to psutil detail</td></tr>
+          <tr><td>Historical charts work</td><td class="ok">1H/6H/24H, persisted in SQLite</td></tr>
+          <tr><td>No-GPU failure is graceful</td><td class="ok">tested; host metrics keep working</td></tr>
+          <tr><td>Tests pass</td><td class="ok">112 + 75 + 8</td></tr>
+          <tr><td>CI passes</td><td class="ok">lint, tests, build, E2E, Docker smoke test</td></tr>
+          <tr><td>Docker works</td><td class="ok">built, smoke tested, and run with GPU passthrough</td></tr>
+          <tr><td>README complete</td><td class="ok">features, quick start, architecture, config, API, limitations, roadmap</td></tr>
+          <tr><td>Screenshots complete</td><td class="ok">ten, all referenced, including real hardware</td></tr>
+          <tr><td>Architecture diagram complete</td><td class="ok"><code>docs/architecture.svg</code></td></tr>
+          <tr><td>Demo mode works</td><td class="ok">and is clearly labelled in the UI</td></tr>
+          <tr><td>No major console or API errors</td><td class="ok">asserted by the E2E suite and the capture script</td></tr>
+          <tr><td>Repository clean</td><td class="ok">see section 7</td></tr>
+        </tbody>
+      </table>
+      <div class="note">
+        <strong>Verdict:</strong> LabWatch Lite v1.0.0 meets its definition of done and is ready to
+        publish. The full stack was exercised against real NVIDIA hardware both natively and inside
+        the container image, including GPU passthrough through Docker.
+      </div>
+
+      <footer>
+        LabWatch Lite v1.0.0 · MIT · Consolidated build report for the v1.0 development cycle.
+        Reproduction commands for every number on this page are in
+        <a href="ACCEPTANCE.md">ACCEPTANCE.md</a>.
+      </footer>
+    </div>
+  </body>
+</html>

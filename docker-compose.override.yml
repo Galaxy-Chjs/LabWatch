@@ -1,0 +1,21 @@
+# Development override: no GPU, no NVIDIA Container Toolkit required.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.override.yml up --build
+#
+# Serves synthetic GPUs and processes so you can develop the UI or take
+# screenshots on a machine without an NVIDIA card. All data is labelled
+# "Demo Data" in the dashboard.
+
+services:
+  labwatch:
+    container_name: labwatch-demo
+    ports:
+      - '${LABWATCH_PUBLISH_PORT:-8000}:8000'
+    environment:
+      LABWATCH_DEMO_MODE: 'true'
+      LABWATCH_HISTORY_INTERVAL: '5'
+      LABWATCH_LOG_LEVEL: 'INFO'
+    deploy:
+      resources:
+        reservations:
+          devices: []

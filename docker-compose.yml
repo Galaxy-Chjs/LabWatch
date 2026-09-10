@@ -1,0 +1,53 @@
+# LabWatch Lite - single container, single host.
+#
+#   docker compose up -d
+#   open http://localhost:8000
+#
+# GPU access requires the NVIDIA Container Toolkit on the host. If you do not
+# have a GPU you can still run the dashboard with LABWATCH_DEMO_MODE=true.
+
+services:
+  labwatch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: labwatch:latest
+    container_name: labwatch
+    restart: unless-stopped
+    ports:
+      - '${LABWATCH_PUBLISH_PORT:-8000}:8000'
+    environment:
+      # --- collection cadence ---
+      LABWATCH_POLL_INTERVAL: '${LABWATCH_POLL_INTERVAL:-2}'
+      LABWATCH_HISTORY_INTERVAL: '${LABWATCH_HISTORY_INTERVAL:-10}'
+      LABWATCH_RETENTION_HOURS: '${LABWATCH_RETENTION_HOURS:-24}'
+      # --- behaviour ---
+      LABWATCH_DEMO_MODE: '${LABWATCH_DEMO_MODE:-false}'
+      LABWATCH_LOG_LEVEL: '${LABWATCH_LOG_LEVEL:-INFO}'
+      LABWATCH_HOST: '0.0.0.0'
+      LABWATCH_PORT: '8000'
+      LABWATCH_DATA_DIR: '/data'
+      LABWATCH_STATIC_DIR: '/app/static'
+      # --- optional: also list graphics contexts (noisy on desktops) ---
+      LABWATCH_INCLUDE_GRAPHICS_PROCESSES: '${LABWATCH_INCLUDE_GRAPHICS_PROCESSES:-false}'
+    volumes:
+      - labwatch-data:/data
+    # GPU access. Comment this block out (or use the demo override) when the
+    # host has no NVIDIA GPU; the dashboard still monitors CPU, RAM and disk.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, utility]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:8000/api/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  labwatch-data:
+    driver: local

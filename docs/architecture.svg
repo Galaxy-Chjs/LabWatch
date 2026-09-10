@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" width="960" height="620" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <title>LabWatch Lite architecture</title>
+  <desc>Browser polls a FastAPI service over REST; the service reads NVML and psutil on one host and persists history to SQLite.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+    </marker>
+    <style>
+      .box { fill: #111823; stroke: #243044; stroke-width: 1.5; rx: 10; }
+      .box-accent { fill: #16283a; stroke: #38bdf8; stroke-width: 1.5; }
+      .box-store { fill: #1a2434; stroke: #334155; stroke-width: 1.5; }
+      .t { fill: #e6edf7; font-size: 14px; font-weight: 600; }
+      .s { fill: #94a3b8; font-size: 11.5px; }
+      .m { fill: #7b8798; font-size: 11px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+      .lbl { fill: #94a3b8; font-size: 11px; }
+      .flow { stroke: #94a3b8; stroke-width: 1.4; fill: none; marker-end: url(#arrow); }
+      .flow-dash { stroke: #475569; stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; marker-end: url(#arrow); }
+      .group { fill: none; stroke: #243044; stroke-width: 1.2; stroke-dasharray: 6 5; rx: 12; }
+      .grouplbl { fill: #64748b; font-size: 11px; letter-spacing: 0.08em; }
+    </style>
+  </defs>
+
+  <rect width="960" height="620" fill="#0a0e14" />
+
+  <!-- Browser -->
+  <rect class="box" x="372" y="24" width="216" height="64" rx="10" />
+  <text class="t" x="480" y="50" text-anchor="middle">Browser</text>
+  <text class="s" x="480" y="70" text-anchor="middle">React + TypeScript dashboard</text>
+
+  <!-- REST -->
+  <path class="flow" d="M 480 88 L 480 128" />
+  <text class="m" x="492" y="112">HTTP REST · polls /api/overview every 2 s</text>
+
+  <!-- FastAPI -->
+  <rect class="box-accent" x="312" y="130" width="336" height="104" rx="10" />
+  <text class="t" x="480" y="156" text-anchor="middle">FastAPI service</text>
+  <text class="s" x="480" y="176" text-anchor="middle">/api/health · /api/system · /api/gpus</text>
+  <text class="s" x="480" y="193" text-anchor="middle">/api/processes · /api/history/*</text>
+  <line x1="336" y1="206" x2="624" y2="206" stroke="#243044" stroke-width="1" />
+  <text class="s" x="480" y="222" text-anchor="middle">Background Collector · writes history every 10 s</text>
+
+  <!-- Fan out -->
+  <path class="flow" d="M 380 234 L 190 306" />
+  <path class="flow" d="M 480 234 L 480 306" />
+  <path class="flow" d="M 580 234 L 770 306" />
+
+  <!-- NVML -->
+  <rect class="box" x="60" y="308" width="260" height="96" rx="10" />
+  <text class="t" x="190" y="334" text-anchor="middle">NVML</text>
+  <text class="s" x="190" y="354" text-anchor="middle">nvidia-ml-py (pynvml)</text>
+  <text class="s" x="190" y="372" text-anchor="middle">utilisation · VRAM · temp</text>
+  <text class="s" x="190" y="389" text-anchor="middle">power · compute processes</text>
+
+  <!-- psutil -->
+  <rect class="box" x="350" y="308" width="260" height="96" rx="10" />
+  <text class="t" x="480" y="334" text-anchor="middle">psutil</text>
+  <text class="s" x="480" y="354" text-anchor="middle">CPU · RAM · disk · uptime</text>
+  <text class="s" x="480" y="372" text-anchor="middle">per-process user, command,</text>
+  <text class="s" x="480" y="389" text-anchor="middle">CPU %, RSS, runtime</text>
+
+  <!-- SQLite -->
+  <rect class="box-store" x="640" y="308" width="260" height="96" rx="10" />
+  <text class="t" x="770" y="334" text-anchor="middle">SQLite</text>
+  <text class="s" x="770" y="354" text-anchor="middle">host_samples · gpu_samples</text>
+  <text class="s" x="770" y="372" text-anchor="middle">24 h retention (configurable)</text>
+  <text class="s" x="770" y="389" text-anchor="middle">WAL mode, pruned periodically</text>
+
+  <!-- Host boundary -->
+  <rect class="group" x="34" y="286" width="892" height="146" rx="12" />
+  <text class="grouplbl" x="50" y="278">SINGLE HOST · one container · read-only, no authentication in v1</text>
+
+  <!-- Kernel / hardware -->
+  <path class="flow" d="M 190 404 L 190 470" />
+  <path class="flow" d="M 480 404 L 480 470" />
+
+  <rect class="box" x="60" y="472" width="260" height="72" rx="10" />
+  <text class="t" x="190" y="498" text-anchor="middle">NVIDIA GPU</text>
+  <text class="s" x="190" y="518" text-anchor="middle">driver + device nodes</text>
+  <text class="s" x="190" y="534" text-anchor="middle">1..N devices</text>
+
+  <rect class="box" x="350" y="472" width="260" height="72" rx="10" />
+  <text class="t" x="480" y="498" text-anchor="middle">Operating system</text>
+  <text class="s" x="480" y="518" text-anchor="middle">/proc, /sys, mount table</text>
+  <text class="s" x="480" y="534" text-anchor="middle">Linux or Windows</text>
+
+  <!-- Degradation note -->
+  <path class="flow-dash" d="M 300 508 L 350 508" />
+  <path class="flow-dash" d="M 610 508 L 640 340 L 640 340" />
+  <text class="lbl" x="700" y="452">Failure of any source degrades a single</text>
+  <text class="lbl" x="700" y="468">field to N/A instead of failing the API.</text>
+
+  <!-- Frontend internals -->
+  <rect class="group" x="312" y="556" width="336" height="48" rx="12" />
+  <text class="grouplbl" x="326" y="550">FRONTEND</text>
+  <text class="s" x="480" y="576" text-anchor="middle">Host tiles · GPU cards · process table · 1h/6h/24h charts</text>
+  <text class="s" x="480" y="594" text-anchor="middle">Tailwind CSS v4 tokens · Recharts · SWR polling</text>
+</svg>
