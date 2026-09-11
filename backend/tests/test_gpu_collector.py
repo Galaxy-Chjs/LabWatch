@@ -367,25 +367,47 @@ def test_first_poll_may_report_no_cpu_then_reports_delta(patch_pynvml):
 
     CPU usage is a delta between two counter reads, so it cannot be asserted to
     be non-zero (a loaded CI box may report anything). What matters is that the
-    collector returns ``None`` only when it has no baseline, and a float
+    collector returns ``None`` only when it has no usable baseline, and a float
     afterwards.
     """
     me = psutil.Process()
     fake = patch_pynvml(FakeNvml(gpu_count=1, compute_procs=[_Proc(pid=me.pid, usedGpuMemory=1024)]))
     collector = make_collector(fake)
 
-    # First sighting: primed before enrichment, so the delta is zero or unknown.
+    # First sighting: primed before enrichment, so there is no delta yet.
     first = collector.collect_processes().processes[0]
-    assert first.cpu_percent is None or first.cpu_percent >= 0.0
+    assert first.cpu_percent is None
 
-    # Burn CPU so the counters have demonstrably moved on.
-    deadline = time.time() + 0.05
+    # Wait past the minimum sampling age, then poll again for a real reading.
+    deadline = time.time() + 0.7
     while time.time() < deadline:
         pass
 
     second = collector.collect_processes().processes[0]
     assert isinstance(second.cpu_percent, float)
     assert second.cpu_percent >= 0.0
+
+
+def test_cpu_percent_is_none_while_the_baseline_is_too_fresh(patch_pynvml):
+    """Regression from the lab server: a fresh baseline reported 0.0 %.
+
+    On a real 8-GPU server the first sample after startup showed ``0.0 %`` for a
+    CUDA process that ``ps`` reported at 109 %. Reporting nothing is honest;
+    reporting zero is not.
+    """
+    me = psutil.Process()
+    fake = patch_pynvml(FakeNvml(gpu_count=1, compute_procs=[_Proc(pid=me.pid, usedGpuMemory=1024)]))
+    collector = make_collector(fake)
+
+    collector.collect_processes()
+
+    # Immediately afterwards the baseline exists but carries no elapsed time.
+    assert collector._cpu_percent(me.pid) is None
+
+    # Once the baseline is old enough, a value is reported.
+    with collector._cpu_prime_lock:
+        collector._cpu_primed_at[me.pid] = time.time() - 5.0
+    assert isinstance(collector._cpu_percent(me.pid), float)
 
 
 def test_cpu_percent_is_none_without_a_baseline(patch_pynvml):

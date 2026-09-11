@@ -6,11 +6,16 @@ Companion to [`PROJECT_REPORT.html`](PROJECT_REPORT.html). Every item below was
 executed against a real host; the observed result is recorded next to it rather
 than a bare "pass".
 
-**Test host:** Windows 11 (build 10.0.26100), Intel 24-core / 32-thread CPU,
-16 GiB RAM, 1 × NVIDIA GeForce RTX 4060 Laptop GPU (8 GB), driver 581.80,
-CUDA driver 13.0. LabWatch is built for Linux GPU servers; this machine is the
-development environment and a usable (if unusual) test target, so the checklist
-also records where Windows and Linux diverge.
+Two hosts were used:
+
+1. **Windows 11 development host** — 1 × RTX 4060, for Tests 1-8.
+2. **Ubuntu 22.04.5 research server** — 8 × RTX 4090 under live experimental
+   load, for Test 9. This is the environment LabWatch is actually built for, and
+   it is where the three defects fixed in v1.0.1 were found.
+
+**Development host:** Windows 11 (build 10.0.26100), Intel 24-core / 32-thread
+CPU, 16 GiB RAM, 1 × NVIDIA GeForce RTX 4060 Laptop GPU (8 GB), driver 581.80,
+CUDA driver 13.0.
 
 ---
 
@@ -154,6 +159,58 @@ Also verified:
   container (driver 581.80) and reported the real RTX 4060, which is how the
   real-hardware screenshot was captured.
 
+## Test 9 — Real Linux multi-GPU research server
+
+This is the acceptance test that matters most: LabWatch deployed on the machine
+it was written for, alongside other people's running experiments.
+
+**Server:** Ubuntu 22.04.5 LTS, kernel 6.8.0-124-generic, 8 × NVIDIA GeForce RTX
+4090 (49140 MiB each), driver 580.173.02, CUDA driver 13.0, 128 logical CPUs,
+503.5 GB RAM.
+
+**Deployment mode: native Python.** Docker is not installed on this host, so the
+container path could not be exercised here (it is covered by Test 8). LabWatch
+was deployed into the project directory with its own virtualenv created using
+`--system-site-packages` against the user's existing conda environment, so the
+conda environment itself was never modified.
+
+**Constraint honoured:** no GPU workload was started, stopped, signalled or
+modified. The experiments of other users ran untouched throughout.
+
+| # | Check | Result |
+|---|---|---|
+| 9.1 | All 8 GPUs discovered by NVML automatically | ✅ `gpu_count = 8`, driver 580.173.02 |
+| 9.2 | Utilisation matches `nvidia-smi` on every GPU | ✅ exact (0 %, 98 %, 100 % cases) |
+| 9.3 | VRAM total / used matches | ✅ total exact (49140 MiB × 8) |
+| 9.4 | Temperature matches | ✅ exact (25–72 °C) |
+| 9.5 | Power draw matches | ✅ exact to 1 dp (13.4 W idle → 449.8 W loaded) |
+| 9.6 | GPU process list matches the driver | ✅ 8/8 PIDs, 0 MiB VRAM difference |
+| 9.7 | PID → GPU index is correct | ✅ confirmed independently: each job's JSONL filename encodes its GPU (`..._gpu5_...` ↔ `gpu_index=5`) |
+| 9.8 | Another user's processes are readable | ✅ `niuyizhuo`, `lipeilang` — `/proc` has no `hidepid`, so username and full 1018-byte command line resolve |
+| 9.9 | Process runtime matches `/proc` | ✅ to the second |
+| 9.10 | Process CPU % is realistic | ✅ ~100 %, consistent with `ps` at 107–110 % |
+| 9.11 | History accumulates and survives a restart | ✅ 359 points in the 1H window; 931 rows present immediately after a restart |
+| 9.12 | CPU load average matches `uptime` | ✅ 12.31 / 12.88 / 14.84 |
+| 9.13 | Memory matches `free` | ✅ 42.5 GB / 8.4 % (after fixing defect 12) |
+| 9.14 | Every real filesystem is reported | ✅ all 6, percentages matching `df` |
+| 9.15 | API latency under 8-GPU load | ✅ 0.01–0.04 s (target < 500 ms) |
+| 9.16 | No API 5xx, no collector errors | ✅ every endpoint HTTP 200, `collector_errors = 0` |
+| 9.17 | Multi-GPU UI has no overflow or console errors | ✅ 8 cards, 8 process rows, 31 charts, 0 console errors |
+
+### Defects found by this test (fixed in v1.0.1)
+
+1. **The data volume was invisible.** The dashboard showed only `/` (91.7 %)
+   while `/nfs-data1` — a 15 TB volume with 226 GB left, i.e. **98.4 % full** —
+   was never displayed. Every real filesystem is now reported by default, with a
+   filesystem panel that lists them worst-first.
+2. **Memory was overstated.** The percentage used psutil's `total - available`,
+   which counts page cache and shared memory as used. It read **23.1 %** where
+   `free` read **8.4 %**, because 84 GB of `/dev/shm` was in use. Now uses the
+   `free` accounting, with `free` / `cached` / `available` exposed.
+3. **Process CPU showed 0.0 % on the first sample.** A CUDA process that `ps`
+   reported at 109 % was displayed as idle, because the psutil baseline was only
+   milliseconds old. No value is now reported until a real delta exists.
+
 ---
 
 ## Product question
@@ -183,7 +240,7 @@ servers this tool targets.
 | README | ✅ feature overview, quick start, architecture, configuration, API, limitations, roadmap (English + 中文) |
 | LICENSE | ✅ MIT |
 | .gitignore | ✅ Python, Node, SQLite, test artifacts, editors |
-| Tests | ✅ 112 backend + 75 frontend + 8 Playwright |
+| Tests | ✅ 121 backend + 77 frontend + 8 Playwright |
 | CI | ✅ lint, backend tests with coverage, frontend tests, build, E2E, Docker smoke test |
 | Build | ✅ `npx tsc -b` clean, `vite build` succeeds |
 | Release | ✅ v1.0.0 tagged and documented |
@@ -342,6 +399,50 @@ docker compose up -d
 
 ---
 
+## Test 9 — 真实 Linux 多卡科研服务器
+
+这是最关键的一项验收：把 LabWatch 部署到它真正要服务的机器上，而且是和别人正在跑的
+实验共用一台机器。
+
+**服务器：** Ubuntu 22.04.5 LTS，内核 6.8.0-124-generic，8 × NVIDIA GeForce RTX 4090
+（每张 49140 MiB），驱动 580.173.02，CUDA 驱动 13.0，128 逻辑核，503.5 GB 内存。
+
+**部署方式：原生 Python。** 该主机未安装 Docker，因此容器路径无法在此验证（由 Test 8 覆盖）。
+LabWatch 部署在项目目录下，使用 `--system-site-packages` 基于你已有的 conda 环境建立独立
+venv，conda 环境本身零改动。
+
+**遵守的约束：** 全程未启动、停止、终止或修改任何 GPU 任务。其他用户的实验始终未被打扰。
+
+| # | 检查项 | 结果 |
+|---|---|---|
+| 9.1 | NVML 自动发现全部 8 张卡 | ✅ `gpu_count = 8`，驱动 580.173.02 |
+| 9.2 | 每张卡利用率与 `nvidia-smi` 一致 | ✅ 完全一致（0 %、98 %、100 % 各种情况） |
+| 9.3 | 显存总量/占用一致 | ✅ 总量精确（8 张均 49140 MiB） |
+| 9.4 | 温度一致 | ✅ 完全一致（25–72 °C） |
+| 9.5 | 功耗一致 | ✅ 小数点后一位一致（空闲 13.4 W → 满载 449.8 W） |
+| 9.6 | GPU 进程列表与驱动一致 | ✅ 8/8 PID，显存偏差 0 MiB |
+| 9.7 | PID → GPU 索引正确 | ✅ 并有独立佐证：任务 JSONL 文件名编码了 GPU（`..._gpu5_...` ↔ `gpu_index=5`） |
+| 9.8 | 能读取其他用户的进程 | ✅ `niuyizhuo`、`lipeilang`；`/proc` 未启用 `hidepid`，用户名与完整 1018 字节命令行均可解析 |
+| 9.9 | 进程运行时长与 `/proc` 一致 | ✅ 精确到秒 |
+| 9.10 | 进程 CPU % 合理 | ✅ 约 100 %，与 `ps` 的 107–110 % 相符 |
+| 9.11 | 历史可累积且跨重启保留 | ✅ 1H 窗口 359 点；重启后立即有 931 行 |
+| 9.12 | CPU 负载均值与 `uptime` 一致 | ✅ 12.31 / 12.88 / 14.84 |
+| 9.13 | 内存与 `free` 一致 | ✅ 42.5 GB / 8.4 %（修复缺陷 12 之后） |
+| 9.14 | 上报全部真实文件系统 | ✅ 6 个全部显示，百分比与 `df` 一致 |
+| 9.15 | 8 卡负载下 API 延迟 | ✅ 0.01–0.04 s（目标 < 500 ms） |
+| 9.16 | 无 API 5xx、无采集错误 | ✅ 全部接口 HTTP 200，`collector_errors = 0` |
+| 9.17 | 多卡界面无溢出、无 console 错误 | ✅ 8 张卡片、8 行进程、31 张图表、0 个 console 错误 |
+
+### 本项测试暴露的缺陷（已在 v1.0.1 修复）
+
+1. **数据盘不可见。** 面板只显示 `/`（91.7 %），而 `/nfs-data1` —— 一个还剩 226 GB、
+   即 **已用 98.4 %** 的 15 TB 卷 —— 从未显示。现在默认上报全部真实文件系统，并新增
+   按使用率降序排列的文件系统面板。
+2. **内存被高估。** 百分比使用了 psutil 的 `total - available`，把页缓存与共享内存算作
+   已用，显示 **23.1 %**，而 `free` 显示 **8.4 %**，原因是 84 GB 的 `/dev/shm` 正在使用。
+   现改用 `free` 口径，并暴露 `free` / `cached` / `available`。
+3. **首次采样进程 CPU 显示 0.0 %。** `ps` 显示 109 % 的 CUDA 进程被显示为空闲，因为
+   psutil 基准只存在了几毫秒。现在在形成真实差值前不返回数值。
 ## 产品问题
 
 > 它是否真的比我原来的方法更方便？
@@ -365,7 +466,7 @@ Linux GPU 服务器不受影响。
 | README | ✅ 功能总览、快速开始、架构、配置、API、限制、路线图（英文 + 中文） |
 | LICENSE | ✅ MIT |
 | .gitignore | ✅ Python、Node、SQLite、测试产物、编辑器 |
-| 测试 | ✅ 后端 112 + 前端 75 + Playwright 8 |
+| 测试 | ✅ 后端 121 + 前端 77 + Playwright 8 |
 | CI | ✅ lint、带覆盖率的后端测试、前端测试、构建、E2E、Docker 冒烟测试 |
 | 构建 | ✅ `npx tsc -b` 干净，`vite build` 成功 |
 | 发布 | ✅ 已打 v1.0.0 标签并附文档 |

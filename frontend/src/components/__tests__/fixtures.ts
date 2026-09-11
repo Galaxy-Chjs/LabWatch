@@ -46,6 +46,8 @@ export function makeMemoryInfo(overrides: Partial<MemoryInfo> = {}): MemoryInfo 
   return {
     total: 274_877_906_944,
     used: 96_207_126_528,
+    free: 21_474_836_480,
+    cached: 157_195_944_000,
     available: 178_670_780_416,
     percent: 35,
     ...overrides,

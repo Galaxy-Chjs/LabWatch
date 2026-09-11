@@ -36,6 +36,11 @@ logger = logging.getLogger(__name__)
 
 _MB = 1024 * 1024
 
+#: A psutil CPU-percent baseline needs a little time before its delta means
+#: anything. Sampling sooner yields 0.0 %, which reads as "this training job is
+#: idle" when in fact it is saturating a core. Below this age we report no value.
+MIN_CPU_SAMPLE_AGE_S = 0.5
+
 
 def mb_to_bytes(value: float | None) -> int | None:
     """Convert a NVML megabyte value to bytes."""
@@ -85,6 +90,7 @@ class NvmlGpuCollector:
         self._nvml_version: str | None = None
         self._logged_unavailable = False
         self._cpu_prime: dict[int, psutil.Process] = {}
+        self._cpu_primed_at: dict[int, float] = {}
         self._cpu_prime_lock = threading.Lock()
 
     # -- lifecycle ---------------------------------------------------------
@@ -289,12 +295,15 @@ class NvmlGpuCollector:
 
     def _prime_cpu(self, pids: list[int]) -> None:
         """Record CPU counter baselines for the given pids."""
+        now = time.time()
         with self._cpu_prime_lock:
             fresh: dict[int, psutil.Process] = {}
+            fresh_at: dict[int, float] = {}
             for pid in pids:
                 cached = self._cpu_prime.get(pid)
                 if cached is not None:
                     fresh[pid] = cached
+                    fresh_at[pid] = self._cpu_primed_at.get(pid, now)
                     continue
                 try:
                     proc = psutil.Process(pid)
@@ -302,14 +311,25 @@ class NvmlGpuCollector:
                 except Exception:  # noqa: BLE001
                     continue
                 fresh[pid] = proc
+                fresh_at[pid] = now
             self._cpu_prime = fresh
+            self._cpu_primed_at = fresh_at
 
     def _cpu_percent(self, pid: int) -> float | None:
-        """CPU usage since the previous poll, or ``None`` for a first sighting."""
+        """CPU usage since the previous poll.
+
+        Returns ``None`` when the measurement would be meaningless: either the
+        baseline was taken too recently for a delta to exist, or the pid is not
+        being tracked.
+        """
+        now = time.time()
         with self._cpu_prime_lock:
             proc = self._cpu_prime.get(pid)
-            if proc is None:
-                return None
+            primed_at = self._cpu_primed_at.get(pid)
+        if proc is None or primed_at is None:
+            return None
+        if now - primed_at < MIN_CPU_SAMPLE_AGE_S:
+            return None
         try:
             value = proc.cpu_percent(interval=None)
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, OSError):
@@ -452,3 +472,4 @@ class NvmlGpuCollector:
             self._handles = []
         with self._cpu_prime_lock:
             self._cpu_prime.clear()
+            self._cpu_primed_at.clear()

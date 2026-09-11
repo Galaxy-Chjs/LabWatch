@@ -87,6 +87,37 @@ def test_system_schema(client: TestClient):
     assert body["uptime_human"]
 
 
+def test_system_reports_memory_breakdown(client: TestClient):
+    """`free`, `cached` and `available` are exposed so the number can be reconciled."""
+    memory = client.get("/api/system").json()["memory"]
+    assert {"free", "cached", "available"} <= set(memory)
+    if memory["total"] and memory["used"] is not None:
+        assert 0 <= memory["used"] <= memory["total"]
+
+
+def test_system_all_mounts_can_be_disabled(client: TestClient):
+    """`all_mounts=false` restricts the response to the primary filesystem."""
+    body = client.get("/api/system", params={"all_mounts": False}).json()
+    assert len(body["disks"]) == 1
+    assert body["disks"][0]["is_primary"] is True
+
+
+def test_overview_includes_every_mount_by_default(demo_settings):
+    """Regression: the dashboard only ever showed the root filesystem.
+
+    The demo collector exposes two filesystems, and the overview payload (the one
+    the UI actually polls) must carry both, otherwise a data volume filling up is
+    invisible.
+    """
+    from app.main import create_app
+
+    app = create_app(demo_settings)
+    with TestClient(app) as client:
+        disks = client.get("/api/overview").json()["system"]["disks"]
+    assert len(disks) == 2
+    assert {d["mountpoint"] for d in disks} == {"/", "/data"}
+
+
 def test_system_with_all_mounts(client: TestClient):
     body = client.get("/api/system", params={"all_mounts": True}).json()
     assert len(body["disks"]) == 2

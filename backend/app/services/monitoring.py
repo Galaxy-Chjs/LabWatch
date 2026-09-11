@@ -31,11 +31,21 @@ class MonitoringService:
         )
 
     # -- host --------------------------------------------------------------
-    def system(self, include_all_mounts: bool = False) -> SystemStatus:
-        """Current host status."""
+    def system(self, include_all_mounts: bool | None = None) -> SystemStatus:
+        """Current host status.
+
+        Args:
+            include_all_mounts: overrides ``LABWATCH_INCLUDE_ALL_MOUNTS`` for this
+                call; ``None`` uses the configured default.
+        """
+        if include_all_mounts is None:
+            include_all_mounts = self.settings.include_all_mounts
         if self.demo_collector is not None:
-            return self.demo_collector.collect_system()
-        return self.system_collector.collect(include_all_mounts=include_all_mounts)
+            return self.demo_collector.collect_system(include_all_mounts=include_all_mounts)
+        return self.system_collector.collect(
+            include_all_mounts=include_all_mounts,
+            max_mounts=self.settings.max_mounts,
+        )
 
     # -- gpu ---------------------------------------------------------------
     def gpus(self) -> GpuCollection:

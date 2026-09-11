@@ -61,6 +61,9 @@ LabWatch answers all of them on one page that refreshes itself every two seconds
 <td colspan="2"><img src="docs/images/hero-light.png" alt="LabWatch in light theme" width="100%"><br><sub><b>Light theme</b> — same information density, different surface</sub></td>
 </tr>
 <tr>
+<td colspan="2"><img src="docs/images/hero-labserver.png" alt="LabWatch monitoring an 8 x RTX 4090 research server" width="100%"><br><sub><b>Real research server</b> — 8 x RTX 4090 under live experimental load, with the filesystem panel flagging a data volume at 98.4 %</sub></td>
+</tr>
+<tr>
 <td colspan="2"><img src="docs/images/hero-real.png" alt="LabWatch reading a real RTX 4060" width="100%"><br><sub><b>Real hardware, no demo data</b> — an RTX 4060 through NVML, and the empty state when nothing holds GPU memory</sub></td>
 </tr>
 </table>
@@ -212,10 +215,10 @@ and an `error` string when the driver is missing, so a health check can tell
 ## Testing
 
 ```bash
-# Backend: 112 tests, collector failure modes included
+# Backend: 121 tests, collector failure modes included
 cd backend && pip install -r requirements-dev.txt && pytest
 
-# Frontend: 75 tests
+# Frontend: 77 tests
 cd frontend && npm install && npm run test
 
 # Browser end-to-end: 8 tests, starts its own demo backend and dev server

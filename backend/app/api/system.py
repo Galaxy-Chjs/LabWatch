@@ -13,7 +13,17 @@ router = APIRouter(tags=["system"])
 @router.get("/system", response_model=SystemStatus, summary="Host CPU, memory, disk and uptime")
 def get_system(
     monitoring: MonitoringDep,
-    all_mounts: bool = Query(False, description="Include every mounted filesystem, not just the primary disk."),
+    all_mounts: bool | None = Query(
+        None,
+        description=(
+            "Report every real mounted filesystem. Defaults to "
+            "LABWATCH_INCLUDE_ALL_MOUNTS (true), because the disk that fills up on a "
+            "lab server is usually a data volume rather than the root filesystem."
+        ),
+    ),
 ) -> SystemStatus:
-    """Return the current host sample."""
+    """Return the current host sample.
+
+    ``all_mounts=false`` restricts the response to the primary filesystem.
+    """
     return monitoring.system(include_all_mounts=all_mounts)

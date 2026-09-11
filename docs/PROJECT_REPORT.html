@@ -133,8 +133,8 @@
         <div class="meta">
           <span class="chip ok"><span class="lang-en">v1.0.0 release-ready</span><span class="lang-zh">v1.0.0 可发布</span></span>
           <span class="chip"><span class="lang-en">Single host · multiple GPUs</span><span class="lang-zh">单机 · 多卡</span></span>
-          <span class="chip"><span class="lang-en">112 backend tests</span><span class="lang-zh">后端 112 个测试</span></span>
-          <span class="chip"><span class="lang-en">75 frontend tests</span><span class="lang-zh">前端 75 个测试</span></span>
+          <span class="chip"><span class="lang-en">121 backend tests</span><span class="lang-zh">后端 121 个测试</span></span>
+          <span class="chip"><span class="lang-en">77 frontend tests</span><span class="lang-zh">前端 77 个测试</span></span>
           <span class="chip"><span class="lang-en">8 browser E2E tests</span><span class="lang-zh">浏览器 E2E 8 个</span></span>
           <span class="chip"><span class="lang-en">Docker + GPU verified</span><span class="lang-zh">Docker + GPU 已验证</span></span>
           <span class="chip">MIT</span>
@@ -276,8 +276,8 @@
       <table class="lang-en">
         <thead><tr><th>Suite</th><th class="num">Tests</th><th>Result</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td>Backend (pytest)</td><td class="num">112</td><td class="ok">pass</td><td>94 % line coverage over <code>app/</code>; NVML replaced by a configurable fake. Verified stable over eight consecutive runs.</td></tr>
-          <tr><td>Frontend (Vitest)</td><td class="num">75</td><td class="ok">pass</td><td>Formatting, theme, API client, host tiles, GPU cards, process table sorting/filtering/search, empty and no-GPU states.</td></tr>
+          <tr><td>Backend (pytest)</td><td class="num">121</td><td class="ok">pass</td><td>94 % line coverage over <code>app/</code>; NVML replaced by a configurable fake. Verified stable over eight consecutive runs.</td></tr>
+          <tr><td>Frontend (Vitest)</td><td class="num">77</td><td class="ok">pass</td><td>Formatting, theme, API client, host tiles, GPU cards, process table sorting/filtering/search, empty and no-GPU states.</td></tr>
           <tr><td>End-to-end (Playwright)</td><td class="num">8</td><td class="ok">pass</td><td>Real Chromium against a demo backend and the dev server; also asserts zero console errors.</td></tr>
           <tr><td>Ruff lint</td><td class="num">—</td><td class="ok">clean</td><td><code>ruff check app tests</code></td></tr>
           <tr><td>TypeScript</td><td class="num">—</td><td class="ok">clean</td><td><code>tsc -b</code> with <code>strict</code>, <code>noUnusedLocals</code>, <code>noUnusedParameters</code>.</td></tr>
@@ -292,8 +292,8 @@
       <table class="lang-zh">
         <thead><tr><th>套件</th><th class="num">数量</th><th>结果</th><th>说明</th></tr></thead>
         <tbody>
-          <tr><td>后端（pytest）</td><td class="num">112</td><td class="ok">通过</td><td><code>app/</code> 行覆盖率 94%；用可配置的仿真实现替换 NVML。连续 8 次运行均稳定。</td></tr>
-          <tr><td>前端（Vitest）</td><td class="num">75</td><td class="ok">通过</td><td>格式化、主题、API 客户端、主机卡片、GPU 卡片、进程表排序/过滤/搜索、空状态与无 GPU 状态。</td></tr>
+          <tr><td>后端（pytest）</td><td class="num">121</td><td class="ok">通过</td><td><code>app/</code> 行覆盖率 94%；用可配置的仿真实现替换 NVML。连续 8 次运行均稳定。</td></tr>
+          <tr><td>前端（Vitest）</td><td class="num">77</td><td class="ok">通过</td><td>格式化、主题、API 客户端、主机卡片、GPU 卡片、进程表排序/过滤/搜索、空状态与无 GPU 状态。</td></tr>
           <tr><td>端到端（Playwright）</td><td class="num">8</td><td class="ok">通过</td><td>真实 Chromium 对接演示后端与开发服务器；同时断言零 console 错误。</td></tr>
           <tr><td>Ruff 静态检查</td><td class="num">—</td><td class="ok">干净</td><td><code>ruff check app tests</code></td></tr>
           <tr><td>TypeScript</td><td class="num">—</td><td class="ok">干净</td><td><code>tsc -b</code>，开启 <code>strict</code>、<code>noUnusedLocals</code>、<code>noUnusedParameters</code>。</td></tr>
@@ -380,9 +380,181 @@
         1H 窗口在 10 秒间隔下得到 361 个主机采样点，重启后 24H 序列有 8641 个点。
       </p>
 
-      <!-- ================= 5. BUGS ================= -->
-      <h2 class="lang-en">5. Bugs found and fixed during development</h2>
-      <h2 class="lang-zh">5. 开发过程中发现并修复的缺陷</h2>
+      <!-- ================= 5. LINUX SERVER VALIDATION ================= -->
+      <h2 class="lang-en">5. Real Linux multi-GPU server validation</h2>
+      <h2 class="lang-zh">5. 真实 Linux 多卡服务器验证</h2>
+      <p class="lang-en">
+        Everything above was measured on the Windows development host. The project was then
+        deployed to a real research server - eight GPUs under live experimental load - and
+        re-verified end to end. This section records that validation, because "the API returns
+        something" is not the same as "the numbers mean the right thing on a real Linux host".
+      </p>
+      <p class="lang-zh">
+        以上数据均在 Windows 开发机上测得。随后项目被部署到一台真实的科研服务器上 ——
+        八张 GPU、正在跑实验 —— 并重新做了端到端验证。本节记录这次验证，因为"接口能返回数据"
+        和"数据在真实 Linux 主机上语义正确"是两回事。
+      </p>
+
+      <h3 class="lang-en">Environment</h3>
+      <h3 class="lang-zh">服务器环境</h3>
+      <table class="lang-en">
+        <thead><tr><th>Item</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Distribution</td><td>Ubuntu 22.04.5 LTS, kernel 6.8.0-124-generic</td></tr>
+          <tr><td>GPUs</td><td>8 × NVIDIA GeForce RTX 4090 (49140 MiB each)</td></tr>
+          <tr><td>Driver / CUDA</td><td>580.173.02 / CUDA driver 13.0</td></tr>
+          <tr><td>Host resources</td><td>128 logical CPUs, 503.5 GB RAM</td></tr>
+          <tr><td>Filesystems</td><td><code>/</code> 91.7 %, <code>/nfs-data1</code> 98.4 %, <code>/nfs-data2</code>, <code>/nfs-data3</code>, <code>/nfs-data4</code>, <code>/boot/efi</code></td></tr>
+          <tr><td>Deployment mode</td><td>Native Python (Docker is not installed on this host). Own venv in the project directory, created with <code>--system-site-packages</code> so it <em>inherits</em> the user's conda environment read-only. No system package, service, or existing environment was modified.</td></tr>
+          <tr><td>Concurrent load</td><td>Another user's experiments were running throughout; they were never started, stopped or signalled by LabWatch.</td></tr>
+        </tbody>
+      </table>
+      <table class="lang-zh">
+        <thead><tr><th>项目</th><th>值</th></tr></thead>
+        <tbody>
+          <tr><td>发行版</td><td>Ubuntu 22.04.5 LTS，内核 6.8.0-124-generic</td></tr>
+          <tr><td>GPU</td><td>8 × NVIDIA GeForce RTX 4090（每张 49140 MiB）</td></tr>
+          <tr><td>驱动 / CUDA</td><td>580.173.02 / CUDA 驱动 13.0</td></tr>
+          <tr><td>主机资源</td><td>128 逻辑核，503.5 GB 内存</td></tr>
+          <tr><td>文件系统</td><td><code>/</code> 91.7 %、<code>/nfs-data1</code> 98.4 %、<code>/nfs-data2</code>、<code>/nfs-data3</code>、<code>/nfs-data4</code>、<code>/boot/efi</code></td></tr>
+          <tr><td>部署方式</td><td>原生 Python（该主机未安装 Docker）。在项目目录下用 <code>--system-site-packages</code> 建立独立 venv，<em>只读继承</em>你的 conda 环境。未修改任何系统软件包、服务或既有环境。</td></tr>
+          <tr><td>并发负载</td><td>全程有其他用户的实验在跑；LabWatch 从未启动、停止或向其发送任何信号。</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="lang-en">Multi-GPU discovery and metric agreement</h3>
+      <h3 class="lang-zh">多卡发现与指标一致性</h3>
+      <p class="lang-en">
+        All eight devices were discovered automatically. LabWatch was compared against
+        <code>nvidia-smi</code> captured in the same instant, on every GPU:
+      </p>
+      <p class="lang-zh">
+        八张卡全部被自动发现。在每一张卡上，把 LabWatch 与同一瞬间采集的 <code>nvidia-smi</code>
+        逐项对比：
+      </p>
+      <table class="lang-en">
+        <thead><tr><th>Metric</th><th>Agreement over 8 GPUs</th></tr></thead>
+        <tbody>
+          <tr><td>GPU utilisation</td><td class="ok">exact (0 %, 98 %, 100 % cases all matched)</td></tr>
+          <tr><td>Memory total</td><td class="ok">exact - 49140 MiB on all eight</td></tr>
+          <tr><td>Temperature</td><td class="ok">exact (25-72 °C)</td></tr>
+          <tr><td>Power draw</td><td class="ok">exact to 1 dp (13.4 W idle, 449.8 W loaded)</td></tr>
+          <tr><td>Power limit</td><td class="ok">exact - 450.0 W</td></tr>
+        </tbody>
+      </table>
+      <table class="lang-zh">
+        <thead><tr><th>指标</th><th>8 张卡的一致性</th></tr></thead>
+        <tbody>
+          <tr><td>GPU 利用率</td><td class="ok">完全一致（0 %、98 %、100 % 各种情况均吻合）</td></tr>
+          <tr><td>显存总量</td><td class="ok">完全一致 —— 八张卡均为 49140 MiB</td></tr>
+          <tr><td>温度</td><td class="ok">完全一致（25–72 °C）</td></tr>
+          <tr><td>功耗</td><td class="ok">小数点后一位一致（空闲 13.4 W，满载 449.8 W）</td></tr>
+          <tr><td>功耗上限</td><td class="ok">完全一致 —— 450.0 W</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="lang-en">GPU process mapping on a shared, multi-user server</h3>
+      <h3 class="lang-zh">多人共享服务器上的 GPU 进程映射</h3>
+      <p class="lang-en">
+        LabWatch ran as one user and reported another user's CUDA processes - the normal case on a
+        shared lab machine. Each entry was checked against the driver and against
+        <code>/proc</code>:
+      </p>
+      <p class="lang-zh">
+        LabWatch 以一个用户的身份运行，却要报告另一个用户的 CUDA 进程 —— 这是共享实验机的常态。
+        每一条记录都与驱动和 <code>/proc</code> 做了核对：
+      </p>
+      <table class="lang-en">
+        <thead><tr><th>Field</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>PID &rarr; GPU index</td><td class="ok">correct for all 8 processes; independently confirmed because each workload's JSONL filename encodes its GPU (e.g. <code>..._gpu5_...</code> matched <code>gpu_index=5</code>)</td></tr>
+          <tr><td>GPU memory per process</td><td class="ok">0 MiB difference against <code>nvidia-smi --query-compute-apps</code></td></tr>
+          <tr><td>Username</td><td class="ok">matched <code>/proc/&lt;pid&gt;</code> ownership, including other users (<code>niuyizhuo</code>, <code>lipeilang</code>)</td></tr>
+          <tr><td>Command line</td><td class="ok">full 1018-byte command line, including all arguments</td></tr>
+          <tr><td>Runtime</td><td class="ok">matched <code>/proc</code> start time to the second</td></tr>
+          <tr><td>CPU %</td><td class="ok">~100 % per process, consistent with <code>ps</code> reporting 107-110 %</td></tr>
+          <tr><td>Resident memory</td><td class="ok">44.1 GB, consistent with <code>ps</code> reporting 8.7 % of 503.5 GB</td></tr>
+        </tbody>
+      </table>
+      <table class="lang-zh">
+        <thead><tr><th>字段</th><th>结果</th></tr></thead>
+        <tbody>
+          <tr><td>PID &rarr; GPU 索引</td><td class="ok">8 个进程全部正确；并有独立佐证 —— 每个任务的 JSONL 文件名里编码了 GPU（如 <code>..._gpu5_...</code> 对应 <code>gpu_index=5</code>）</td></tr>
+          <tr><td>进程显存</td><td class="ok">与 <code>nvidia-smi --query-compute-apps</code> 偏差 0 MiB</td></tr>
+          <tr><td>用户名</td><td class="ok">与 <code>/proc/&lt;pid&gt;</code> 属主一致，包含其他用户（<code>niuyizhuo</code>、<code>lipeilang</code>）</td></tr>
+          <tr><td>命令行</td><td class="ok">完整 1018 字节命令行，含全部参数</td></tr>
+          <tr><td>运行时长</td><td class="ok">与 <code>/proc</code> 启动时间精确到秒一致</td></tr>
+          <tr><td>CPU %</td><td class="ok">每进程约 100 %，与 <code>ps</code> 的 107–110 % 相符</td></tr>
+          <tr><td>常驻内存</td><td class="ok">44.1 GB，与 <code>ps</code> 报的 503.5 GB 的 8.7 % 相符</td></tr>
+        </tbody>
+      </table>
+      <div class="note lang-en">
+        Cross-user visibility depends on the host's <code>/proc</code> mount options. This server
+        mounts <code>/proc</code> without <code>hidepid</code>, so user and command resolution works
+        for every process. On a host that sets <code>hidepid=2</code> those two fields degrade to
+        <code>N/A</code> while PID, GPU, VRAM and runtime keep working.
+      </div>
+      <div class="note lang-zh">
+        跨用户可见性取决于主机的 <code>/proc</code> 挂载参数。本服务器未启用 <code>hidepid</code>，
+        因此所有进程的用户名与命令行都能解析。若主机设置了 <code>hidepid=2</code>，
+        这两个字段会降级为 <code>N/A</code>，而 PID、GPU、显存与运行时长仍然可用。
+      </div>
+
+      <h3 class="lang-en">Host metric semantics</h3>
+      <h3 class="lang-zh">主机指标语义</h3>
+      <p class="lang-en">
+        Deployment was native, so CPU, RAM and disk are the host's own. The dashboard was still
+        checked against the commands an operator would run, and two real defects fell out (numbers
+        11 and 12 below).
+      </p>
+      <p class="lang-zh">
+        本次为原生部署，因此 CPU、内存、磁盘都是宿主机的真实数据。即便如此，面板仍与运维人员会
+        使用的命令做了比对，并因此发现两个真实缺陷（见下方第 11、12 条）。
+      </p>
+      <table class="lang-en">
+        <thead><tr><th>Metric</th><th>Reference</th><th>LabWatch</th></tr></thead>
+        <tbody>
+          <tr><td>CPU load average</td><td><code>uptime</code> 12.31 / 12.88 / 14.84</td><td class="ok">12.31 / 12.88 / 14.84</td></tr>
+          <tr><td>Memory used</td><td><code>free</code> 42.5 GB (8.4 %)</td><td class="ok">42.5 GB (8.4 %) after the fix</td></tr>
+          <tr><td>Filesystems</td><td><code>df</code> 6 real mounts</td><td class="ok">all 6, percentages matching <code>df</code></td></tr>
+          <tr><td>API latency under 8-GPU load</td><td>target &lt; 500 ms</td><td class="ok">0.01-0.04 s</td></tr>
+          <tr><td>API errors / 5xx</td><td>none expected</td><td class="ok">none; <code>collector_errors = 0</code></td></tr>
+        </tbody>
+      </table>
+      <table class="lang-zh">
+        <thead><tr><th>指标</th><th>参照</th><th>LabWatch</th></tr></thead>
+        <tbody>
+          <tr><td>CPU 负载均值</td><td><code>uptime</code> 12.31 / 12.88 / 14.84</td><td class="ok">12.31 / 12.88 / 14.84</td></tr>
+          <tr><td>内存已用</td><td><code>free</code> 42.5 GB（8.4 %）</td><td class="ok">修复后为 42.5 GB（8.4 %）</td></tr>
+          <tr><td>文件系统</td><td><code>df</code> 6 个真实挂载点</td><td class="ok">6 个全部显示，百分比与 <code>df</code> 一致</td></tr>
+          <tr><td>8 卡负载下 API 延迟</td><td>目标 &lt; 500 ms</td><td class="ok">0.01–0.04 s</td></tr>
+          <tr><td>API 错误 / 5xx</td><td>应为无</td><td class="ok">无；<code>collector_errors = 0</code></td></tr>
+        </tbody>
+      </table>
+
+      <figure>
+        <img src="images/hero-labserver.png" alt="LabWatch on the 8-GPU lab server" />
+        <figcaption class="lang-en">The real research server: 8 × RTX 4090, live experimental load, and the filesystem panel flagging <code>/nfs-data1</code> at 98.4 % in red - the defect that only a real server could reveal.</figcaption>
+        <figcaption class="lang-zh">真实科研服务器：8 × RTX 4090、正在跑实验，文件系统面板把 98.4 % 的 <code>/nfs-data1</code> 标红 —— 这个缺陷只有真实服务器才能暴露。</figcaption>
+      </figure>
+      <figure>
+        <img src="images/gpu-cards-labserver.png" alt="Eight GPU cards" />
+        <figcaption class="lang-en">Eight GPU cards render cleanly with no overflow, mixing busy (100 %, 447 W, 69 °C) and idle (0 %, 15 W, 31 °C) devices.</figcaption>
+        <figcaption class="lang-zh">八张 GPU 卡片排布干净、无溢出，繁忙（100 %、447 W、69 °C）与空闲（0 %、15 W、31 °C）设备对比清晰。</figcaption>
+      </figure>
+      <figure>
+        <img src="images/process-table-labserver.png" alt="GPU process table on the lab server" />
+        <figcaption class="lang-en">Another user's eight CUDA processes, each mapped to its GPU, with username, full command line, CPU %, RAM and runtime.</figcaption>
+        <figcaption class="lang-zh">其他用户的 8 个 CUDA 进程，逐个映射到对应 GPU，并给出用户名、完整命令行、CPU %、内存与运行时长。</figcaption>
+      </figure>
+      <figure>
+        <img src="images/history-1h-labserver.png" alt="History on the lab server" />
+        <figcaption class="lang-en">History from the real server: host utilisation, eight GPU utilisation traces, VRAM per GPU, and temperature.</figcaption>
+        <figcaption class="lang-zh">真实服务器的历史曲线：主机利用率、8 条 GPU 利用率轨迹、逐卡显存占用与温度。</figcaption>
+      </figure>
+      <!-- ================= 6. BUGS ================= -->
+      <h2 class="lang-en">6. Bugs found and fixed during development</h2>
+      <h2 class="lang-zh">6. 开发过程中发现并修复的缺陷</h2>
       <p class="lang-en">These were found by the tests, by looking at the rendered UI, or by comparing against the driver — not by reading code alone.</p>
       <p class="lang-zh">以下缺陷来自测试、来自观察真实渲染的界面、或来自与驱动的对比 —— 而不是仅靠阅读代码发现的。</p>
 
@@ -448,6 +620,24 @@
             <td>Primary disk detection picked the longest matching mount point, so inside a container it selected <code>/etc/resolv.conf</code> — a 2.5 GB ext4 bind mount.</td>
             <td>Found only by rendering the dashboard against the real container: the disk tile showed a config file instead of the filesystem. A plausible-looking but meaningless number is worse than no number.</td>
             <td>Ignore pseudo filesystems and container-injected file mounts, prefer the root filesystem, and otherwise take the shallowest real mount.</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>The dashboard only ever showed the root filesystem. Found on the lab server, where <code>/nfs-data1</code> was 98.4 % full while the UI reported <code>/</code> at 91.7 % and nothing else.</td>
+            <td>The disk that actually matters on a research server is usually a data volume, so the panel hid the one number that needed acting on: a 15 TB volume with 226 GB left was invisible.</td>
+            <td>Report every real filesystem by default (<code>LABWATCH_INCLUDE_ALL_MOUNTS</code>), add a filesystem panel that lists them worst-first, and give the disk tile a mount count instead of duplicating two of them.</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>Memory percentage used <code>psutil</code>&#39;s <code>total - available</code>, which counts page cache and shared memory as used. On the lab server it read <b>23.1 %</b> where <code>free</code> read <b>8.4 %</b>, because 84 GB of <code>/dev/shm</code> was in use.</td>
+            <td>A dashboard that appears to show a quarter of memory in use when the server is nearly idle teaches the operator to distrust it.</td>
+            <td>Switch to the <code>free</code> accounting (<code>total - free - buffers - cached</code>) and expose <code>free</code>, <code>cached</code> and <code>available</code> so the figure can be reconciled.</td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td>Process CPU reported <code>0.0 %</code> on the first sample after startup, because the psutil baseline was milliseconds old.</td>
+            <td>On the lab server that meant showing <code>0.0 %</code> for eight CUDA processes that <code>ps</code> reported at 107-110 %. Reporting nothing is honest; reporting zero is not.</td>
+            <td>Enforce a minimum baseline age and return no value until a real delta exists. The first sample now shows nothing, subsequent samples show about 100 %.</td>
           </tr>
         </tbody>
       </table>
@@ -515,12 +705,30 @@
             <td>只有真正对着容器渲染面板才发现：磁盘卡片显示的是一个配置文件而不是文件系统。一个看起来合理却毫无意义的数字，比没有数字更糟。</td>
             <td>排除伪文件系统与容器注入的文件挂载，优先根文件系统，否则取路径最浅的真实挂载点。</td>
           </tr>
+          <tr>
+            <td>11</td>
+            <td>面板此前只显示根文件系统。在实验服务器上发现：<code>/nfs-data1</code> 已用 98.4 %，而界面只报 <code>/</code> 的 91.7 %，其余一概不显示。</td>
+            <td>科研服务器上真正要紧的磁盘通常是数据盘，因此面板恰好隐藏了唯一需要处理的那个数字：一个还剩 226 GB 的 15 TB 卷完全不可见。</td>
+            <td>默认上报全部真实文件系统（<code>LABWATCH_INCLUDE_ALL_MOUNTS</code>）；新增按使用率降序排列的文件系统面板；磁盘卡片改为显示挂载点数量，不再重复两个。</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>内存百分比使用了 <code>psutil</code> 的 <code>total - available</code>，该口径把页缓存与共享内存算作已用。在实验服务器上它显示 <b>23.1 %</b>，而 <code>free</code> 显示 <b>8.4 %</b>，原因是 84 GB 的 <code>/dev/shm</code> 正在使用。</td>
+            <td>服务器几乎空闲时面板却像有四分之一内存压力，会让使用者逐渐不再信任这个面板。</td>
+            <td>改用 <code>free</code> 的口径（<code>total - free - buffers - cached</code>），并额外暴露 <code>free</code>、<code>cached</code>、<code>available</code> 便于核对。</td>
+          </tr>
+          <tr>
+            <td>13</td>
+            <td>启动后第一次采样中进程 CPU 报 <code>0.0 %</code>，因为 psutil 的基准只存在了几毫秒。</td>
+            <td>在实验服务器上，这意味着把 <code>ps</code> 显示 107–110 % 的八个 CUDA 进程报成 <code>0.0 %</code>。不报是诚实的，报 0 不是。</td>
+            <td>强制基准的最小存在时长，在形成真实差值前不返回数值。现在首次采样显示空，后续采样约 100 %。</td>
+          </tr>
         </tbody>
       </table>
 
       <!-- ================= 6. LIMITATIONS ================= -->
-      <h2 class="lang-en">6. Known limitations</h2>
-      <h2 class="lang-zh">6. 已知限制</h2>
+      <h2 class="lang-en">7. Known limitations</h2>
+      <h2 class="lang-zh">7. 已知限制</h2>
 
       <table class="lang-en">
         <thead><tr><th>Limitation</th><th>Reason / mitigation</th></tr></thead>
@@ -553,8 +761,8 @@
       </table>
 
       <!-- ================= 7. HYGIENE ================= -->
-      <h2 class="lang-en">7. Repository hygiene</h2>
-      <h2 class="lang-zh">7. 仓库整洁度</h2>
+      <h2 class="lang-en">8. Repository hygiene</h2>
+      <h2 class="lang-zh">8. 仓库整洁度</h2>
       <ul class="lang-en">
         <li>No scratch scripts, no <code>tmp/</code>, no <code>debug.json</code>, no stray logs. Every tracked file is source, test, documentation, deployment configuration or a referenced image.</li>
         <li>Generated and runtime artifacts are ignored: <code>backend/data/</code>, <code>*.db*</code>, <code>node_modules/</code>, <code>dist/</code>, coverage, Playwright reports, <code>.env</code>.</li>
@@ -571,8 +779,8 @@
       </ul>
 
       <!-- ================= 8. RELEASE READINESS ================= -->
-      <h2 class="lang-en">8. Release readiness</h2>
-      <h2 class="lang-zh">8. 发布就绪度</h2>
+      <h2 class="lang-en">9. Release readiness</h2>
+      <h2 class="lang-zh">9. 发布就绪度</h2>
 
       <table class="lang-en">
         <thead><tr><th>Definition-of-done item</th><th>Status</th></tr></thead>
@@ -582,7 +790,7 @@
           <tr><td>GPU process mapping works</td><td class="ok">NVML pids joined to psutil detail</td></tr>
           <tr><td>Historical charts work</td><td class="ok">1H/6H/24H, persisted in SQLite</td></tr>
           <tr><td>No-GPU failure is graceful</td><td class="ok">tested; host metrics keep working</td></tr>
-          <tr><td>Tests pass</td><td class="ok">112 + 75 + 8</td></tr>
+          <tr><td>Tests pass</td><td class="ok">121 + 77 + 8</td></tr>
           <tr><td>CI passes</td><td class="ok">lint, tests, build, E2E, Docker smoke test</td></tr>
           <tr><td>Docker works</td><td class="ok">built, smoke tested, and run with GPU passthrough</td></tr>
           <tr><td>README complete</td><td class="ok">features, quick start, architecture, config, API, limitations, roadmap (English + 中文)</td></tr>
@@ -602,7 +810,7 @@
           <tr><td>GPU 进程映射可用</td><td class="ok">NVML PID 与 psutil 信息关联</td></tr>
           <tr><td>历史图表可用</td><td class="ok">1H/6H/24H，持久化于 SQLite</td></tr>
           <tr><td>无 GPU 时优雅降级</td><td class="ok">已测试；主机指标照常工作</td></tr>
-          <tr><td>测试通过</td><td class="ok">112 + 75 + 8</td></tr>
+          <tr><td>测试通过</td><td class="ok">121 + 77 + 8</td></tr>
           <tr><td>CI 通过</td><td class="ok">lint、测试、构建、E2E、Docker 冒烟测试</td></tr>
           <tr><td>Docker 可用</td><td class="ok">已构建、已冒烟测试、已验证 GPU 直通</td></tr>
           <tr><td>README 完整</td><td class="ok">功能、快速开始、架构、配置、API、限制、路线图（英文 + 中文）</td></tr>

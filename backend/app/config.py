@@ -67,6 +67,19 @@ class Settings(BaseSettings):
     )
 
     # --- behaviour ----------------------------------------------------------
+    include_all_mounts: bool = Field(
+        default=True,
+        description=(
+            "Report every real mounted filesystem, not just the root one. On a lab "
+            "server the data volume behind a full disk is usually not the root "
+            "filesystem, so hiding it would hide the problem."
+        ),
+    )
+    max_mounts: int = Field(
+        default=8,
+        gt=0,
+        description="Safety cap on how many filesystems are reported.",
+    )
     demo_mode: bool = Field(
         default=False,
         description="Serve deterministic synthetic GPU data instead of real hardware.",

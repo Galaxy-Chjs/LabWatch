@@ -24,7 +24,12 @@ export interface CpuInfo {
 
 export interface MemoryInfo {
   total: number | null
+  /** `free`-style used: total - free - (buffers + cached), i.e. excluding page cache. */
   used: number | null
+  /** Completely unallocated memory (MemFree). */
+  free: number | null
+  /** Page cache, buffers and reclaimable slab the kernel can hand back. */
+  cached: number | null
   available: number | null
   percent: number | null
 }

@@ -150,15 +150,40 @@ class SystemCollector:
         )
 
     def memory_info(self) -> MemoryInfo:
-        """Host memory usage in bytes."""
+        """Host memory usage in bytes, using the same accounting as ``free``.
+
+        ``psutil.virtual_memory().used`` is ``total - available``, which counts
+        page cache, reclaimable slab and shared memory as used. On a GPU server
+        running ML workloads that is a large difference: measured on the lab
+        server it reported 115 GB used where ``free`` reported 52 GB, because
+        84 GB of ``/dev/shm`` was in play.
+
+        Reporting the ``free`` definition keeps the dashboard consistent with the
+        commands an operator would run, and ``cached`` is exposed so the number
+        can be reconciled. ``available`` is still the kernel's own estimate of
+        what a new workload could claim.
+        """
         vm = _safe(psutil.virtual_memory, None, "virtual_memory")
         if vm is None:
             return MemoryInfo()
+
+        total = int(vm.total)
+        free = int(getattr(vm, "free", 0) or 0)
+        buffers = int(getattr(vm, "buffers", 0) or 0)
+        cached_raw = int(getattr(vm, "cached", 0) or 0)
+        cached = cached_raw + buffers
+        # ``free`` classifies buffers and page cache as cache, and excludes both
+        # from "used"; clamp so subtracting can never produce a negative value.
+        used = max(0, total - free - cached)
+        percent = round(used / total * 100.0, 1) if total else None
+
         return MemoryInfo(
-            total=int(vm.total),
-            used=int(vm.used),
+            total=total,
+            used=used,
+            free=free,
+            cached=cached,
             available=int(vm.available),
-            percent=round(float(vm.percent), 1),
+            percent=percent,
         )
 
     # -- disk --------------------------------------------------------------
@@ -258,7 +283,7 @@ class SystemCollector:
         return disks
 
     # -- aggregate ---------------------------------------------------------
-    def collect(self, include_all_mounts: bool = False) -> SystemStatus:
+    def collect(self, include_all_mounts: bool = False, max_mounts: int = 8) -> SystemStatus:
         """Collect one full host sample."""
         now = time.time()
         host = self.host_info()
@@ -270,6 +295,6 @@ class SystemCollector:
             uptime_seconds=uptime,
             cpu=self.cpu_info(),
             memory=self.memory_info(),
-            disks=self.disk_info(include_all_mounts=include_all_mounts),
+            disks=self.disk_info(include_all_mounts=include_all_mounts, max_mounts=max_mounts),
             collected_at=now,
         )

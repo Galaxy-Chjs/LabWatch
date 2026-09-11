@@ -285,14 +285,53 @@ class DemoCollector:
         return {int(spec["index"]): str(spec["name"]) for spec in DEMO_GPUS}
 
     # -- host --------------------------------------------------------------
-    def collect_system(self) -> SystemStatus:
-        """Synthetic host sample."""
+    def collect_system(self, include_all_mounts: bool = True) -> SystemStatus:
+        """Synthetic host sample.
+
+        Args:
+            include_all_mounts: when false, report only the primary filesystem,
+                mirroring the real collector's behaviour.
+        """
         now = time.time()
         load = _load(now)
         cpu = round(_clamp(24.0 * load + 9.0 * _wave(90, 0.4, now) + _noise(now, 1, 4.0), 1.0, 99.0), 1)
         mem_used = int(self.memory_total * _memory_fraction(now))
         disk_used = int(self.disk_total * _disk_fraction(now))
         data_used = int(4 * _TB * _disk_data_fraction(now))
+
+        disks = [
+            DiskInfo(
+                device="/dev/nvme0n1p2",
+                mountpoint="/",
+                fstype="ext4",
+                total=self.disk_total,
+                used=disk_used,
+                free=self.disk_total - disk_used,
+                percent=round(disk_used / self.disk_total * 100.0, 1),
+                is_primary=True,
+            ),
+        ]
+        if include_all_mounts:
+            disks.append(
+                DiskInfo(
+                    device="/dev/nvme1n1p1",
+                    mountpoint="/data",
+                    fstype="ext4",
+                    total=4 * _TB,
+                    used=data_used,
+                    free=4 * _TB - data_used,
+                    percent=round(data_used / (4 * _TB) * 100.0, 1),
+                    is_primary=False,
+                )
+            )
+
+        # Memory mirrors the real collector's `free`-style accounting so the demo
+        # dashboard shows the same shape as production: a used figure that
+        # excludes page cache, plus the cache and available breakdown.
+        mem_cached = int(self.memory_total * 0.30)
+        mem_free = max(0, self.memory_total - mem_used - mem_cached)
+        mem_percent = round(mem_used / self.memory_total * 100.0, 1)
+
         return SystemStatus(
             host=HostInfo(
                 hostname=self.hostname,
@@ -319,31 +358,12 @@ class DemoCollector:
             memory=MemoryInfo(
                 total=self.memory_total,
                 used=mem_used,
+                free=mem_free,
+                cached=mem_cached,
                 available=self.memory_total - mem_used,
-                percent=round(mem_used / self.memory_total * 100.0, 1),
+                percent=mem_percent,
             ),
-            disks=[
-                DiskInfo(
-                    device="/dev/nvme0n1p2",
-                    mountpoint="/",
-                    fstype="ext4",
-                    total=self.disk_total,
-                    used=disk_used,
-                    free=self.disk_total - disk_used,
-                    percent=round(disk_used / self.disk_total * 100.0, 1),
-                    is_primary=True,
-                ),
-                DiskInfo(
-                    device="/dev/nvme1n1p1",
-                    mountpoint="/data",
-                    fstype="ext4",
-                    total=4 * _TB,
-                    used=data_used,
-                    free=4 * _TB - data_used,
-                    percent=round(data_used / (4 * _TB) * 100.0, 1),
-                    is_primary=False,
-                ),
-            ],
+            disks=disks,
             collected_at=now,
             demo=True,
         )

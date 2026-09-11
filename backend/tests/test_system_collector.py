@@ -48,6 +48,65 @@ def test_memory_used_never_exceeds_total(collector: SystemCollector):
         assert 0.0 <= memory.percent <= 100.0
 
 
+def test_memory_uses_the_free_command_accounting(collector: SystemCollector, monkeypatch):
+    """Regression from the lab server.
+
+    ``psutil.virtual_memory().used`` is ``total - available``, which counts page
+    cache and shared memory as used. On the lab server that reported 115 GB used
+    where ``free`` reported 52 GB, because 84 GB of /dev/shm was in use. The
+    dashboard must match the command an operator would run.
+    """
+    fake = SimpleNamespace(
+        total=500 * 1024**3,
+        available=380 * 1024**3,
+        free=2 * 1024**3,
+        buffers=5 * 1024**3,
+        cached=465 * 1024**3,
+        used=120 * 1024**3,
+        percent=24.0,
+    )
+    monkeypatch.setattr(system_module.psutil, "virtual_memory", lambda: fake)
+
+    memory = collector.memory_info()
+
+    # free-style used = total - free - (buffers + cached)
+    assert memory.used == 500 * 1024**3 - 2 * 1024**3 - (5 * 1024**3 + 465 * 1024**3)
+    assert memory.cached == (5 + 465) * 1024**3
+    assert memory.free == 2 * 1024**3
+    assert memory.available == 380 * 1024**3
+    assert memory.percent == pytest.approx(5.6, abs=0.1)
+    # ...and specifically NOT psutil's own figure.
+    assert memory.percent != pytest.approx(24.0, abs=0.5)
+
+
+def test_memory_never_reports_negative_used(collector: SystemCollector, monkeypatch):
+    """A host whose cache exceeds total - free must not produce a negative value."""
+    fake = SimpleNamespace(
+        total=100 * 1024**3,
+        available=90 * 1024**3,
+        free=1 * 1024**3,
+        buffers=0,
+        cached=200 * 1024**3,
+        used=10 * 1024**3,
+        percent=10.0,
+    )
+    monkeypatch.setattr(system_module.psutil, "virtual_memory", lambda: fake)
+
+    memory = collector.memory_info()
+    assert memory.used == 0
+
+
+def test_memory_without_buffers_attribute(collector: SystemCollector, monkeypatch):
+    """Platforms that omit ``buffers`` (Windows) still produce a value."""
+    fake = SimpleNamespace(total=16 * 1024**3, available=8 * 1024**3, free=4 * 1024**3, cached=2 * 1024**3)
+    monkeypatch.setattr(system_module.psutil, "virtual_memory", lambda: fake)
+
+    memory = collector.memory_info()
+    assert memory.used == 16 * 1024**3 - 4 * 1024**3 - 2 * 1024**3
+    assert memory.cached == 2 * 1024**3
+    assert memory.percent == pytest.approx(62.5, abs=0.1)
+
+
 def test_primary_mount_is_stable(collector: SystemCollector):
     first = collector.primary_mount()
     second = collector.primary_mount()
@@ -74,6 +133,35 @@ def test_include_all_mounts_does_not_duplicate(collector: SystemCollector):
 def test_max_mounts_is_respected(collector: SystemCollector):
     disks = collector.disk_info(include_all_mounts=True, max_mounts=1)
     assert len(disks) == 1
+
+
+def test_collect_forwards_max_mounts(collector: SystemCollector):
+    status = collector.collect(include_all_mounts=True, max_mounts=2)
+    assert len(status.disks) <= 2
+
+
+def test_lab_server_style_mounts_are_all_reported(monkeypatch):
+    """Regression from the lab server: the data volume was invisible.
+
+    The dashboard showed only ``/`` (92 % full) while ``/nfs-data1`` sat at 98.5 %
+    full. Reporting every real mount is the default now.
+    """
+    partitions = [
+        _partition("/", "ext4", "/dev/sda2"),
+        _partition("/nfs-data1", "ext4", "/dev/sdb"),
+        _partition("/nfs-data2", "ext4", "/dev/sdc1"),
+        _partition("/nfs-data3", "xfs", "/dev/sdd"),
+        _partition("/boot/efi", "vfat", "/dev/sda1"),
+        _partition("/sys/firmware/efi/efivars", "efivarfs", "efivarfs"),
+    ]
+    monkeypatch.setattr(system_module.psutil, "disk_partitions", lambda *_a, **_k: partitions)
+    fresh = SystemCollector()
+
+    mountpoints = [disk.mountpoint for disk in fresh.collect(include_all_mounts=True).disks]
+
+    for expected in ("/", "/nfs-data1", "/nfs-data2", "/nfs-data3", "/boot/efi"):
+        assert expected in mountpoints
+    assert "/sys/firmware/efi/efivars" not in mountpoints
 
 
 def test_load_average_is_none_when_unsupported(collector: SystemCollector, monkeypatch):

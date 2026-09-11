@@ -34,10 +34,22 @@ class CpuInfo(BaseModel):
 
 
 class MemoryInfo(BaseModel):
-    """Host memory usage in bytes."""
+    """Host memory usage in bytes.
+
+    ``used``/``percent`` deliberately follow what ``free`` reports as
+    *available* memory (``MemAvailable`` minus what is genuinely in use) rather
+    than the kernel's ``MemFree``. On a busy server most of RAM holds page cache
+    and reclaimable slab, so ``MemFree`` alone would suggest the machine is full
+    when it is not.
+    """
 
     total: int | None = None
     used: int | None = None
+    free: int | None = Field(None, description="Completely unallocated memory (MemFree).")
+    cached: int | None = Field(
+        None,
+        description="Page cache, buffers and reclaimable slab, i.e. memory the kernel can hand back.",
+    )
     available: int | None = None
     percent: float | None = None
 

@@ -60,6 +60,9 @@ LabWatch 把这些全部放在一个每两秒自动刷新的页面上。
 <td colspan="2"><img src="docs/images/hero-light.png" alt="LabWatch 浅色主题" width="100%"><br><sub><b>浅色主题</b> —— 相同信息密度，不同底色</sub></td>
 </tr>
 <tr>
+<td colspan="2"><img src="docs/images/hero-labserver.png" alt="LabWatch 监控 8 张 RTX 4090 科研服务器" width="100%"><br><sub><b>真实科研服务器</b> —— 8 张 RTX 4090、正在跑实验，文件系统面板把 98.4 % 的数据盘标红</sub></td>
+</tr>
+<tr>
 <td colspan="2"><img src="docs/images/hero-real.png" alt="LabWatch 读取真实 RTX 4060" width="100%"><br><sub><b>真实硬件，非演示数据</b> —— 通过 NVML 读取的 RTX 4060，以及无进程占用显存时的空状态</sub></td>
 </tr>
 </table>
@@ -135,7 +138,7 @@ labwatch/
 │   │   ├── database.py     # SQLAlchemy 模型：host_samples, gpu_samples
 │   │   ├── schemas.py      # Pydantic 响应模型
 │   │   └── main.py         # 应用工厂、lifespan、静态前端挂载
-│   ├── tests/              # 112 个 pytest 测试
+│   ├── tests/              # 121 个 pytest 测试
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
@@ -204,10 +207,10 @@ curl -s localhost:8000/api/overview | jq '.gpus.gpus[] | {index, utilization_per
 ## 测试
 
 ```bash
-# 后端：112 个测试，含采集器各种失败路径
+# 后端：121 个测试，含采集器各种失败路径
 cd backend && pip install -r requirements-dev.txt && pytest
 
-# 前端：75 个测试
+# 前端：77 个测试
 cd frontend && npm install && npm run test
 
 # 浏览器端到端：8 个测试，自动拉起演示后端与开发服务器

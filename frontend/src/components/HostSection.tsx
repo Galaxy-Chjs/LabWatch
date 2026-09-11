@@ -56,8 +56,41 @@ function PercentReading({ percent }: { percent: number | null | undefined }) {
   )
 }
 
-function extraMounts(disks: DiskInfo[], primary: DiskInfo | undefined): DiskInfo[] {
-  return disks.filter((disk) => disk !== primary).slice(0, 2)
+/**
+ * Every reported filesystem, most at-risk first.
+ *
+ * Ordering by usage descending means a nearly-full data volume is the first row
+ * rather than something hidden behind the primary disk - which is exactly the
+ * case that matters on a lab server.
+ */
+function filesystemsByRisk(disks: DiskInfo[], primary: DiskInfo | undefined): DiskInfo[] {
+  return [...disks.filter((disk) => disk !== primary)].sort(
+    (a, b) => (b.percent ?? -1) - (a.percent ?? -1),
+  )
+}
+
+function FilesystemRow({ disk }: { disk: DiskInfo }) {
+  const level = levelForPercent(disk.percent)
+  return (
+    <div
+      className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-1.5 sm:flex-nowrap"
+      title={disk.device}
+    >
+      <span className="lw-num w-full shrink-0 truncate text-xs text-ink sm:w-56">{disk.mountpoint}</span>
+      <span className="min-w-[80px] flex-1">
+        <Meter percent={disk.percent} />
+      </span>
+      <span className="lw-num w-14 shrink-0 text-right text-xs text-muted">
+        {formatBytes(disk.free)} free
+      </span>
+      <span className="lw-num w-20 shrink-0 text-right text-xs text-faint">
+        {formatBytesPair(disk.used, disk.total, 0)}
+      </span>
+      <span className={`lw-num w-14 shrink-0 text-right text-xs ${textColorForLevel(level)}`}>
+        {formatPercent(disk.percent)}
+      </span>
+    </div>
+  )
 }
 
 export function HostSection({ system }: HostSectionProps) {
@@ -66,7 +99,6 @@ export function HostSection({ system }: HostSectionProps) {
   const host = system?.host
   const disks = system?.disks ?? []
   const primary = disks.find((disk) => disk.is_primary) ?? disks[0]
-  const extras = extraMounts(disks, primary)
 
   return (
     <section data-testid="host-section" className="flex flex-col gap-3">
@@ -97,6 +129,8 @@ export function HostSection({ system }: HostSectionProps) {
           </p>
           <Meter percent={memory?.percent} className="mt-2" />
           <dl className="mt-3 flex flex-1 flex-col gap-1.5">
+            <KeyValue label="Free" value={formatBytes(memory?.free)} />
+            <KeyValue label="Cache" value={formatBytes(memory?.cached)} title="page cache, buffers, reclaimable slab" />
             <KeyValue label="Available" value={formatBytes(memory?.available)} />
             <KeyValue label="Total" value={formatBytes(memory?.total)} />
           </dl>
@@ -114,14 +148,11 @@ export function HostSection({ system }: HostSectionProps) {
           <dl className="mt-3 flex flex-1 flex-col gap-1.5">
             <KeyValue label="Type" value={primary?.fstype ?? NA} />
             <KeyValue label="Free" value={formatBytes(primary?.free)} />
-            {extras.map((disk) => (
-              <KeyValue
-                key={`${disk.device}:${disk.mountpoint}`}
-                label={disk.mountpoint}
-                value={formatPercent(disk.percent)}
-                title={disk.device}
-              />
-            ))}
+            <KeyValue
+              label="Mounts"
+              value={String(disks.length)}
+              title="every filesystem is listed below"
+            />
           </dl>
         </Tile>
 
@@ -137,6 +168,28 @@ export function HostSection({ system }: HostSectionProps) {
           </dl>
         </Tile>
       </div>
+
+      {/* Filesystems ------------------------------------------------------
+          Every reported mount gets a row, worst first. The disk tile above can
+          only show the primary filesystem, which on a lab server is usually not
+          the one about to fill up. */}
+      {system ? (
+        <div className="lw-card px-3.5 py-3" data-testid="filesystems">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="lw-label">Filesystems</span>
+            <span className="lw-num text-xs text-faint">
+              {disks.length === 1 ? '1 mount' : `${disks.length} mounts`}
+            </span>
+          </div>
+          <div className="mt-1.5 flex flex-col divide-y divide-line">
+            {[primary, ...filesystemsByRisk(disks, primary)]
+              .filter((disk): disk is DiskInfo => Boolean(disk))
+              .map((disk) => (
+                <FilesystemRow key={`${disk.device}:${disk.mountpoint}`} disk={disk} />
+              ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }
