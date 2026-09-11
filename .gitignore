@@ -60,6 +60,7 @@ vscode-extension/out/
 
 # Playwright's demo data directory
 .e2e-data/
+*commit-msg*.txt
 vscode-extension/*.vsix
 .venv-test/
 dist-wheel/
