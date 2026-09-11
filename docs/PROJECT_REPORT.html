@@ -636,13 +636,16 @@ labwatch stop / open / version</code></pre>
         bundling the dashboard inside the package made the SPA fallback answer unknown
         <code>/api/*</code> paths with HTTP 200 and a page of HTML, so an API typo started
         looking like success. That is precisely the class of bug that appears when a
-        development-only deployment becomes a product.
+        development-only deployment becomes a product. Two further entries, 18 and 19, come
+        from publishing rather than from the product: a PyPI name that was already taken, and
+        a CI job that linted a directory the refactor had deleted.
       </p>
       <p class="lang-zh">
         有四个问题只有在"变成可安装的工具"之后才会出现，列在下方第 14–17 条。其中最有意思的一个
         甚至不算代码缺陷：把面板打进包里之后，SPA 兜底路由开始把未知的 <code>/api/*</code>
         返回成 HTTP 200 + 一页 HTML，于是一个 API 拼写错误看起来像调用成功。这正是"开发环境专用部署"
-        变成"产品"时才会冒出来的那一类问题。
+        变成"产品"时才会冒出来的那一类问题。另有第 18、19 两条来自"发布"而非"产品"本身：
+        一个已被占用的 PyPI 名字，以及一个在重构后仍然 lint 已删除目录的 CI 任务。
       </p>
 
       <h3 class="lang-en">Where it was validated</h3>
@@ -765,6 +768,17 @@ labwatch stop / open / version</code></pre>
             <td>A structural refactor like this breaks imports silently until an affected path runs; the failures surfaced only when the CLI was exercised.</td>
             <td><code>scripts/check-imports.py</code> resolves every relative import against the files that exist and runs in CI.</td>
           </tr>
+          <tr>
+            <td>18</td>
+            <td>The project was prepared to publish to PyPI as <code>labwatch</code> — a name that is already taken there by an unrelated homelab CLI (<code>rbretschneider/labwatch_cli</code>, 49 releases). The availability check had only covered GitHub.</td>
+            <td>The most damaging possible packaging bug: <code>uvx labwatch</code> would either fail outright at upload time or, worse, silently install and run a stranger&#39;s tool for anyone following the README.</td>
+            <td>Publish under the distribution name <code>labwatch-lite</code>, keep the console command and import package as <code>labwatch</code>, explain the difference in both READMEs, and add a release-workflow guard that refuses to build or upload unless <code>pyproject.toml</code> declares <code>labwatch-lite</code> and <code>dist/</code> contains <code>labwatch_lite-*</code> artifacts.</td>
+          </tr>
+          <tr>
+            <td>19</td>
+            <td>The CI backend job ran <code>ruff check labwatch backend</code> after the old <code>backend/</code> directory was removed during the packaging refactor.</td>
+            <td>A red build with no real lint problem behind it: the failure was "file not found", which sends you reading code instead of the workflow. The <code>package</code> and <code>e2e</code> jobs never ran, so the wheel was not verified either.</td>
+            <td>Correct the invocation to <code>ruff check labwatch tests</code> and add <code>scripts/check-workflow-paths.py</code>, which extracts path-looking arguments from every workflow step and fails when one does not exist.</td>
           </tr>
           <tr>
             <td>11</td>
@@ -874,6 +888,17 @@ labwatch stop / open / version</code></pre>
             <td>这类结构重构会静默破坏导入，直到受影响的路径被执行；这里是靠实际跑 CLI 才暴露的。</td>
             <td>新增 <code>scripts/check-imports.py</code>，把每个相对导入与真实存在的文件做解析校验，并纳入 CI。</td>
           </tr>
+          <tr>
+            <td>18</td>
+            <td>项目本来准备以 <code>labwatch</code> 为名发布到 PyPI —— 但该名字已被一个无关的自建服务器 CLI 占用（<code>rbretschneider/labwatch_cli</code>，49 个版本）。此前的可用性检查只覆盖了 GitHub。</td>
+            <td>这是打包环节最严重的一类缺陷：<code>uvx labwatch</code> 要么在上传时直接失败，要么更糟 —— 让照 README 操作的人静默装上并运行别人的工具。</td>
+            <td>改用发行名 <code>labwatch-lite</code> 发布，命令行命令与导入包名仍为 <code>labwatch</code>；在两份 README 中说明差异；并在发布工作流中加入守卫：若 <code>pyproject.toml</code> 声明的不是 <code>labwatch-lite</code>，或 <code>dist/</code> 中没有 <code>labwatch_lite-*</code> 产物，则拒绝构建与上传。</td>
+          </tr>
+          <tr>
+            <td>19</td>
+            <td>打包重构删除了旧的 <code>backend/</code> 目录后，CI 的后端任务仍在执行 <code>ruff check labwatch backend</code>。</td>
+            <td>红灯背后并没有真实的 lint 问题：报错是"找不到文件"，会让人去读代码而不是读工作流。同时 <code>package</code> 与 <code>e2e</code> 任务没有运行，等于 wheel 也没被验证。</td>
+            <td>把命令改为 <code>ruff check labwatch tests</code>，并新增 <code>scripts/check-workflow-paths.py</code>：从每个工作流步骤中抽取形似路径的参数，一旦不存在即失败。</td>
           </tr>
           <tr>
             <td>11</td>
@@ -969,6 +994,8 @@ labwatch stop / open / version</code></pre>
           <tr><td>Demo mode works</td><td class="ok">and is clearly labelled in the UI</td></tr>
           <tr><td>No major console or API errors</td><td class="ok">asserted by the E2E suite and the capture script</td></tr>
           <tr><td>Repository clean</td><td class="ok">see section 7</td></tr>
+          <tr><td>Publishable name available on PyPI</td><td class="ok">published as distribution <code>labwatch-lite</code>; the console command stays <code>labwatch</code></td></tr>
+          <tr><td>Sources pushed</td><td class="ok">GitHub <code>main</code> at <code>989d8c1</code>, CI 6/6 green</td></tr>
         </tbody>
       </table>
 
@@ -989,6 +1016,8 @@ labwatch stop / open / version</code></pre>
           <tr><td>演示模式可用</td><td class="ok">并在界面中明确标注</td></tr>
           <tr><td>无重大 console / API 报错</td><td class="ok">由 E2E 套件与截图脚本断言</td></tr>
           <tr><td>仓库整洁</td><td class="ok">见第 7 节</td></tr>
+          <tr><td>PyPI 上可用的发布名</td><td class="ok">以发行名 <code>labwatch-lite</code> 发布；命令行命令仍为 <code>labwatch</code></td></tr>
+          <tr><td>源码已推送</td><td class="ok">GitHub <code>main</code> 位于 <code>989d8c1</code>，CI 6/6 全绿</td></tr>
         </tbody>
       </table>
 
