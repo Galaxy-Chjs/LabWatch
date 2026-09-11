@@ -1,9 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LabWatch Lite — Project Report v1.0.0</title>
+    <title>LabWatch Lite — Project Report v1.0.0 / 项目汇报 v1.0.0</title>
+    <script>
+      // Apply the saved language before first paint so the report never flashes
+      // the wrong language.
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('labwatch.report.lang')
+          if (stored === 'en' || stored === 'zh') {
+            document.documentElement.setAttribute('data-lang', stored)
+            document.documentElement.setAttribute('lang', stored === 'zh' ? 'zh-CN' : 'en')
+          }
+        } catch (error) {
+          /* storage unavailable; keep the default */
+        }
+      })()
+    </script>
     <style>
       :root {
         --canvas: #0a0e14;
@@ -24,7 +39,7 @@
         margin: 0;
         background: var(--canvas);
         color: var(--ink);
-        font: 15px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        font: 15px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
         -webkit-font-smoothing: antialiased;
       }
       .wrap { max-width: 1080px; margin: 0 auto; padding: 40px 24px 96px; }
@@ -61,6 +76,11 @@
       }
       td { border-bottom: 1px solid var(--line); padding: 9px 10px; color: #cbd5e1; vertical-align: top; }
       td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+      /* Short labels in the first column read badly when Chinese wraps mid-word,
+         so keep them on one line; long prose cells still wrap normally. */
+      td:first-child { white-space: nowrap; }
+      th { white-space: nowrap; }
+      td:first-child br { display: none; }
       .ok { color: var(--ok); }
       .warn { color: var(--warn); }
       .crit { color: var(--crit); }
@@ -78,42 +98,77 @@
       footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--faint); font-size: 13px; }
       ul { color: #cbd5e1; }
       li { margin: 5px 0; }
+
+      /* --- Bilingual switching -------------------------------------------
+         Every translatable block carries lang-en or lang-zh. Only the blocks
+         matching <html data-lang> are rendered, so both languages share one
+         document and cannot drift apart into separate copies. */
+      html[data-lang='en'] .lang-zh { display: none !important; }
+      html[data-lang='zh'] .lang-en { display: none !important; }
+
+      .langbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+      .langbar .group { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+      .langbar button {
+        font: inherit; font-size: 12px; padding: 4px 14px; cursor: pointer;
+        background: var(--surface-2); color: var(--muted); border: 0;
+      }
+      .langbar button + button { border-left: 1px solid var(--line); }
+      .langbar button[aria-pressed='true'] { background: var(--accent); color: #04121c; font-weight: 600; }
+      .langbar button:hover:not([aria-pressed='true']) { color: var(--ink); }
     </style>
   </head>
   <body>
     <div class="wrap">
+      <div class="langbar">
+        <div class="group" role="group" aria-label="Report language / 报告语言">
+          <button type="button" id="lang-en" aria-pressed="true">English</button>
+          <button type="button" id="lang-zh" aria-pressed="false">简体中文</button>
+        </div>
+      </div>
+
       <header class="top">
-        <h1>LabWatch Lite — Project Report</h1>
-        <p class="sub">A lightweight self-hosted dashboard for monitoring NVIDIA GPUs and AI development servers.</p>
+        <h1>LabWatch Lite — <span class="lang-en">Project Report</span><span class="lang-zh">项目汇报</span></h1>
+        <p class="sub lang-en">A lightweight self-hosted dashboard for monitoring NVIDIA GPUs and AI development servers.</p>
+        <p class="sub lang-zh">轻量级、自托管的 NVIDIA GPU 与 AI 开发服务器监控面板。</p>
         <div class="meta">
-          <span class="chip ok">v1.0.0 release-ready</span>
-          <span class="chip">Single host · multiple GPUs</span>
-          <span class="chip">112 backend tests</span>
-          <span class="chip">75 frontend tests</span>
-          <span class="chip">8 browser E2E tests</span>
-          <span class="chip">Docker + GPU verified</span>
+          <span class="chip ok"><span class="lang-en">v1.0.0 release-ready</span><span class="lang-zh">v1.0.0 可发布</span></span>
+          <span class="chip"><span class="lang-en">Single host · multiple GPUs</span><span class="lang-zh">单机 · 多卡</span></span>
+          <span class="chip"><span class="lang-en">112 backend tests</span><span class="lang-zh">后端 112 个测试</span></span>
+          <span class="chip"><span class="lang-en">75 frontend tests</span><span class="lang-zh">前端 75 个测试</span></span>
+          <span class="chip"><span class="lang-en">8 browser E2E tests</span><span class="lang-zh">浏览器 E2E 8 个</span></span>
+          <span class="chip"><span class="lang-en">Docker + GPU verified</span><span class="lang-zh">Docker + GPU 已验证</span></span>
           <span class="chip">MIT</span>
         </div>
       </header>
 
-      <h2>1. What was built</h2>
-      <p>
+      <!-- ================= 1. WHAT WAS BUILT ================= -->
+      <h2 class="lang-en">1. What was built</h2>
+      <h2 class="lang-zh">1. 构建内容</h2>
+      <p class="lang-en">
         LabWatch answers, on one self-refreshing page, the questions that otherwise require an SSH
         session and repeated <code>nvidia-smi</code>, <code>htop</code> and <code>df -h</code> runs:
         which GPU is free, what is running on it, who owns those processes, how long they have been
         running, whether RAM or disk is about to run out, and what utilisation looked like over the
         last hour, six hours or day.
       </p>
+      <p class="lang-zh">
+        LabWatch 在一个自动刷新的页面上，回答了那些原本需要登录 SSH 并反复执行
+        <code>nvidia-smi</code>、<code>htop</code>、<code>df -h</code> 才能回答的问题：
+        哪张卡是空的、上面在跑什么、那些进程属于谁、已经跑了多久、内存或磁盘是否即将耗尽，
+        以及过去一小时、六小时、一天里的利用率是什么样。
+      </p>
 
       <div class="grid">
-        <div class="stat"><div class="v">2 s</div><div class="k">Live refresh interval</div></div>
-        <div class="stat"><div class="v">10 s</div><div class="k">History write interval</div></div>
-        <div class="stat"><div class="v">24 h</div><div class="k">Default retention</div></div>
-        <div class="stat"><div class="v">94 %</div><div class="k">Backend line coverage</div></div>
+        <div class="stat"><div class="v">2 s</div><div class="k"><span class="lang-en">Live refresh interval</span><span class="lang-zh">实时刷新间隔</span></div></div>
+        <div class="stat"><div class="v">10 s</div><div class="k"><span class="lang-en">History write interval</span><span class="lang-zh">历史写入间隔</span></div></div>
+        <div class="stat"><div class="v">24 h</div><div class="k"><span class="lang-en">Default retention</span><span class="lang-zh">默认保留时长</span></div></div>
+        <div class="stat"><div class="v">94 %</div><div class="k"><span class="lang-en">Backend line coverage</span><span class="lang-zh">后端行覆盖率</span></div></div>
       </div>
 
-      <h3>Implemented features</h3>
-      <table>
+      <h3 class="lang-en">Implemented features</h3>
+      <h3 class="lang-zh">已实现的功能</h3>
+
+      <table class="lang-en">
         <thead><tr><th>Area</th><th>Detail</th></tr></thead>
         <tbody>
           <tr><td>GPU telemetry</td><td>Utilisation, VRAM used/total and %, temperature, power draw, enforced power limit and derived %, fan, SM and memory clocks, persistence mode, process count.</td></tr>
@@ -127,55 +182,98 @@
         </tbody>
       </table>
 
-      <h2>2. Architecture</h2>
+      <table class="lang-zh">
+        <thead><tr><th>领域</th><th>细节</th></tr></thead>
+        <tbody>
+          <tr><td>GPU 遥测</td><td>利用率、显存已用/总量及百分比、温度、功耗、强制功耗上限及推导百分比、风扇、SM 与显存频率、持久化模式、进程数。</td></tr>
+          <tr><td>GPU 进程</td><td>把 NVML 计算 PID 与 psutil 关联：用户、完整命令行、CPU %、常驻内存、状态、启动时间、运行时长（人类可读与时钟两种形式）。</td></tr>
+          <tr><td>主机遥测</td><td>CPU 使用率、物理/逻辑核心数、频率、负载均值、单核明细；内存已用/总量/可用/百分比；磁盘主挂载点及可选的其他挂载点；主机名、系统、内核、平台、运行时长。</td></tr>
+          <tr><td>历史数据</td><td>主机与逐卡采样写入 SQLite（WAL 模式），后台采集器、按保留窗口清理并设行数硬上限，提供 1H/6H/24H 序列接口。</td></tr>
+          <tr><td>面板</td><td>主机卡片、每张 GPU 一张卡片、可排序/过滤/搜索的进程表、四张历史图表、带连接状态的吸顶顶栏、首屏渲染前即生效的系统/浅色/深色主题。</td></tr>
+          <tr><td>健壮性</td><td>驱动缺失、无 GPU、传感器不支持、进程消失、数据库故障，全部局部降级，而不是让页面或 API 崩掉。</td></tr>
+          <tr><td>演示模式</td><td>确定性的合成 GPU、进程与历史数据，明确标注 <strong>Demo Data</strong>，因此在没有 N 卡的机器上也能演示与测试。</td></tr>
+          <tr><td>运维</td><td>多阶段 Docker 镜像、带命名卷的 Compose 部署、环境变量配置、健康检查接口、含容器冒烟测试的 CI 流水线。</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ================= 2. ARCHITECTURE ================= -->
+      <h2 class="lang-en">2. Architecture</h2>
+      <h2 class="lang-zh">2. 架构</h2>
       <figure>
-        <img src="architecture.svg" alt="Architecture diagram" />
-        <figcaption>One host, one container, three data sources: NVML, psutil and SQLite.</figcaption>
+        <img src="architecture.svg" alt="Architecture diagram / 架构图" />
+        <figcaption class="lang-en">One host, one container, three data sources: NVML, psutil and SQLite.</figcaption>
+        <figcaption class="lang-zh">单机、单容器、三个数据源：NVML、psutil 与 SQLite。</figcaption>
       </figure>
-      <p>
+      <p class="lang-en">
         The browser polls a single aggregated endpoint (<code>/api/overview</code>) so one refresh is
         one round trip. Polling pauses while the tab is hidden. A background asyncio task samples the
         collectors every ten seconds in a worker thread (NVML and psutil are blocking) and writes to
         SQLite. NVML is initialised lazily, exactly once, behind a lock, because the library is not
         thread safe.
       </p>
-      <p>
+      <p class="lang-zh">
+        浏览器只轮询一个聚合接口（<code>/api/overview</code>），因此一次刷新只有一次往返。标签页
+        隐藏时暂停轮询。后台 asyncio 任务每十秒在工作线程中采集一次（NVML 与 psutil 都是阻塞
+        调用）并写入 SQLite。NVML 采用惰性初始化，且因为该库并非线程安全，全过程只初始化一次
+        并加锁保护。
+      </p>
+      <p class="lang-en">
         v1 deliberately has no WebSockets, no message queue, no cache layer and no authentication:
         at a two second refresh they would add operational surface without changing the experience.
       </p>
+      <p class="lang-zh">
+        v1 刻意不引入 WebSocket、消息队列、缓存层与认证：在 2 秒刷新频率下，它们只会增加运维
+        面，并不会改善使用体验。
+      </p>
 
-      <h2>3. Screenshots</h2>
-      <p>
+      <!-- ================= 3. SCREENSHOTS ================= -->
+      <h2 class="lang-en">3. Screenshots</h2>
+      <h2 class="lang-zh">3. 截图</h2>
+      <p class="lang-en">
         Captures below come from the production container image. The first two are demo mode; the
         third is the same image reading a real RTX 4060 through NVML.
       </p>
+      <p class="lang-zh">
+        以下截图全部来自生产容器镜像。前两张为演示模式；第三张是同一个镜像通过 NVML 读取真实
+        RTX 4060 的效果。
+      </p>
+
       <figure>
-        <img src="images/hero.png" alt="LabWatch dashboard" />
-        <figcaption>Demo data: host tiles, one card per GPU, the GPU process table and the start of the history section. The <strong>Demo Data</strong> chip is always visible so synthetic values cannot be mistaken for real ones.</figcaption>
+        <img src="images/hero.png" alt="LabWatch dashboard / LabWatch 面板" />
+        <figcaption class="lang-en">Demo data: host tiles, one card per GPU, the GPU process table and the start of the history section. The <strong>Demo Data</strong> chip is always visible so synthetic values cannot be mistaken for real ones.</figcaption>
+        <figcaption class="lang-zh">演示数据：主机卡片、每卡一张的 GPU 卡片、GPU 进程表以及历史区域的起始部分。界面始终显示 <strong>Demo Data</strong> 标记，避免合成数据被误认为真实数据。</figcaption>
       </figure>
       <figure>
-        <img src="images/gpu-cards.png" alt="GPU cards" />
-        <figcaption>GPU cards: the four headline metrics are readable at a glance; secondary stats are quieter.</figcaption>
+        <img src="images/gpu-cards.png" alt="GPU cards / GPU 卡片" />
+        <figcaption class="lang-en">GPU cards: the four headline metrics are readable at a glance; secondary stats are quieter.</figcaption>
+        <figcaption class="lang-zh">GPU 卡片：四项核心指标一眼可读，次要指标在视觉上更克制。</figcaption>
       </figure>
       <figure>
-        <img src="images/hero-real.png" alt="LabWatch reading a real RTX 4060" />
-        <figcaption>Real hardware, no demo data: the RTX 4060 on this development host, and the empty state rendered when nothing holds GPU memory.</figcaption>
+        <img src="images/hero-real.png" alt="LabWatch reading a real RTX 4060 / LabWatch 读取真实 RTX 4060" />
+        <figcaption class="lang-en">Real hardware, no demo data: the RTX 4060 on this development host, and the empty state rendered when nothing holds GPU memory.</figcaption>
+        <figcaption class="lang-zh">真实硬件、非演示数据：本开发机上的 RTX 4060，以及无进程占用显存时渲染出的空状态。</figcaption>
       </figure>
       <figure>
-        <img src="images/process-table.png" alt="GPU process table" />
-        <figcaption>Process table with search, per-GPU filter chips and click-to-sort columns.</figcaption>
+        <img src="images/process-table.png" alt="GPU process table / GPU 进程表" />
+        <figcaption class="lang-en">Process table with search, per-GPU filter chips and click-to-sort columns.</figcaption>
+        <figcaption class="lang-zh">进程表支持搜索、按 GPU 过滤以及点击表头排序。</figcaption>
       </figure>
       <figure>
-        <img src="images/history-1h.png" alt="History charts" />
-        <figcaption>History: host utilisation, per-GPU utilisation, VRAM as a percentage of capacity, and temperature.</figcaption>
+        <img src="images/history-1h.png" alt="History charts / 历史图表" />
+        <figcaption class="lang-en">History: host utilisation, per-GPU utilisation, VRAM as a percentage of capacity, and temperature.</figcaption>
+        <figcaption class="lang-zh">历史曲线：主机利用率、逐卡利用率、以容量百分比表示的显存占用，以及温度。</figcaption>
       </figure>
       <figure>
-        <img src="images/hero-light.png" alt="Light theme" />
-        <figcaption>Light theme, driven by the same design tokens.</figcaption>
+        <img src="images/hero-light.png" alt="Light theme / 浅色主题" />
+        <figcaption class="lang-en">Light theme, driven by the same design tokens.</figcaption>
+        <figcaption class="lang-zh">浅色主题，由同一套设计令牌驱动。</figcaption>
       </figure>
 
-      <h2>4. Tests and results</h2>
-      <table>
+      <!-- ================= 4. TESTS AND RESULTS ================= -->
+      <h2 class="lang-en">4. Tests and results</h2>
+      <h2 class="lang-zh">4. 测试与结果</h2>
+
+      <table class="lang-en">
         <thead><tr><th>Suite</th><th class="num">Tests</th><th>Result</th><th>Notes</th></tr></thead>
         <tbody>
           <tr><td>Backend (pytest)</td><td class="num">112</td><td class="ok">pass</td><td>94 % line coverage over <code>app/</code>; NVML replaced by a configurable fake. Verified stable over eight consecutive runs.</td></tr>
@@ -187,11 +285,29 @@
           <tr><td>Docker image</td><td class="num">—</td><td class="ok">pass</td><td>Multi-stage build, 302 MB, runs as uid 10001.</td></tr>
           <tr><td>Container smoke test</td><td class="num">—</td><td class="ok">pass</td><td>Healthy in 2 s; dashboard, assets, SPA fallback and every API endpoint verified inside the container.</td></tr>
           <tr><td>Container with GPU passthrough</td><td class="num">—</td><td class="ok">pass</td><td><code>--gpus all</code>: NVML initialised in-container (driver 581.80) and reported the real device.</td></tr>
+          <tr><td>7 hour sustained run</td><td class="num">—</td><td class="ok">pass</td><td>11541 writes, 0 collector failures, sample interval held at 2 s without drift.</td></tr>
         </tbody>
       </table>
 
-      <h3>Collector failure modes explicitly covered</h3>
-      <ul>
+      <table class="lang-zh">
+        <thead><tr><th>套件</th><th class="num">数量</th><th>结果</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>后端（pytest）</td><td class="num">112</td><td class="ok">通过</td><td><code>app/</code> 行覆盖率 94%；用可配置的仿真实现替换 NVML。连续 8 次运行均稳定。</td></tr>
+          <tr><td>前端（Vitest）</td><td class="num">75</td><td class="ok">通过</td><td>格式化、主题、API 客户端、主机卡片、GPU 卡片、进程表排序/过滤/搜索、空状态与无 GPU 状态。</td></tr>
+          <tr><td>端到端（Playwright）</td><td class="num">8</td><td class="ok">通过</td><td>真实 Chromium 对接演示后端与开发服务器；同时断言零 console 错误。</td></tr>
+          <tr><td>Ruff 静态检查</td><td class="num">—</td><td class="ok">干净</td><td><code>ruff check app tests</code></td></tr>
+          <tr><td>TypeScript</td><td class="num">—</td><td class="ok">干净</td><td><code>tsc -b</code>，开启 <code>strict</code>、<code>noUnusedLocals</code>、<code>noUnusedParameters</code>。</td></tr>
+          <tr><td>生产构建</td><td class="num">—</td><td class="ok">通过</td><td><code>vite build</code>；gzip 前约 633 kB JS / 21 kB CSS。</td></tr>
+          <tr><td>Docker 镜像</td><td class="num">—</td><td class="ok">通过</td><td>多阶段构建，302 MB，以 uid 10001 运行。</td></tr>
+          <tr><td>容器冒烟测试</td><td class="num">—</td><td class="ok">通过</td><td>2 秒内健康；在容器内验证面板、静态资源、SPA 回退路由以及全部 API 接口。</td></tr>
+          <tr><td>容器 + GPU 直通</td><td class="num">—</td><td class="ok">通过</td><td><code>--gpus all</code>：容器内成功初始化 NVML（驱动 581.80）并读到真实设备。</td></tr>
+          <tr><td>7 小时持续运行</td><td class="num">—</td><td class="ok">通过</td><td>写入 11541 次，采集失败 0 次，采样间隔稳定保持 2 秒无漂移。</td></tr>
+        </tbody>
+      </table>
+
+      <h3 class="lang-en">Collector failure modes explicitly covered</h3>
+      <h3 class="lang-zh">明确覆盖的采集器失败路径</h3>
+      <ul class="lang-en">
         <li>NVML shared library missing, <code>nvmlInit</code> raising, and <code>nvidia-ml-py</code> not installed</li>
         <li>A driver that initialises but reports zero devices</li>
         <li>Unsupported power, fan, clock, persistence and memory sensors, each degrading to <code>N/A</code> independently</li>
@@ -203,34 +319,74 @@
         <li>A database that is gone (health reports <code>degraded</code> rather than crashing)</li>
         <li>Collector sample and write failures not killing the background loop</li>
       </ul>
+      <ul class="lang-zh">
+        <li>NVML 共享库缺失、<code>nvmlInit</code> 抛异常、以及 <code>nvidia-ml-py</code> 未安装</li>
+        <li>驱动初始化成功但报告 0 个设备</li>
+        <li>功耗、风扇、频率、持久化、显存等传感器不支持，各自独立降级为 <code>N/A</code></li>
+        <li>进程在 NVML 查询与 psutil 查询之间退出</li>
+        <li>NVML 的"显存未知"哨兵值不会被当成真实数值上报</li>
+        <li>同一 PID 出现在两张卡、PID 重复、以及单次采样的进程数上限</li>
+        <li>psutil 在读取内存、磁盘或 CPU 时抛异常；分区表缺失；<code>getloadavg</code> 不存在或不可调用</li>
+        <li>伪文件系统与容器注入的单文件挂载被识别为非磁盘</li>
+        <li>数据库不可用（健康检查报告 <code>degraded</code>，而不是崩溃）</li>
+        <li>采集与写入失败不会终止后台循环</li>
+      </ul>
 
-      <h3>Verification against real hardware</h3>
-      <p>
+      <h3 class="lang-en">Verification against real hardware</h3>
+      <h3 class="lang-zh">真实硬件验证</h3>
+      <p class="lang-en">
         The development host has an NVIDIA GeForce RTX 4060 Laptop GPU (driver 581.80, CUDA driver
         13.0). LabWatch's readings were compared against <code>nvidia-smi</code> both natively and
         from inside the container.
       </p>
-      <table>
+      <p class="lang-zh">
+        开发机配备 NVIDIA GeForce RTX 4060 Laptop GPU（驱动 581.80，CUDA 驱动 13.0）。LabWatch 的
+        读数在本机与容器内分别与 <code>nvidia-smi</code> 做过对比。
+      </p>
+
+      <table class="lang-en">
         <thead><tr><th>Metric</th><th>nvidia-smi</th><th>LabWatch</th><th>Verdict</th></tr></thead>
         <tbody>
-          <tr><td>Utilisation</td><td class="num">9 % / 40 %</td><td class="num">10 % / 40 %</td><td class="ok">within one sample</td></tr>
+          <tr><td>Utilisation</td><td class="num">9 % / 27 % / 40 %</td><td class="num">10 % / 28 % / 40 %</td><td class="ok">within one sample</td></tr>
           <tr><td>VRAM total</td><td class="num">8188 MiB</td><td class="num">8188 MiB</td><td class="ok">exact</td></tr>
           <tr><td>VRAM used</td><td class="num">1369 MiB</td><td class="num">1599 MiB</td><td class="ok">within sample skew</td></tr>
-          <tr><td>Temperature</td><td class="num">58 °C / 71 °C</td><td class="num">57 °C / 71 °C</td><td class="ok">within one sample</td></tr>
-          <tr><td>Power draw</td><td class="num">3.95 W</td><td class="num">4.0 W</td><td class="ok">exact to 1 dp</td></tr>
+          <tr><td>Temperature</td><td class="num">58 °C / 48 °C / 71 °C</td><td class="num">57 °C / 47 °C / 71 °C</td><td class="ok">within one sample</td></tr>
+          <tr><td>Power draw</td><td class="num">3.95 W / 7.82 W</td><td class="num">4.0 W / 7.9 W</td><td class="ok">exact to 1 dp</td></tr>
           <tr><td>Power limit</td><td class="num">[N/A]</td><td class="num">N/A</td><td class="ok">correctly absent</td></tr>
         </tbody>
       </table>
-      <p>
+
+      <table class="lang-zh">
+        <thead><tr><th>指标</th><th>nvidia-smi</th><th>LabWatch</th><th>判定</th></tr></thead>
+        <tbody>
+          <tr><td>利用率</td><td class="num">9 % / 27 % / 40 %</td><td class="num">10 % / 28 % / 40 %</td><td class="ok">单次采样误差内</td></tr>
+          <tr><td>显存总量</td><td class="num">8188 MiB</td><td class="num">8188 MiB</td><td class="ok">完全一致</td></tr>
+          <tr><td>显存占用</td><td class="num">1369 MiB</td><td class="num">1599 MiB</td><td class="ok">采样偏差内</td></tr>
+          <tr><td>温度</td><td class="num">58 °C / 48 °C / 71 °C</td><td class="num">57 °C / 47 °C / 71 °C</td><td class="ok">单次采样误差内</td></tr>
+          <tr><td>功耗</td><td class="num">3.95 W / 7.82 W</td><td class="num">4.0 W / 7.9 W</td><td class="ok">小数点后一位一致</td></tr>
+          <tr><td>功耗上限</td><td class="num">[N/A]</td><td class="num">N/A</td><td class="ok">正确显示为不支持</td></tr>
+        </tbody>
+      </table>
+
+      <p class="lang-en">
         The GPU process list matches <code>nvidia-smi --query-compute-apps</code> pid for pid, with
         additional user, command, CPU and runtime detail that <code>nvidia-smi</code> does not
         provide. History was left running and read back: 361 host points at a 10 second interval for
         the 1H window, and an 8641 point 24H series after a restart.
       </p>
+      <p class="lang-zh">
+        GPU 进程列表与 <code>nvidia-smi --query-compute-apps</code> 的 PID 完全一致，并额外提供
+        <code>nvidia-smi</code> 没有的用户、命令行、CPU 与运行时长。历史数据经长时间运行后回读：
+        1H 窗口在 10 秒间隔下得到 361 个主机采样点，重启后 24H 序列有 8641 个点。
+      </p>
 
-      <h2>5. Bugs found and fixed during development</h2>
-      <p>These were found by the tests, by looking at the rendered UI, or by comparing against the driver — not by reading code alone.</p>
-      <table>
+      <!-- ================= 5. BUGS ================= -->
+      <h2 class="lang-en">5. Bugs found and fixed during development</h2>
+      <h2 class="lang-zh">5. 开发过程中发现并修复的缺陷</h2>
+      <p class="lang-en">These were found by the tests, by looking at the rendered UI, or by comparing against the driver — not by reading code alone.</p>
+      <p class="lang-zh">以下缺陷来自测试、来自观察真实渲染的界面、或来自与驱动的对比 —— 而不是仅靠阅读代码发现的。</p>
+
+      <table class="lang-en">
         <thead><tr><th>#</th><th>Bug</th><th>Impact</th><th>Fix</th></tr></thead>
         <tbody>
           <tr>
@@ -296,8 +452,77 @@
         </tbody>
       </table>
 
-      <h2>6. Known limitations</h2>
-      <table>
+      <table class="lang-zh">
+        <thead><tr><th>#</th><th>缺陷</th><th>影响</th><th>修复</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><code>/api/health</code> 从一个只在关机时才赋值的上下文字段读取 <code>last_history_write</code>。</td>
+            <td>运行中的服务永远返回 <code>null</code>，采集器看起来像挂了，该值也无法用于监控。</td>
+            <td>改从历史服务读取实时值，并补充暴露写入次数、失败次数、采样间隔与库中点数。</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>逐进程 CPU 差值被丢弃：psutil 的基准缓存每轮轮询都被清空。</td>
+            <td>进程 CPU % 永远无法累积出真实差值，始终为 0。</td>
+            <td>按 PID 保留基准、在补全信息之前打基准，并清理消失的 PID。</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>NVML 的图形运行进程接口让进程表在 Windows 上完全不可用（约 30 个桌面程序）。</td>
+            <td>GPU 进程表被合成器噪声淹没，看不到真正的工作负载。</td>
+            <td>默认只列计算进程（与 <code>nvidia-smi --query-compute-apps</code> 一致），并保留包含图形上下文的开关。</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>演示数据的磁盘用量按"Unix 纪元至今的小时数"计算（约 49 万小时）。</td>
+            <td>每张截图里磁盘卡片都显示 99 % <span class="crit">严重</span>，既错误又刺眼。</td>
+            <td>把增长曲线锚定到"当前年份 + 9 个月"并加夹取，得到真实的 62 %。</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>演示信号无论图表分辨率如何都按 1 秒采样。</td>
+            <td>24H 图糊成一块无法阅读的实心块；1H 图则像标准正弦波，一眼假。</td>
+            <td>让抖动幅度、抖动周期与负载包络都随所请求的时间窗口缩放。</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>调用 <code>os.getloadavg</code> 时未防御 <code>TypeError</code>，而某些平台把它暴露为 <code>None</code>。</td>
+            <td>CPU 采集直接抛异常，而不是把负载均值报为 <code>N/A</code>。</td>
+            <td>把缺失或不可调用的实现一律视为 <code>N/A</code>。</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>截图脚本用 <code>/host/i</code> 这类宽松的标题匹配定位区块。</td>
+            <td>一旦出现 "Host utilisation" 这类图表标题，Playwright 严格模式就会失败 —— 一颗埋着的测试隐患。</td>
+            <td>改为通过 <code>data-testid</code> 定位区块容器，并让区块标题精确匹配。</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td><code>Dockerfile</code> 带了一个并不需要的 <code># syntax=docker/dockerfile:1</code> 指令。</td>
+            <td>在无法访问 Docker 前端镜像仓库的主机上，构建直接失败。</td>
+            <td>删除该指令；文件本身只使用可移植指令。</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>两个测试确实不稳定：一个依赖"烧 CPU"的假设，另一个在首个采样尚未完成时就轮询 <code>last_history_write</code>。</td>
+            <td>间歇性红灯会侵蚀对 CI 的信任。</td>
+            <td>改为断言确定性信号，并以明确的完成计数器作为轮询条件。</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>主磁盘探测选择"匹配路径最长"的挂载点，于是在容器内选中了 <code>/etc/resolv.conf</code> —— 一个 2.5 GB 的 ext4 单文件挂载。</td>
+            <td>只有真正对着容器渲染面板才发现：磁盘卡片显示的是一个配置文件而不是文件系统。一个看起来合理却毫无意义的数字，比没有数字更糟。</td>
+            <td>排除伪文件系统与容器注入的文件挂载，优先根文件系统，否则取路径最浅的真实挂载点。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ================= 6. LIMITATIONS ================= -->
+      <h2 class="lang-en">6. Known limitations</h2>
+      <h2 class="lang-zh">6. 已知限制</h2>
+
+      <table class="lang-en">
         <thead><tr><th>Limitation</th><th>Reason / mitigation</th></tr></thead>
         <tbody>
           <tr><td>Single host only</td><td>An explicit v1 scope decision. Multi-server aggregation is on the roadmap.</td></tr>
@@ -308,20 +533,48 @@
           <tr><td>Load average is <code>N/A</code> on Windows</td><td>The platform does not expose it; the UI shows <code>N/A</code> rather than a fabricated zero.</td></tr>
           <tr><td>Per-process CPU needs two polls</td><td>CPU usage is a counter delta, so the first sample after startup reports <code>N/A</code> for process CPU. Documented behaviour, not a defect.</td></tr>
           <tr><td>Container disk figures describe the container</td><td>When the root filesystem is an <code>overlay</code> (Docker Desktop), LabWatch falls back to the shallowest real mount, which may be a data volume. Run LabWatch natively for host disk numbers.</td></tr>
+          <tr><td>Multiple GPUs verified in demo mode only</td><td>This development machine has one GPU, so multi-device rendering was exercised with three synthetic devices. The collector enumerates NVML devices generically, with no single-device assumption.</td></tr>
         </tbody>
       </table>
 
-      <h2>7. Repository hygiene</h2>
-      <ul>
+      <table class="lang-zh">
+        <thead><tr><th>限制</th><th>原因 / 应对</th></tr></thead>
+        <tbody>
+          <tr><td>仅支持单机</td><td>这是 v1 明确的范围决策。多机聚合在路线图中。</td></tr>
+          <tr><td>没有认证</td><td>面向可信内网。README 已提醒进程命令行可能包含敏感信息。若要对外暴露，请置于带认证的反向代理之后。</td></tr>
+          <tr><td>仅支持 NVIDIA</td><td>遥测来自 NVML，不读取 AMD 与 Intel GPU。</td></tr>
+          <tr><td>Windows 上图形上下文噪声大</td><td>WDDM 会把每个合成程序都暴露为计算进程。目标平台 Linux 不受影响；提供开关以包含图形上下文。</td></tr>
+          <tr><td>历史是采样的，不是流式的</td><td>10 秒写入间隔可能漏掉瞬时尖峰。如有需要可调低 <code>LABWATCH_HISTORY_INTERVAL</code>。</td></tr>
+          <tr><td>Windows 上负载均值为 <code>N/A</code></td><td>平台不提供该数据；界面显示 <code>N/A</code>，而不是编造一个 0。</td></tr>
+          <tr><td>逐进程 CPU 需要两次采样</td><td>CPU 使用率是计数器差值，因此启动后的第一次采样中进程 CPU 报 <code>N/A</code>。这是有意的行为，不是缺陷。</td></tr>
+          <tr><td>容器内的磁盘数字描述容器本身</td><td>当根文件系统是 <code>overlay</code>（Docker Desktop）时，LabWatch 退回最浅的真实挂载点，可能是数据卷。需要宿主机磁盘数字请直接在宿主机运行。</td></tr>
+          <tr><td>多卡仅在演示模式下验证过</td><td>本开发机只有一张 GPU，因此多设备渲染是通过 3 个合成设备验证的。采集器采用通用 NVML 设备枚举，没有任何单卡假设。</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ================= 7. HYGIENE ================= -->
+      <h2 class="lang-en">7. Repository hygiene</h2>
+      <h2 class="lang-zh">7. 仓库整洁度</h2>
+      <ul class="lang-en">
         <li>No scratch scripts, no <code>tmp/</code>, no <code>debug.json</code>, no stray logs. Every tracked file is source, test, documentation, deployment configuration or a referenced image.</li>
         <li>Generated and runtime artifacts are ignored: <code>backend/data/</code>, <code>*.db*</code>, <code>node_modules/</code>, <code>dist/</code>, coverage, Playwright reports, <code>.env</code>.</li>
         <li>One report document (this file) plus <a href="ACCEPTANCE.md">ACCEPTANCE.md</a>; screenshots live in <code>docs/images/</code> and every one is referenced by the README or this report.</li>
         <li>Screenshots are reproducible with <code>frontend/scripts/capture-screenshots.mjs</code> instead of being pasted in by hand.</li>
         <li>No hard-coded machine paths in the application: configuration is entirely environment-driven.</li>
       </ul>
+      <ul class="lang-zh">
+        <li>没有临时脚本、没有 <code>tmp/</code>、没有 <code>debug.json</code>、没有散落的日志。每个纳入版本控制的文件都是源码、测试、文档、部署配置或被引用的图片。</li>
+        <li>生成物与运行时产物全部忽略：<code>backend/data/</code>、<code>*.db*</code>、<code>node_modules/</code>、<code>dist/</code>、覆盖率、Playwright 报告、<code>.env</code>。</li>
+        <li>只有一份汇报文档（本文件）加一份 <a href="ACCEPTANCE.md">ACCEPTANCE.md</a>；截图放在 <code>docs/images/</code>，每一张都被 README 或本报告引用。</li>
+        <li>截图可用 <code>frontend/scripts/capture-screenshots.mjs</code> 重现，而不是手工粘贴进去。</li>
+        <li>应用内没有硬编码的机器路径：配置完全由环境变量驱动。</li>
+      </ul>
 
-      <h2>8. Release readiness</h2>
-      <table>
+      <!-- ================= 8. RELEASE READINESS ================= -->
+      <h2 class="lang-en">8. Release readiness</h2>
+      <h2 class="lang-zh">8. 发布就绪度</h2>
+
+      <table class="lang-en">
         <thead><tr><th>Definition-of-done item</th><th>Status</th></tr></thead>
         <tbody>
           <tr><td>Core monitoring works</td><td class="ok">verified against the driver</td></tr>
@@ -332,25 +585,88 @@
           <tr><td>Tests pass</td><td class="ok">112 + 75 + 8</td></tr>
           <tr><td>CI passes</td><td class="ok">lint, tests, build, E2E, Docker smoke test</td></tr>
           <tr><td>Docker works</td><td class="ok">built, smoke tested, and run with GPU passthrough</td></tr>
-          <tr><td>README complete</td><td class="ok">features, quick start, architecture, config, API, limitations, roadmap</td></tr>
-          <tr><td>Screenshots complete</td><td class="ok">ten, all referenced, including real hardware</td></tr>
+          <tr><td>README complete</td><td class="ok">features, quick start, architecture, config, API, limitations, roadmap (English + 中文)</td></tr>
+          <tr><td>Screenshots complete</td><td class="ok">twelve, all referenced, including real hardware</td></tr>
           <tr><td>Architecture diagram complete</td><td class="ok"><code>docs/architecture.svg</code></td></tr>
           <tr><td>Demo mode works</td><td class="ok">and is clearly labelled in the UI</td></tr>
           <tr><td>No major console or API errors</td><td class="ok">asserted by the E2E suite and the capture script</td></tr>
           <tr><td>Repository clean</td><td class="ok">see section 7</td></tr>
         </tbody>
       </table>
-      <div class="note">
+
+      <table class="lang-zh">
+        <thead><tr><th>完成度检查项</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td>核心监控可用</td><td class="ok">已与驱动实测比对</td></tr>
+          <tr><td>单机多卡</td><td class="ok">逐卡卡片、序列与过滤</td></tr>
+          <tr><td>GPU 进程映射可用</td><td class="ok">NVML PID 与 psutil 信息关联</td></tr>
+          <tr><td>历史图表可用</td><td class="ok">1H/6H/24H，持久化于 SQLite</td></tr>
+          <tr><td>无 GPU 时优雅降级</td><td class="ok">已测试；主机指标照常工作</td></tr>
+          <tr><td>测试通过</td><td class="ok">112 + 75 + 8</td></tr>
+          <tr><td>CI 通过</td><td class="ok">lint、测试、构建、E2E、Docker 冒烟测试</td></tr>
+          <tr><td>Docker 可用</td><td class="ok">已构建、已冒烟测试、已验证 GPU 直通</td></tr>
+          <tr><td>README 完整</td><td class="ok">功能、快速开始、架构、配置、API、限制、路线图（英文 + 中文）</td></tr>
+          <tr><td>截图完整</td><td class="ok">12 张，全部被引用，含真实硬件</td></tr>
+          <tr><td>架构图完整</td><td class="ok"><code>docs/architecture.svg</code></td></tr>
+          <tr><td>演示模式可用</td><td class="ok">并在界面中明确标注</td></tr>
+          <tr><td>无重大 console / API 报错</td><td class="ok">由 E2E 套件与截图脚本断言</td></tr>
+          <tr><td>仓库整洁</td><td class="ok">见第 7 节</td></tr>
+        </tbody>
+      </table>
+
+      <div class="note lang-en">
         <strong>Verdict:</strong> LabWatch Lite v1.0.0 meets its definition of done and is ready to
         publish. The full stack was exercised against real NVIDIA hardware both natively and inside
         the container image, including GPU passthrough through Docker.
       </div>
+      <div class="note lang-zh">
+        <strong>结论：</strong>LabWatch Lite v1.0.0 已满足完成度定义，可以公开发布。整套技术栈已在
+        真实 NVIDIA 硬件上验证，包括本机运行与容器内运行，并验证了 Docker GPU 直通。
+      </div>
 
       <footer>
-        LabWatch Lite v1.0.0 · MIT · Consolidated build report for the v1.0 development cycle.
-        Reproduction commands for every number on this page are in
-        <a href="ACCEPTANCE.md">ACCEPTANCE.md</a>.
+        <span class="lang-en">
+          LabWatch Lite v1.0.0 · MIT · Consolidated build report for the v1.0 development cycle.
+          Reproduction commands for every number on this page are in
+          <a href="ACCEPTANCE.md">ACCEPTANCE.md</a>. This report is bilingual; the language toggle
+          is verified in a real browser by <code>frontend/scripts/verify-report.mjs</code>.
+        </span>
+        <span class="lang-zh">
+          LabWatch Lite v1.0.0 · MIT · v1.0 开发周期的唯一完整汇报文档。
+          本页每个数字的重现命令见 <a href="ACCEPTANCE.md">ACCEPTANCE.md</a>。
+          本报告为中英双语，语言切换由 <code>frontend/scripts/verify-report.mjs</code>
+          在真实浏览器中验证。
+        </span>
       </footer>
     </div>
+
+    <script>
+      // Language switcher for the bilingual report.
+      ;(function () {
+        var root = document.documentElement
+        var buttons = {
+          en: document.getElementById('lang-en'),
+          zh: document.getElementById('lang-zh'),
+        }
+
+        function apply(lang) {
+          root.setAttribute('data-lang', lang)
+          root.setAttribute('lang', lang === 'zh' ? 'zh-CN' : 'en')
+          buttons.en.setAttribute('aria-pressed', String(lang === 'en'))
+          buttons.zh.setAttribute('aria-pressed', String(lang === 'zh'))
+          try {
+            localStorage.setItem('labwatch.report.lang', lang)
+          } catch (error) {
+            /* storage unavailable; the choice simply is not remembered */
+          }
+        }
+
+        buttons.en.addEventListener('click', function () { apply('en') })
+        buttons.zh.addEventListener('click', function () { apply('zh') })
+
+        // Reflect whatever the pre-paint script decided.
+        apply(root.getAttribute('data-lang') === 'zh' ? 'zh' : 'en')
+      })()
+    </script>
   </body>
 </html>

@@ -6,6 +6,8 @@
 
 Stop SSHing in to run `nvidia-smi`, `htop` and `df -h`. Open a browser instead.
 
+**English** · [简体中文](README.zh-CN.md)
+
 [![CI](https://github.com/OWNER/labwatch/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
@@ -263,8 +265,8 @@ Beyond v1, driven by actual use rather than speculation:
 
 ## Documentation
 
-- [`docs/PROJECT_REPORT.html`](docs/PROJECT_REPORT.html) — consolidated build report: features, architecture, test results, bugs found and fixed, and release readiness.
-- [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) — the manual acceptance checklist and its measured results.
+- [`docs/PROJECT_REPORT.html`](docs/PROJECT_REPORT.html) — consolidated build report (English + 中文): features, architecture, test results, bugs found and fixed, and release readiness.
+- [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) — the manual acceptance checklist and its measured results (English + 中文).
 
 ## License
 
