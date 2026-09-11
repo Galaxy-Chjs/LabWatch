@@ -229,10 +229,12 @@ itself.
 | 10.6 | `labwatch --demo` needs no GPU | ✅ serves 3 synthetic GPUs, clearly labelled |
 | 10.7 | `python -m labwatch` as an alternative entry point | ✅ prints the version |
 | 10.8 | `--json` contract consumed by the editor | ✅ parser and formatters fed the live 8-GPU payload over SSH; 8/8 contract checks pass |
-| 10.9 | VS Code extension packages and installs | ✅ 15 KB .vsix, installed as `labwatch.labwatch-vscode@1.1.0` |
+| 10.9 | VS Code extension packages and installs | ✅ 15 KB .vsix, installed as `galaxy-chjs.labwatch-vscode@1.1.0` |
 | 10.10 | The packaged release installs on the real server | ✅ v1.1.0 installed offline, `doctor` all green, dashboard served from the package, other users' 8 CUDA processes untouched |
 | 10.11 | History survives the upgrade | ✅ the v1.0.1 database was carried over (1.9 MB) |
 | 10.12 | No npm step for an end user | ✅ the dashboard is committed under `labwatch/ui` |
+| 10.13 | Published to PyPI under a name this project owns | ✅ `labwatch-lite 1.1.0`, wheel + sdist, by the Release workflow over Trusted Publishing |
+| 10.14 | The published artifact actually works for a stranger | ✅ fresh isolated environment: `uv tool run --from labwatch-lite labwatch version` prints `labwatch 1.1.0`, fetched from the real index |
 
 **What could not be verified here:** the extension's visual behaviour inside a
 running VS Code window (status bar text, sidebar rendering). The extension host
@@ -252,9 +254,9 @@ server cannot reinstall from PyPI (its pip DNS fails), so LabWatch was left not
 importable on the server for a period.
 
 Recovery: download the dependency wheels on a networked machine for the server's
-interpreter (`cp311`, manylinux), ship them, and install entirely offline. That is
-now `.lab/install-v11-offline.sh`, with the dependency set pinned to the
-combination v1.0.1 proved on this host.
+interpreter (`cp311`, manylinux), ship them, and install entirely offline. That
+script kept the dependency set pinned to the combination v1.0.1 proved on this
+host; it lived in `.lab/`, which is no longer part of the repository.
 
 The lesson is in the script: park the old venv with `mv`, never `rm -rf`, until the
 new install has been proven to import and serve. Two traps that cost round trips:
@@ -509,10 +511,12 @@ v1.0 回答的是“我的 GPU 服务器上发生了什么”。v1.1 回答的�
 | 10.6 | `labwatch --demo` 无需 GPU | ✅ 提供 3 张合成 GPU，界面明确标注 |
 | 10.7 | `python -m labwatch` 作为备用入口 | ✅ 正常输出版本 |
 | 10.8 | 给编辑器消费的 `--json` 契约 | ✅ 解析器与格式化函数直接消费经 SSH 取回的真实 8 卡数据，8/8 契约检查通过 |
-| 10.9 | VS Code 扩展打包与安装 | ✅ 15 KB .vsix，已安装为 `labwatch.labwatch-vscode@1.1.0` |
+| 10.9 | VS Code 扩展打包与安装 | ✅ 15 KB .vsix，已安装为 `galaxy-chjs.labwatch-vscode@1.1.0` |
 | 10.10 | 包化发布在真实服务器上安装 | ✅ v1.1.0 离线安装成功，doctor 全绿，面板由包直接托管，其他用户的 8 个 CUDA 进程未受影响 |
 | 10.11 | 升级后历史数据保留 | ✅ v1.0.1 的数据库被完整保留（1.9 MB） |
 | 10.12 | 终端用户无需执行 npm | ✅ 面板已提交在 `labwatch/ui` |
+| 10.13 | 以本项目自己拥有的名字发布到 PyPI | ✅ `labwatch-lite 1.1.0`，wheel + sdist，由 Release 工作流通过可信发布完成 |
+| 10.14 | 已发布的产物对陌生人确实可用 | ✅ 全新隔离环境：`uv tool run --from labwatch-lite labwatch version` 从真实索引拉取并输出 `labwatch 1.1.0` |
 
 **本次无法验证的部分：** VS Code 窗口内扩展的可视表现（状态栏文字、
 侧边栏渲染）。本环境无法无头驱动扩展宿主，因此已证明的是数据链路
@@ -529,8 +533,8 @@ venv 的依赖目录。在那个循环里三次重建 venv，把唯一一份可�
 在服务器上一段时间内无法导入。
 
 恢复方式：在有网络的机器上为服务器的解释器（`cp311`、manylinux）下载
-依赖 wheel，传过去全离线安装。这就是现在的 `.lab/install-v11-offline.sh`，
-且依赖版本锁定在 v1.0.1 在本机验证过的组合上。
+依赖 wheel，传过去全离线安装。该脚本把依赖版本锁定在 v1.0.1 于本机验证过的
+组合上；它原先放在 `.lab/`，现已不属于仓库。
 
 教训已写进脚本：用 `mv` 把旧 venv 存放起来，绝不 `rm -rf`，直到新安装已被
 证明可导入且可服务。两个浪费了往返的坑：

@@ -1,5 +1,29 @@
 <div align="center">
 
+# LabWatch
+
+**One command, and you are watching your GPUs.**
+
+```bash
+uvx labwatch-lite
+```
+
+Open <http://localhost:8123> — no clone, no npm, no configuration.
+
+**English** · [简体中文](https://github.com/Galaxy-Chjs/LabWatch/blob/main/README.zh-CN.md)
+
+[![PyPI](https://img.shields.io/pypi/v/labwatch-lite)](https://pypi.org/project/labwatch-lite/)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/labwatch-lite)
+[![CI](https://github.com/Galaxy-Chjs/LabWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/Galaxy-Chjs/LabWatch/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
+<img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/hero-labserver.png" alt="LabWatch monitoring eight RTX 4090s on a research server" width="100%">
+
+</div>
+
 ---
 
 ## Install
@@ -255,13 +279,12 @@ healthy.
 - **NVIDIA only.** AMD and Intel GPUs are not read.
 - **Graphics contexts on Windows** are noisy; compute processes are the default.
 - **Load average is `N/A` on Windows**, which does not expose it.
-- **`uvx labwatch-lite` needs a published release.** Packaging and verification are in
-  place and tested against the built wheel; the PyPI publication itself has not
-  been done, so for now use `uvx --from <path-or-wheel> labwatch`.
+- **The VS Code extension is not on the Marketplace yet.** It is built, tested and
+  packages cleanly; see [`vscode-extension/README.md`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/vscode-extension/README.md)
+  to install it from source.
 
 ## Roadmap
 
-- Publish to PyPI so `uvx labwatch-lite` resolves without `--from`
 - VS Code extension on the Marketplace
 - Prometheus `/metrics` export
 - Threshold alerts (VRAM, temperature, disk) with webhook delivery

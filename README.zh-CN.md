@@ -12,6 +12,8 @@ uvx labwatch
 
 [English](https://github.com/Galaxy-Chjs/LabWatch/blob/main/README.md) · **简体中文**
 
+[![PyPI](https://img.shields.io/pypi/v/labwatch-lite)](https://pypi.org/project/labwatch-lite/)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/labwatch-lite)
 [![CI](https://github.com/Galaxy-Chjs/LabWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/Galaxy-Chjs/LabWatch/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
@@ -265,12 +267,11 @@ CI 还会校验：`labwatch/ui` 与前端源码一致、wheel 内含并能托管
 - **仅 NVIDIA。** 不读取 AMD 与 Intel GPU。
 - **Windows 图形上下文噪声大**，默认只列计算进程。
 - **Windows 上负载均值为 `N/A`**，平台不提供。
-- **`uvx labwatch-lite` 需要已发布到 PyPI。** 打包与验证链路已就绪并通过 wheel 实测，
-  但 PyPI 发布尚未执行；目前请用 `uvx --from <路径或 wheel> labwatch`。
+- **VS Code 扩展尚未上架 Marketplace。** 扩展已完成、测试通过、打包正常；
+  从源码安装见 [`vscode-extension/README.md`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/vscode-extension/README.md)。
 
 ## 路线图
 
-- 发布到 PyPI，让 `uvx labwatch-lite` 无需 `--from`
 - VS Code 扩展上架 Marketplace
 - Prometheus `/metrics` 导出
 - 阈值告警（显存、温度、磁盘）与 Webhook

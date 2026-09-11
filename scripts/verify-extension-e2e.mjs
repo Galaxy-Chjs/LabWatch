@@ -9,6 +9,9 @@
  *
  * Usage:
  *   node scripts/verify-extension-e2e.mjs --ssh <ssh args> --remote <command>
+ *
+ * Both defaults point at a local-only deployment config (`.lab/`, git-ignored)
+ * and contain no host names or paths, so the script is reusable as-is.
  */
 
 import { execFileSync } from 'node:child_process'
@@ -20,10 +23,10 @@ function arg(name, fallback) {
   return index !== -1 && process.argv[index + 1] ? process.argv[index + 1] : fallback
 }
 
-const sshConfig = arg('ssh-config', '.lab/ssh_config')
+const sshConfig = arg('ssh-config', process.env.LABWATCH_SSH_CONFIG ?? '.lab/ssh_config')
 const remote = arg(
   'remote',
-  '/nfs-data1/chengjinshuai/ProjectDock/LabWatch-lite/labwatch-run status --json --port 8010',
+  process.env.LABWATCH_REMOTE_STATUS ?? 'labwatch status --json --port 8010',
 )
 
 console.log('== 1. fetch real CLI JSON over SSH ==')

@@ -89,3 +89,8 @@ desktop.ini
 *.log
 npm-debug.log*
 yarn-error.log*
+
+# --- Server deployment notes (never public) --------------------------------
+# Internal host address, login name, cluster paths, and captured command lines
+# of other users' processes. Kept only on the machine that needs them.
+.lab/

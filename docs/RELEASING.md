@@ -62,9 +62,19 @@ PyPI 是扁平命名空间，没有「所有者前缀」，而 `labwatch` 这个
 
 ## Part 2 · Publish to PyPI · 发布到 PyPI
 
-This is what turns `uvx labwatch-lite` from "works with `--from`" into "just works".
+**Status: done.** `labwatch-lite 1.1.0` is live —
+<https://pypi.org/project/labwatch-lite/> — published by the Release workflow
+through Trusted Publishing, with a successful manual dry run beforehand. The
+steps below are kept as the record of how it was set up, and as the procedure if
+the account or publisher ever has to be recreated.
 
-这一步决定 `uvx labwatch-lite` 能否直接可用（现在是 `uvx --from <path> labwatch`）。
+**状态：已完成。** `labwatch-lite 1.1.0` 已发布
+（<https://pypi.org/project/labwatch-lite/>），由 Release 工作流通过可信发布完成，
+事前还成功跑过一次手动演练。下面的步骤作为配置记录保留，也用于账号或发布者需要重建时。
+
+```bash
+uvx labwatch-lite --version     # labwatch 1.1.0
+```
 
 ### Step 1 · Create the account · 注册账号
 
@@ -202,7 +212,7 @@ Marketplace 发布者账号。
 
 ### Right now: install it for yourself · 现在就能自己安装
 
-Already installed on this machine as `labwatch.labwatch-vscode@1.1.0`. To reinstall
+Installed on this machine as `galaxy-chjs.labwatch-vscode@1.1.0`. To reinstall
 after a change:
 
 ```powershell
@@ -221,31 +231,51 @@ icon in the Activity Bar.
 
 1. <https://marketplace.visualstudio.com/manage> → sign in with GitHub.
 2. **Create publisher**. The publisher id is permanent and appears in the
-   extension id (`publisher.name`), so pick it deliberately — `galaxy-chjs` matches
-   your PyPI username and is a good choice.
-3. `vscode-extension/package.json` currently declares `"publisher": "labwatch"`.
-   If you create the publisher as `galaxy-chjs` instead, either change that field or
-   create the publisher with the id `labwatch` (if still free) — the two must match
-   exactly or `vsce publish` fails.
+   extension id (`publisher.name`). Use **`galaxy-chjs`**, matching the PyPI
+   username; `vscode-extension/package.json` already declares it, so the two agree
+   and the extension will live at `galaxy-chjs.labwatch-vscode`.
 
 ### Step 2 · Create an Azure DevOps PAT · 创建 Azure DevOps Token
 
 The Marketplace authenticates with an Azure DevOps personal access token, not a
 GitHub one. Marketplace 用的是 Azure DevOps 令牌，不是 GitHub 令牌。
 
-1. Sign in at <https://dev.azure.com> with the **same Microsoft account** used for
-   the Marketplace.
-2. <https://dev.azure.com/_usersSettings/tokens> → **New Token**.
-3. Settings:
+**The direct URL does not work until you belong to an organization.** There is no
+`dev.azure.com/_usersSettings/tokens` page — that path 404s, which is the trap
+here. The token page lives inside an organization, so create one first:
+
+**直接输入 URL 是行不通的**：`dev.azure.com/_usersSettings/tokens` 这个路径会 404。
+令牌页面属于某个"组织"，所以必须先有组织：
+
+1. If you have no organization yet, create one:
+   <https://go.microsoft.com/fwlink/?LinkId=307137> or
+   <https://aex.dev.azure.com/> → sign in with the **same Microsoft account** you
+   use for the Marketplace → accept the default organization name it offers
+   (e.g. `galaxy-chjs`). It is free and needs no Azure subscription.
+   还没有组织就先建一个：用**同一个微软账号**登录，接受它给出的默认组织名即可。
+   免费，不需要 Azure 订阅。
+2. Now open your organization: `https://dev.azure.com/<your-org>/` — for example
+   <https://dev.azure.com/galaxy-chjs/>.
+3. In the **top-right corner**, click the **user-settings icon** next to your
+   avatar (a person-with-a-gear icon) and choose **Personal access tokens**.
+   点右上角头像旁的**用户设置图标**，选 **Personal access tokens**。
+   Only after that is the address bar on the real token page.
+4. **+ New Token**, then:
 
    | Field | Value |
    |---|---|
    | Name | `vsce-publish` |
    | Organization | **All accessible organizations** (required) |
-   | Expiration | 30 days |
-   | Scopes | **Custom defined** → **Marketplace** → **Manage** |
+   | Expiration | 30 days (global PATs retire 2026-12-01, so keep it short) |
+   | Scopes | **Custom defined** → scroll to **Marketplace** → **Manage** |
 
-4. Copy the token.
+   Click **Show all scopes** if the Marketplace group is not visible.
+5. Copy the token — it is shown once.
+
+> Why this is fiddly: Visual Studio Code's Marketplace is hosted on Azure DevOps,
+> so publishing authenticates as an Azure DevOps user. That is also why a GitHub
+> token does not work here. · 为什么这么绕：Marketplace 托管在 Azure DevOps 上，
+> 所以发布是拿 Azure DevOps 身份认证的，GitHub 令牌在这里没用。
 
 ### Step 3 · Publish · 发布
 
@@ -289,11 +319,12 @@ metadata problem, and the error messages are clearer in a terminal.
 
 - [ ] Add the PyPI badges (Part 2 step 6) — tell me and I will edit both READMEs.
 - [ ] Update the two "not published yet" notes in the READMEs.
-- [ ] Re-check the lab server still runs v1.1.0:
+- [ ] Re-check the lab server still runs v1.1.0 (path in your own deployment
+  notes — `.lab/` is no longer in the repository):
 
   ```bash
   ssh lab
-  /nfs-data1/chengjinshuai/ProjectDock/LabWatch-lite/labwatch-run status --port 8010
+  /path/to/LabWatch-lite/labwatch-run status --port 8010
   ```
 
 - [ ] Try the extension in a **Remote-SSH** window pointing at `lab`. This is the
@@ -301,10 +332,16 @@ metadata problem, and the error messages are clearer in a terminal.
   sidebar should show the server's 8 GPUs, and **Open Full Dashboard** should open
   a forwarded `localhost` URL. I verified the data path programmatically, not the
   rendering.
-- [ ] Decide whether to keep the `.lab/` directory public (15 tracked files). It
-  contains your server path (`/nfs-data1/chengjinshuai/...`) and hostname-adjacent
-  details. Nothing secret — the SSH config carries no key material — but it is
-  personal. Say the word and I will either generalise it or move it to a private repo.
+- [ ] Decide whether you want a second server-side copy anywhere else. The deployment
+  notes and captured server output (`ssh config`, deploy scripts, `nvidia-smi`
+  dumps) were removed from the repository and its history on your instruction:
+  they named an internal address, a login name and other users' command lines.
+  They now live only in `D:\IDE\vscode\MyDemo\LabWatch-lab-private\` on this
+  machine, and `.lab/` is git-ignored. Nothing about the published package
+  depends on them. · 部署笔记与服务器原始输出（SSH 配置、部署脚本、`nvidia-smi`
+  导出）已按你的要求从仓库**及其历史**中移除：它们包含内网地址、登录名和其他用户的
+  命令行。这些内容现在只保留在本机的 `LabWatch-lab-private\` 目录，`.lab/` 已被
+  git 忽略。已发布的包不依赖其中任何内容。
 
 ---
 

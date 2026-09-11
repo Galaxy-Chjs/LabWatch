@@ -995,6 +995,8 @@ labwatch stop / open / version</code></pre>
           <tr><td>No major console or API errors</td><td class="ok">asserted by the E2E suite and the capture script</td></tr>
           <tr><td>Repository clean</td><td class="ok">see section 7</td></tr>
           <tr><td>Publishable name available on PyPI</td><td class="ok">published as distribution <code>labwatch-lite</code>; the console command stays <code>labwatch</code></td></tr>
+          <tr><td>Actually published</td><td class="ok"><code>labwatch-lite 1.1.0</code> on PyPI, wheel and sdist, uploaded by the Release workflow over Trusted Publishing after a successful dry run; a fresh isolated environment installs it from the real index</td></tr>
+          <tr><td>Private deployment notes kept private</td><td class="ok">the internal address, login name and captured command lines were removed from the repository <b>and its history</b>, and are now git-ignored</td></tr>
           <tr><td>Sources pushed</td><td class="ok">GitHub <code>main</code>, CI 6/6 green on every commit</td></tr>
         </tbody>
       </table>
@@ -1017,6 +1019,8 @@ labwatch stop / open / version</code></pre>
           <tr><td>无重大 console / API 报错</td><td class="ok">由 E2E 套件与截图脚本断言</td></tr>
           <tr><td>仓库整洁</td><td class="ok">见第 7 节</td></tr>
           <tr><td>PyPI 上可用的发布名</td><td class="ok">以发行名 <code>labwatch-lite</code> 发布；命令行命令仍为 <code>labwatch</code></td></tr>
+          <tr><td>确实已发布</td><td class="ok">PyPI 上的 <code>labwatch-lite 1.1.0</code>，含 wheel 与 sdist，由 Release 工作流通过可信发布在上传前先跑通演练后上传；全新隔离环境可从真实索引安装</td></tr>
+          <tr><td>私有部署资料保持私有</td><td class="ok">内网地址、登录名与抓取到的命令行已从仓库<b>及其历史</b>中移除，并已加入 git 忽略</td></tr>
           <tr><td>源码已推送</td><td class="ok">GitHub <code>main</code>，每次提交 CI 均 6/6 全绿</td></tr>
         </tbody>
       </table>
