@@ -265,6 +265,7 @@ CI 还会校验：`labwatch/ui` 与前端源码一致、wheel 内含并能托管
 
 - [`docs/PROJECT_REPORT.html`](docs/PROJECT_REPORT.html) —— 完整汇报（中英双语）：功能、架构、测试结果、全部已修复缺陷、发布就绪度。
 - [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) —— 验收清单与实测结果，含 8 卡服务器验证。
+- [docs/RELEASING.md](docs/RELEASING.md) —— 需要人工完成的发布步骤：GitHub、PyPI（让 uvx labwatch 直接可用）与 VS Code Marketplace。
 
 ## 许可
 

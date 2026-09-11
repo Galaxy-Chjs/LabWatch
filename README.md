@@ -251,6 +251,7 @@ healthy.
 
 - [`docs/PROJECT_REPORT.html`](docs/PROJECT_REPORT.html) — consolidated report (English + 中文): features, architecture, test results, every bug found and fixed, release readiness.
 - [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) — acceptance checklist with measured results, including the 8-GPU server validation.
+- [docs/RELEASING.md](docs/RELEASING.md) — what a human has to do: GitHub, PyPI (so uvx labwatch works) and the VS Code Marketplace.
 
 ## License
 

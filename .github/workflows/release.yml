@@ -1,0 +1,101 @@
+name: Release
+
+# Publishes to PyPI when a version tag is pushed.
+#
+# Uses PyPI Trusted Publishing (OIDC), so there is no API token stored in the
+# repository: GitHub proves its identity to PyPI directly. Before this works you
+# must configure the publisher once on PyPI — see docs/RELEASING.md step 3.
+#
+#   git tag -a v1.1.1 -m "LabWatch v1.1.1"
+#   git push origin v1.1.1
+#
+# Safety: the version in the tag must match pyproject.toml, and the wheel is
+# installed and smoke tested before anything is uploaded.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and verify only, do not upload to PyPI'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build, verify and publish
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # required for Trusted Publishing
+      contents: write   # required to attach the wheel to a GitHub release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: The tag must match the declared version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          declared=$(python -c "import tomllib,pathlib;print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          module=$(python -c "import re,pathlib;print(re.search(r'__version__ = \"([^\"]+)\"', pathlib.Path('labwatch/__init__.py').read_text()).group(1))")
+          echo "tag=$tag pyproject=$declared module=$module"
+          [ "$tag" = "$declared" ] || { echo "::error::tag $tag does not match pyproject version $declared"; exit 1; }
+          [ "$tag" = "$module" ]   || { echo "::error::tag $tag does not match labwatch/__init__.py $module"; exit 1; }
+
+      - name: Install build tooling
+        run: pip install --quiet build
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: The wheel must contain the dashboard and serve it
+        run: |
+          set -euo pipefail
+          python -m venv /tmp/verify
+          /tmp/verify/bin/pip install --quiet dist/*.whl
+          /tmp/verify/bin/python - <<'PY'
+          import pathlib, labwatch
+          index = pathlib.Path(labwatch.__file__).parent / "ui" / "index.html"
+          assert index.is_file(), f"dashboard missing from the wheel: {index}"
+          print("dashboard bundled:", index.stat().st_size, "bytes")
+          PY
+          /tmp/verify/bin/labwatch version
+          LABWATCH_DATA_DIR=/tmp/lwdata /tmp/verify/bin/labwatch serve --demo --no-browser --port 8123 &
+          for _ in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8123/api/health > /dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8123/ | grep -qi '<title>LabWatch'
+          echo "wheel serves the dashboard"
+
+      - name: Check the metadata that PyPI will show
+        run: |
+          pip install --quiet twine
+          twine check dist/*
+
+      - name: Upload the artifacts to this workflow run
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        # Skipped for a manual dry run; the tag push path always publishes.
+        if: startsWith(github.ref, 'refs/tags/') || inputs.dry_run == false
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Attach the artifacts to the GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
