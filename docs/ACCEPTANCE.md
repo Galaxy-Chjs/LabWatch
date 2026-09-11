@@ -80,6 +80,34 @@ GET /api/history/gpus/0?range=1h   →  1 series, interval 10.0 s
 
 Charts render for 1H, 6H and 24H; see the screenshots in the README.
 
+### Sustained run (7 hours)
+
+Both containers were then left running unattended for roughly seven hours, which
+also covers the performance requirement that LabWatch must not disturb the host
+it monitors.
+
+```
+real GPU container (2 s interval)
+  uptime 6.9 h · history writes 11541 · failures 0 · rows stored 11571 · status ok
+demo container (2 s interval)
+  uptime 6.9 h · history writes 11595 · failures 0 · rows stored 11625 · status ok
+
+GET /api/history/system?range=1h   →  1314 points, window 1.0 h, interval 2.014 s
+GET /api/history/system?range=6h   →  9959 points, window 6.0 h, interval 2.017 s
+GET /api/history/system?range=24h  → 11572 points, window 24.0 h, interval 2.013 s
+```
+
+Zero collector failures across ~11,500 consecutive samples, and the sample
+interval held at the configured 2 s with no drift. Live readings taken at the
+end of that run still tracked the driver:
+
+| | `nvidia-smi` | LabWatch |
+|---|---|---|
+| Utilisation | 27 % | 28 % |
+| VRAM used | 1290 MiB | 1521 MiB |
+| Temperature | 48 °C | 47 °C |
+| Power draw | 7.82 W | 7.9 W |
+
 ## Test 6 — Data survives a browser refresh
 
 **Result: pass.** Covered by the Playwright test
