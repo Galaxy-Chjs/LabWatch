@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LabWatch Lite — Project Report v1.0.0 / 项目汇报 v1.0.0</title>
+    <title>LabWatch Lite — Project Report v1.0.1 / 项目汇报 v1.0.1</title>
     <script>
       // Apply the saved language before first paint so the report never flashes
       // the wrong language.
@@ -131,7 +131,7 @@
         <p class="sub lang-en">A lightweight self-hosted dashboard for monitoring NVIDIA GPUs and AI development servers.</p>
         <p class="sub lang-zh">轻量级、自托管的 NVIDIA GPU 与 AI 开发服务器监控面板。</p>
         <div class="meta">
-          <span class="chip ok"><span class="lang-en">v1.0.0 release-ready</span><span class="lang-zh">v1.0.0 可发布</span></span>
+          <span class="chip ok"><span class="lang-en">v1.0.1 validated on real 8-GPU server</span><span class="lang-zh">v1.0.1 已在真实 8 卡服务器验证</span></span>
           <span class="chip"><span class="lang-en">Single host · multiple GPUs</span><span class="lang-zh">单机 · 多卡</span></span>
           <span class="chip"><span class="lang-en">121 backend tests</span><span class="lang-zh">后端 121 个测试</span></span>
           <span class="chip"><span class="lang-en">77 frontend tests</span><span class="lang-zh">前端 77 个测试</span></span>
@@ -823,24 +823,26 @@
       </table>
 
       <div class="note lang-en">
-        <strong>Verdict:</strong> LabWatch Lite v1.0.0 meets its definition of done and is ready to
-        publish. The full stack was exercised against real NVIDIA hardware both natively and inside
-        the container image, including GPU passthrough through Docker.
+        <strong>Verdict:</strong> LabWatch Lite v1.0.1 meets its definition of done and is ready to publish.
+        It was validated on a real 8 x RTX 4090 research server under live experimental load, in
+        addition to the single-GPU development host and the Docker image with GPU passthrough. That
+        validation found and fixed three genuine defects, all listed in section 6.
       </div>
       <div class="note lang-zh">
-        <strong>结论：</strong>LabWatch Lite v1.0.0 已满足完成度定义，可以公开发布。整套技术栈已在
-        真实 NVIDIA 硬件上验证，包括本机运行与容器内运行，并验证了 Docker GPU 直通。
+        <strong>结论：</strong>LabWatch Lite v1.0.1 已满足完成度定义，可以公开发布。除单卡开发机与
+        Docker GPU 直通之外，还在真实的 8 × RTX 4090 科研服务器上、于实验负载运行期间完成了验证。
+        正是这次验证发现并修复了三个真实缺陷，详见第 6 节。
       </div>
 
       <footer>
         <span class="lang-en">
-          LabWatch Lite v1.0.0 · MIT · Consolidated build report for the v1.0 development cycle.
+          LabWatch Lite v1.0.1 · MIT · Consolidated build report for the v1.0 development cycle.
           Reproduction commands for every number on this page are in
           <a href="ACCEPTANCE.md">ACCEPTANCE.md</a>. This report is bilingual; the language toggle
           is verified in a real browser by <code>frontend/scripts/verify-report.mjs</code>.
         </span>
         <span class="lang-zh">
-          LabWatch Lite v1.0.0 · MIT · v1.0 开发周期的唯一完整汇报文档。
+          LabWatch Lite v1.0.1 · MIT · v1.0 开发周期的唯一完整汇报文档。
           本页每个数字的重现命令见 <a href="ACCEPTANCE.md">ACCEPTANCE.md</a>。
           本报告为中英双语，语言切换由 <code>frontend/scripts/verify-report.mjs</code>
           在真实浏览器中验证。
