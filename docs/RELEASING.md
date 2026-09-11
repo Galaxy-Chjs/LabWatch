@@ -342,6 +342,18 @@ metadata problem, and the error messages are clearer in a terminal.
   导出）已按你的要求从仓库**及其历史**中移除：它们包含内网地址、登录名和其他用户的
   命令行。这些内容现在只保留在本机的 `LabWatch-lab-private\` 目录，`.lab/` 已被
   git 忽略。已发布的包不依赖其中任何内容。
+- [ ] **Optional, only if you want maximum thoroughness.** Rewriting history removes
+  the files from every branch and tag, and `raw.githubusercontent.com` already
+  answers 404 for them at the new commits. But GitHub keeps the *old* commits
+  reachable by their SHA for a while, so someone who had bookmarked the previous
+  `v1.1.0` commit could still fetch the old `.lab/ssh_config` by its exact URL.
+  GitHub Support can purge those cached views on request (a DMCA-style
+  "sensitive data removal" request); the file contained an internal address and a
+  login name, no key material. · 可选、仅在你想做到最彻底时：重写历史已把文件从所有
+  分支与标签中移除，新提交下 `raw.githubusercontent.com` 也返回 404；但 GitHub 会
+  在一段时间内仍按 SHA 保留旧提交，若有人收藏了旧的 `v1.1.0` 提交，仍可用确切 URL 取到
+  旧的 `.lab/ssh_config`。可向 GitHub Support 申请清除这些缓存视图。该文件只含内网地址
+  与登录名，不含任何密钥。
 
 ---
 
