@@ -7,7 +7,7 @@
 One command, nothing to configure:
 
 ```bash
-uvx labwatch
+uvx labwatch-lite
 ```
 
 That is the whole install. `uvx` fetches LabWatch, starts it, and opens the dashboard.
@@ -15,15 +15,24 @@ That is the whole install. `uvx` fetches LabWatch, starts it, and opens the dash
 Prefer a permanent command? Any of these work:
 
 ```bash
-uv tool install labwatch     # then: labwatch
-pipx install labwatch        # then: labwatch
-pip install labwatch         # then: python -m labwatch
+uv tool install labwatch-lite   # then: labwatch
+pipx install labwatch-lite      # then: labwatch
+pip install labwatch-lite       # then: python -m labwatch
 ```
+
+> **Why the package is called `labwatch-lite` but the command is `labwatch`**
+>
+> The name `labwatch` on PyPI belongs to an unrelated project
+> ([rbretschneider/labwatch_cli](https://github.com/rbretschneider/labwatch_cli)), so this
+> project publishes under the distribution name **`labwatch-lite`** to avoid silently
+> installing someone else's tool. The import package and the console command both remain
+> `labwatch`; only the name you type into `pip`/`uvx`/`pipx` differs. Installing plain
+> `labwatch` from PyPI will give you the other project, not this one.
 
 No NVIDIA GPU yet? Explore the UI with synthetic data:
 
 ```bash
-uvx labwatch --demo
+uvx labwatch-lite --demo
 ```
 
 ## Use
@@ -142,7 +151,7 @@ process IDs, **psutil** for host metrics and process enrichment, **SQLite** for
 history. The dashboard polls `/api/overview`, so a refresh is a single round trip,
 and polling pauses while the tab is hidden.
 
-The built dashboard ships inside the Python package, which is why `uvx labwatch`
+The built dashboard ships inside the Python package, which is why `uvx labwatch-lite`
 needs no Node toolchain. v1 deliberately has no WebSockets, no queue, no cache
 layer and no authentication: at a two second refresh they would add operational
 surface without changing the experience.
@@ -207,12 +216,15 @@ curl -s localhost:8123/api/overview | jq '.gpus.gpus[] | {index, utilization_per
 
 ```bash
 pip install -e ".[dev]"
-pytest              # 122 backend tests
-ruff check labwatch backend
+pytest              # 179 backend tests
+ruff check labwatch tests
 
 cd frontend
 npm run test        # 77 frontend tests
 npm run e2e         # 8 Playwright tests, starts its own demo backend
+
+cd ../vscode-extension
+npm install && npm run compile && npm test   # 13 extension tests
 ```
 
 CI additionally verifies that `labwatch/ui` matches the frontend sources, that the
@@ -235,13 +247,13 @@ healthy.
 - **NVIDIA only.** AMD and Intel GPUs are not read.
 - **Graphics contexts on Windows** are noisy; compute processes are the default.
 - **Load average is `N/A` on Windows**, which does not expose it.
-- **`uvx labwatch` needs a published release.** Packaging and verification are in
+- **`uvx labwatch-lite` needs a published release.** Packaging and verification are in
   place and tested against the built wheel; the PyPI publication itself has not
   been done, so for now use `uvx --from <path-or-wheel> labwatch`.
 
 ## Roadmap
 
-- Publish to PyPI so `uvx labwatch` resolves without `--from`
+- Publish to PyPI so `uvx labwatch-lite` resolves without `--from`
 - VS Code extension on the Marketplace
 - Prometheus `/metrics` export
 - Threshold alerts (VRAM, temperature, disk) with webhook delivery
@@ -251,7 +263,7 @@ healthy.
 
 - [`docs/PROJECT_REPORT.html`](docs/PROJECT_REPORT.html) — consolidated report (English + 中文): features, architecture, test results, every bug found and fixed, release readiness.
 - [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) — acceptance checklist with measured results, including the 8-GPU server validation.
-- [docs/RELEASING.md](docs/RELEASING.md) — what a human has to do: GitHub, PyPI (so uvx labwatch works) and the VS Code Marketplace.
+- [docs/RELEASING.md](docs/RELEASING.md) — what a human has to do: GitHub, PyPI (so `uvx labwatch-lite` works) and the VS Code Marketplace.
 
 ## License
 

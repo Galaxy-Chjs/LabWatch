@@ -3,7 +3,10 @@ requires = ["hatchling>=1.24"]
 build-backend = "hatchling.build"
 
 [project]
-name = "labwatch"
+# The distribution name is `labwatch-lite` because `labwatch` on PyPI belongs to
+# an unrelated homelab monitoring CLI. The console command stays `labwatch`, so
+# the daily experience is unchanged; only the install line differs.
+name = "labwatch-lite"
 version = "1.1.0"
 description = "Run it and watch your GPUs: a lightweight self-hosted dashboard for NVIDIA GPUs and AI development servers."
 readme = "README.md"
@@ -64,7 +67,7 @@ path = "labwatch/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 # Ships the whole package, which includes the built dashboard under
-# labwatch/templates — no npm, Node or build step for the user.
+# labwatch/ui — no npm, Node or build step for the user.
 packages = ["labwatch"]
 
 [tool.hatch.build.targets.sdist]

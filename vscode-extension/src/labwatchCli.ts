@@ -87,7 +87,7 @@ export async function fetchStatus(options: StatusOptions): Promise<CliResult> {
       status: null,
       command: null,
       error:
-        'LabWatch CLI not found. Install it with "uvx labwatch", "pipx install labwatch" or "pip install labwatch", then set labwatch.pythonPath if it is not on PATH.',
+        'LabWatch CLI not found. Install it with "uvx labwatch-lite", "pipx install labwatch-lite" or "pip install labwatch-lite" (the command is labwatch), then set labwatch.pythonPath if it is not on PATH.',
       stderr: null,
     }
   }
@@ -131,7 +131,7 @@ export async function runCliCommand(
       ok: false,
       stdout: '',
       stderr: '',
-      error: 'LabWatch CLI not found. Install it with "uvx labwatch", "pipx install labwatch" or "pip install labwatch".',
+      error: 'LabWatch CLI not found. Install it with "uvx labwatch-lite", "pipx install labwatch-lite" or "pip install labwatch-lite" (the command is labwatch).',
     }
   }
   try {

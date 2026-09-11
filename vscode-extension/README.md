@@ -20,11 +20,15 @@ never disagree.
 LabWatch itself must be installed on the machine the extension talks to:
 
 ```bash
-uvx labwatch          # run once, no install
+uvx labwatch-lite          # run once, no install
 # or a permanent command:
-pipx install labwatch
-pip install labwatch
+pipx install labwatch-lite
+pip install labwatch-lite
 ```
+
+The distribution is called `labwatch-lite` because `labwatch` on PyPI belongs to an
+unrelated project; what these commands install is the `labwatch` command used below.
+发行名是 `labwatch-lite`（PyPI 上的 `labwatch` 属于别的项目），装出来的命令仍是 `labwatch`。
 
 If `labwatch` is not on `PATH`, set `labwatch.pythonPath` to an explicit command
 (for example `/home/you/.conda/envs/mlenv/bin/python -m labwatch`).

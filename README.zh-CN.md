@@ -29,7 +29,7 @@ uvx labwatch
 一条命令，无需配置：
 
 ```bash
-uvx labwatch
+uvx labwatch-lite
 ```
 
 这就是全部安装过程。`uvx` 会拉取 LabWatch、启动它并打开面板。
@@ -37,15 +37,23 @@ uvx labwatch
 想要一个常驻命令？以下任选其一：
 
 ```bash
-uv tool install labwatch     # 之后：labwatch
-pipx install labwatch        # 之后：labwatch
-pip install labwatch         # 之后：python -m labwatch
+uv tool install labwatch-lite   # 之后：labwatch
+pipx install labwatch-lite      # 之后：labwatch
+pip install labwatch-lite       # 之后：python -m labwatch
 ```
+
+> **为什么包名是 `labwatch-lite`，而命令是 `labwatch`**
+>
+> PyPI 上的 `labwatch` 属于另一个无关项目
+> （[rbretschneider/labwatch_cli](https://github.com/rbretschneider/labwatch_cli)），
+> 因此本项目以发行名 **`labwatch-lite`** 发布，避免用户装到别人的工具。导入包名与
+> 命令行命令都仍然是 `labwatch`，只有 `pip`/`uvx`/`pipx` 里写的名字不同。直接安装
+> PyPI 上的 `labwatch` 得到的是那个项目，不是本项目。
 
 暂时没有 N 卡？用合成数据先看看界面：
 
 ```bash
-uvx labwatch --demo
+uvx labwatch-lite --demo
 ```
 
 ## 使用
@@ -160,7 +168,7 @@ VS Code 会自动把面板端口转发到你的浏览器。LabWatch 不会在编
 单进程、单机、三个数据源：**NVML** 提供 GPU 遥测与计算进程 PID，**psutil** 提供主机指标与进程补全，
 **SQLite** 保存历史。面板轮询 `/api/overview`，一次刷新只有一次往返，标签页隐藏时暂停轮询。
 
-构建好的前端随 Python 包一起分发，这就是 `uvx labwatch` 不需要 Node 工具链的原因。
+构建好的前端随 Python 包一起分发，这就是 `uvx labwatch-lite` 不需要 Node 工具链的原因。
 v1 刻意不引入 WebSocket、消息队列、缓存层与认证：在 2 秒刷新频率下，它们只会增加运维面。
 
 ```
@@ -250,12 +258,12 @@ CI 还会校验：`labwatch/ui` 与前端源码一致、wheel 内含并能托管
 - **仅 NVIDIA。** 不读取 AMD 与 Intel GPU。
 - **Windows 图形上下文噪声大**，默认只列计算进程。
 - **Windows 上负载均值为 `N/A`**，平台不提供。
-- **`uvx labwatch` 需要已发布到 PyPI。** 打包与验证链路已就绪并通过 wheel 实测，
+- **`uvx labwatch-lite` 需要已发布到 PyPI。** 打包与验证链路已就绪并通过 wheel 实测，
   但 PyPI 发布尚未执行；目前请用 `uvx --from <路径或 wheel> labwatch`。
 
 ## 路线图
 
-- 发布到 PyPI，让 `uvx labwatch` 无需 `--from`
+- 发布到 PyPI，让 `uvx labwatch-lite` 无需 `--from`
 - VS Code 扩展上架 Marketplace
 - Prometheus `/metrics` 导出
 - 阈值告警（显存、温度、磁盘）与 Webhook
@@ -265,7 +273,7 @@ CI 还会校验：`labwatch/ui` 与前端源码一致、wheel 内含并能托管
 
 - [`docs/PROJECT_REPORT.html`](docs/PROJECT_REPORT.html) —— 完整汇报（中英双语）：功能、架构、测试结果、全部已修复缺陷、发布就绪度。
 - [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) —— 验收清单与实测结果，含 8 卡服务器验证。
-- [docs/RELEASING.md](docs/RELEASING.md) —— 需要人工完成的发布步骤：GitHub、PyPI（让 uvx labwatch 直接可用）与 VS Code Marketplace。
+- [docs/RELEASING.md](docs/RELEASING.md) —— 需要人工完成的发布步骤：GitHub、PyPI（让 `uvx labwatch-lite` 直接可用）与 VS Code Marketplace。
 
 ## 许可
 

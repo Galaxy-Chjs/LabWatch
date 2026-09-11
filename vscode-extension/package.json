@@ -72,7 +72,7 @@
     "viewsWelcome": [
       {
         "view": "labwatch.gpus",
-        "contents": "LabWatch is not running yet.\n\n[Start LabWatch](command:labwatch.start)\n[Open Full Dashboard](command:labwatch.openDashboard)\n\nInstall it with `uvx labwatch`, `pipx install labwatch` or `pip install labwatch`."
+        "contents": "LabWatch is not running yet.\n\n[Start LabWatch](command:labwatch.start)\n[Open Full Dashboard](command:labwatch.openDashboard)\n\nInstall it with `uvx labwatch-lite`, `pipx install labwatch-lite` or `pip install labwatch-lite` — the command it installs is `labwatch`."
       }
     ],
     "commands": [

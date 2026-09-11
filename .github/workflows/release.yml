@@ -6,6 +6,10 @@ name: Release
 # repository: GitHub proves its identity to PyPI directly. Before this works you
 # must configure the publisher once on PyPI — see docs/RELEASING.md step 3.
 #
+# The distribution name is `labwatch-lite`, not `labwatch`: the latter belongs to
+# an unrelated project on PyPI, and this workflow refuses to build anything that
+# would upload under it.
+#
 #   git tag -a v1.1.1 -m "LabWatch v1.1.1"
 #   git push origin v1.1.1
 #
@@ -56,6 +60,20 @@ jobs:
 
       - name: Build sdist and wheel
         run: python -m build
+
+      - name: The distribution must be labwatch-lite, not labwatch
+        run: |
+          set -euo pipefail
+          # PyPI is a flat namespace: `labwatch` there is an unrelated project, so
+          # uploading under that name would either be rejected or hijack its
+          # users' installs. Cheap guard, run before anything is published.
+          declared=$(python -c "import tomllib,pathlib;print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['name'])")
+          echo "declared distribution name: $declared"
+          [ "$declared" = "labwatch-lite" ] || { echo "::error::pyproject name is '$declared', expected 'labwatch-lite'"; exit 1; }
+          ls dist/ | grep -q '^labwatch_lite-' || { echo "::error::no labwatch_lite-*.whl/.tar.gz in dist/:"; ls dist/; exit 1; }
+          if ls dist/ | grep -qE '^(labwatch|labwatch)-[0-9]'; then
+            echo "::error::a labwatch-<version> artifact would be uploaded under the wrong name"; ls dist/; exit 1
+          fi
 
       - name: The wheel must contain the dashboard and serve it
         run: |
