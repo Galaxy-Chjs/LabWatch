@@ -10,15 +10,15 @@ uvx labwatch
 
 打开 <http://localhost:8123> —— 不用 clone，不用 npm，不用配置。
 
-[English](README.md) · **简体中文**
+[English](https://github.com/Galaxy-Chjs/LabWatch/blob/main/README.md) · **简体中文**
 
-[![CI](https://github.com/Galaxy-Chjs/LabWatch/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![CI](https://github.com/Galaxy-Chjs/LabWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/Galaxy-Chjs/LabWatch/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-<img src="docs/images/hero-labserver.png" alt="LabWatch 监控 8 张 RTX 4090 的科研服务器" width="100%">
+<img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/hero-labserver.png" alt="LabWatch 监控 8 张 RTX 4090 的科研服务器" width="100%">
 
 </div>
 
@@ -115,7 +115,7 @@ LabWatch 1.1.0
 VS Code 会自动把面板端口转发到你的浏览器。LabWatch 不会在编辑器里被重新实现 ——
 扩展只是同一个采集器的一个视图。
 
-构建与本地安装见 [`vscode-extension/README.md`](vscode-extension/README.md)
+构建与本地安装见 [`vscode-extension/README.md`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/vscode-extension/README.md)
 （Marketplace 尚未发布）。
 
 ## 能看到什么
@@ -133,37 +133,44 @@ VS Code 会自动把面板端口转发到你的浏览器。LabWatch 不会在编
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/gpu-cards-labserver.png" alt="八张 GPU 卡片"><br><sub><b>每卡一张卡片</b> —— 8 张 RTX 4090 满载</sub></td>
-<td width="50%"><img src="docs/images/process-table-labserver.png" alt="GPU 进程表"><br><sub><b>GPU 进程</b> —— 可排序、过滤、搜索</sub></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/gpu-cards-labserver.png" alt="八张 GPU 卡片"><br><sub><b>每卡一张卡片</b> —— 8 张 RTX 4090 满载</sub></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/process-table-labserver.png" alt="GPU 进程表"><br><sub><b>GPU 进程</b> —— 可排序、过滤、搜索</sub></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/images/host-overview-labserver.png" alt="主机与文件系统"><br><sub><b>主机总览</b> —— CPU、内存、全部文件系统</sub></td>
-<td width="50%"><img src="docs/images/history-1h-labserver.png" alt="历史曲线"><br><sub><b>历史曲线</b> —— 1H / 6H / 24H</sub></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/host-overview-labserver.png" alt="主机与文件系统"><br><sub><b>主机总览</b> —— CPU、内存、全部文件系统</sub></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/history-1h-labserver.png" alt="历史曲线"><br><sub><b>历史曲线</b> —— 1H / 6H / 24H</sub></td>
 </tr>
 <tr>
-<td colspan="2"><img src="docs/images/hero-light.png" alt="LabWatch 浅色主题" width="100%"><br><sub><b>浅色主题</b> —— 相同的信息密度</sub></td>
+<td colspan="2"><img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/hero-light.png" alt="LabWatch 浅色主题" width="100%"><br><sub><b>浅色主题</b> —— 相同的信息密度</sub></td>
 </tr>
 </table>
 
 ## 配置
 
-全部为 `LABWATCH_` 前缀的环境变量，完整列表见 [`.env.example`](.env.example)。常用的：
+全部为 `LABWATCH_` 前缀的环境变量，完整列表见
+[`.env.example`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/.env.example)。常用的：
 
 | 变量 | 默认值 | 作用 |
 |---|---|---|
-| `LABWATCH_PORT` | `8123` | 监听端口。 |
-| `LABWATCH_HOST` | `127.0.0.1` | 绑定地址。要从外部访问就设为 `0.0.0.0`。 |
+| `LABWATCH_PORT` | `8000` | 监听端口（经 `labwatch` 命令启动时为 `8123`）。 |
+| `LABWATCH_HOST` | `0.0.0.0` | 绑定地址。只在本机访问就设为 `127.0.0.1`。 |
 | `LABWATCH_DATA_DIR` | 平台数据目录 | `labwatch.db` 的位置。 |
 | `LABWATCH_POLL_INTERVAL` | `2` | 实时刷新间隔（秒）。 |
 | `LABWATCH_HISTORY_INTERVAL` | `10` | 历史写入间隔（秒）。 |
 | `LABWATCH_RETENTION_HOURS` | `24` | 历史保留时长。 |
 | `LABWATCH_DEMO_MODE` | `false` | 合成数据，界面标注 **Demo Data**。 |
 | `LABWATCH_INCLUDE_ALL_MOUNTS` | `true` | 上报全部真实文件系统，而不只是 `/`。 |
+| `LABWATCH_COLLECT_COMMANDS` | `true` | 解析完整的进程命令行。 |
+| `LABWATCH_PROCESS_LIMIT` | `64` | 每次采样补全信息的 GPU 进程上限。 |
 | `LABWATCH_INCLUDE_GRAPHICS_PROCESSES` | `false` | 同时列出图形上下文。Windows 桌面下噪声较大。 |
+| `LABWATCH_STATIC_DIR` | （包内面板） | 改用其他目录中已构建好的前端，Docker 场景使用。 |
+
+快速开始用的是 CLI 自己的默认值（`127.0.0.1:8123`）。`labwatch` 会为它启动的服务
+设置这些变量；直接用 `labwatch serve` 或 server 模块运行时，用的是上表中的默认值。
 
 ## 架构
 
-<img src="docs/architecture.svg" alt="架构图：浏览器轮询 FastAPI，FastAPI 读取 NVML 与 psutil 并写入 SQLite" width="100%">
+<img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/architecture.svg" alt="架构图：浏览器轮询 FastAPI，FastAPI 读取 NVML 与 psutil 并写入 SQLite" width="100%">
 
 单进程、单机、三个数据源：**NVML** 提供 GPU 遥测与计算进程 PID，**psutil** 提供主机指标与进程补全，
 **SQLite** 保存历史。面板轮询 `/api/overview`，一次刷新只有一次往返，标签页隐藏时暂停轮询。
@@ -271,12 +278,12 @@ CI 还会校验：`labwatch/ui` 与前端源码一致、wheel 内含并能托管
 
 ## 文档
 
-- [`docs/PROJECT_REPORT.html`](docs/PROJECT_REPORT.html) —— 完整汇报（中英双语）：功能、架构、测试结果、全部已修复缺陷、发布就绪度。
-- [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) —— 验收清单与实测结果，含 8 卡服务器验证。
-- [docs/RELEASING.md](docs/RELEASING.md) —— 需要人工完成的发布步骤：GitHub、PyPI（让 `uvx labwatch-lite` 直接可用）与 VS Code Marketplace。
+- [`docs/PROJECT_REPORT.html`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/docs/PROJECT_REPORT.html) —— 完整汇报（中英双语）：功能、架构、测试结果、全部已修复缺陷、发布就绪度。
+- [`docs/ACCEPTANCE.md`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/docs/ACCEPTANCE.md) —— 验收清单与实测结果，含 8 卡服务器验证。
+- [docs/RELEASING.md](https://github.com/Galaxy-Chjs/LabWatch/blob/main/docs/RELEASING.md) —— 需要人工完成的发布步骤：GitHub、PyPI（让 `uvx labwatch-lite` 直接可用）与 VS Code Marketplace。
 
 ## 许可
 
-[MIT](LICENSE)
+[MIT](https://github.com/Galaxy-Chjs/LabWatch/blob/main/LICENSE)
 
 > LabWatch 默认面向可信内网。它不做认证，且可能暴露进程命令行。

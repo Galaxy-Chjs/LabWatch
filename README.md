@@ -95,7 +95,7 @@ workspace, sees the remote GPUs, and VS Code forwards the dashboard port to your
 browser automatically. LabWatch is never reimplemented inside the editor — the
 extension is a view onto the same collector.
 
-See [`vscode-extension/README.md`](vscode-extension/README.md) to build and install
+See [`vscode-extension/README.md`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/vscode-extension/README.md) to build and install
 it from source (the Marketplace listing is not published yet).
 
 ## What it shows
@@ -113,38 +113,46 @@ it from source (the Marketplace listing is not published yet).
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/gpu-cards-labserver.png" alt="Eight GPU cards"><br><sub><b>One card per GPU</b> — eight RTX 4090s under live load</sub></td>
-<td width="50%"><img src="docs/images/process-table-labserver.png" alt="GPU process table"><br><sub><b>GPU processes</b> — sortable, filterable, searchable</sub></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/gpu-cards-labserver.png" alt="Eight GPU cards"><br><sub><b>One card per GPU</b> — eight RTX 4090s under live load</sub></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/process-table-labserver.png" alt="GPU process table"><br><sub><b>GPU processes</b> — sortable, filterable, searchable</sub></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/images/host-overview-labserver.png" alt="Host tiles and filesystems"><br><sub><b>Host overview</b> — CPU, RAM, every filesystem</sub></td>
-<td width="50%"><img src="docs/images/history-1h-labserver.png" alt="History charts"><br><sub><b>History</b> — 1H / 6H / 24H</sub></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/host-overview-labserver.png" alt="Host tiles and filesystems"><br><sub><b>Host overview</b> — CPU, RAM, every filesystem</sub></td>
+<td width="50%"><img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/history-1h-labserver.png" alt="History charts"><br><sub><b>History</b> — 1H / 6H / 24H</sub></td>
 </tr>
 <tr>
-<td colspan="2"><img src="docs/images/hero-light.png" alt="LabWatch in light theme" width="100%"><br><sub><b>Light theme</b> — same information density</sub></td>
+<td colspan="2"><img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/images/hero-light.png" alt="LabWatch in light theme" width="100%"><br><sub><b>Light theme</b> — same information density</sub></td>
 </tr>
 </table>
 
 ## Configuration
 
-Everything is an environment variable with the `LABWATCH_` prefix; see
-[`.env.example`](.env.example). The common ones:
+Everything is an environment variable with the `LABWATCH_` prefix; the full list
+is in [`.env.example`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/.env.example).
+The common ones:
 
 | Variable                                | Default           | Purpose                                                  |
 | --------------------------------------- | ----------------- | -------------------------------------------------------- |
-| `LABWATCH_PORT`                       | `8123`          | Port to serve on.                                        |
-| `LABWATCH_HOST`                       | `127.0.0.1`     | Bind address. Use`0.0.0.0` to reach it from elsewhere. |
+| `LABWATCH_PORT`                       | `8000`          | Port to serve on (`8123` through the `labwatch` CLI).     |
+| `LABWATCH_HOST`                       | `0.0.0.0`       | Bind address. Use`127.0.0.1` to keep it local.        |
 | `LABWATCH_DATA_DIR`                   | platform data dir | Where`labwatch.db` lives.                              |
 | `LABWATCH_POLL_INTERVAL`              | `2`             | Live refresh interval, seconds.                          |
 | `LABWATCH_HISTORY_INTERVAL`           | `10`            | History write interval, seconds.                         |
 | `LABWATCH_RETENTION_HOURS`            | `24`            | How long history is kept.                                |
 | `LABWATCH_DEMO_MODE`                  | `false`         | Synthetic data, labelled**Demo Data**.             |
 | `LABWATCH_INCLUDE_ALL_MOUNTS`         | `true`          | Report every real filesystem, not just`/`.             |
+| `LABWATCH_COLLECT_COMMANDS`           | `true`          | Resolve full process command lines.                      |
+| `LABWATCH_PROCESS_LIMIT`              | `64`            | GPU processes enriched per sample.                       |
 | `LABWATCH_INCLUDE_GRAPHICS_PROCESSES` | `false`         | Also list graphics contexts. Noisy on Windows desktops.  |
+| `LABWATCH_STATIC_DIR`                 | *(bundled dashboard)* | Serve a different pre-built frontend, e.g. in Docker. |
+
+The quick start above uses the CLI's defaults (`127.0.0.1:8123`). `labwatch`
+sets these variables for the server it starts; running `labwatch serve` or the
+server module directly uses the defaults in the table.
 
 ## Architecture
 
-<img src="docs/architecture.svg" alt="Architecture: browser polls FastAPI, which reads NVML and psutil and persists history to SQLite" width="100%">
+<img src="https://raw.githubusercontent.com/Galaxy-Chjs/LabWatch/main/docs/architecture.svg" alt="Architecture: browser polls FastAPI, which reads NVML and psutil and persists history to SQLite" width="100%">
 
 One process, one host, three data sources: **NVML** for GPU telemetry and compute
 process IDs, **psutil** for host metrics and process enrichment, **SQLite** for
@@ -261,13 +269,13 @@ healthy.
 
 ## Documentation
 
-- [`docs/PROJECT_REPORT.html`](docs/PROJECT_REPORT.html) — consolidated report (English + 中文): features, architecture, test results, every bug found and fixed, release readiness.
-- [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) — acceptance checklist with measured results, including the 8-GPU server validation.
-- [docs/RELEASING.md](docs/RELEASING.md) — what a human has to do: GitHub, PyPI (so `uvx labwatch-lite` works) and the VS Code Marketplace.
+- [`docs/PROJECT_REPORT.html`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/docs/PROJECT_REPORT.html) — consolidated report (English + 中文): features, architecture, test results, every bug found and fixed, release readiness.
+- [`docs/ACCEPTANCE.md`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/docs/ACCEPTANCE.md) — acceptance checklist with measured results, including the 8-GPU server validation.
+- [docs/RELEASING.md](https://github.com/Galaxy-Chjs/LabWatch/blob/main/docs/RELEASING.md) — what a human has to do: GitHub, PyPI (so `uvx labwatch-lite` works) and the VS Code Marketplace.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/Galaxy-Chjs/LabWatch/blob/main/LICENSE)
 
 > LabWatch is intended for trusted private networks by default. It performs no
 > authentication and may reveal process command lines.
