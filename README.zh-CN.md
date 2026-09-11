@@ -12,7 +12,7 @@ uvx labwatch
 
 [English](README.md) · **简体中文**
 
-[![CI](https://github.com/OWNER/labwatch/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![CI](https://github.com/Galaxy-Chjs/LabWatch/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
@@ -188,7 +188,7 @@ GPU 访问需要宿主机安装 [NVIDIA Container Toolkit](https://docs.nvidia.c
 ### 从源码运行
 
 ```bash
-git clone https://github.com/OWNER/labwatch.git
+git clone https://github.com/Galaxy-Chjs/LabWatch.git
 cd labwatch
 pip install -e ".[dev]"
 labwatch --demo

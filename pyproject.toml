@@ -51,10 +51,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/OWNER/labwatch"
-Repository = "https://github.com/OWNER/labwatch"
-Issues = "https://github.com/OWNER/labwatch/issues"
-Changelog = "https://github.com/OWNER/labwatch/releases"
+Homepage = "https://github.com/Galaxy-Chjs/LabWatch"
+Repository = "https://github.com/Galaxy-Chjs/LabWatch"
+Issues = "https://github.com/Galaxy-Chjs/LabWatch/issues"
+Changelog = "https://github.com/Galaxy-Chjs/LabWatch/releases"
 
 [project.scripts]
 labwatch = "labwatch.cli:main"

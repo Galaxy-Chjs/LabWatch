@@ -172,7 +172,7 @@ on the host. Without a GPU the container still monitors CPU, RAM and disk.
 ### From source
 
 ```bash
-git clone https://github.com/OWNER/labwatch.git
+git clone https://github.com/Galaxy-Chjs/LabWatch.git
 cd labwatch
 pip install -e ".[dev]"
 labwatch --demo
