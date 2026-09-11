@@ -27,13 +27,19 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Lint
-        run: ruff check labwatch backend
+        run: ruff check labwatch tests
 
       - name: Check relative imports resolve
         run: python scripts/check-imports.py labwatch
 
       - name: Check the Python 3.10 syntax floor
         run: python scripts/check-syntax-floor.py labwatch 3.10
+
+      # A workflow that names a path a refactor deleted fails as "file not found",
+      # which reads like a code problem. This caught `ruff check labwatch backend`
+      # after backend/ was removed.
+      - name: Check workflow paths exist
+        run: python scripts/check-workflow-paths.py
 
       - name: Run tests
         run: pytest -q --cov=labwatch --cov-report=term-missing --cov-report=xml
