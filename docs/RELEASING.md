@@ -129,9 +129,8 @@ name that must not be published. **Move the tag onto current `main` first:**
 
 ```powershell
 cd D:\IDE\vscode\MyDemo\LabWatch-lite
-git push                                         # make sure main is up to date
-git tag -f -a v1.1.0 -m "LabWatch v1.1.0" HEAD   # move the tag to current main
 git push origin :refs/tags/v1.1.0                # delete the old remote tag
+git tag -f -a v1.1.0 -m "LabWatch v1.1.0" 0639f4a  # re-tag the current main
 git push origin v1.1.0                           # push the moved tag -> triggers Release
 ```
 
@@ -325,8 +324,9 @@ Not required for a release; only if you want them.
 git push -u origin main && git push origin v1.0.0 v1.0.1 v1.1.0
 
 # Move v1.1.0 onto the commit that carries the labwatch-lite name (once, before Step 4)
-git tag -f -a v1.1.0 -m "LabWatch v1.1.0" HEAD
-git push origin :refs/tags/v1.1.0 && git push origin v1.1.0
+git push origin :refs/tags/v1.1.0
+git tag -f -a v1.1.0 -m "LabWatch v1.1.0" 0639f4a
+git push origin v1.1.0
 
 # Release a new version
 #   1. bump pyproject.toml + labwatch/__init__.py
