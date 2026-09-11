@@ -1,0 +1,143 @@
+{
+  "name": "labwatch-vscode",
+  "displayName": "LabWatch",
+  "description": "See your NVIDIA GPU state in the status bar and sidebar, and open the LabWatch dashboard. Works locally and over Remote-SSH.",
+  "version": "1.1.0",
+  "publisher": "labwatch",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OWNER/labwatch"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other", "Visualization"],
+  "keywords": ["gpu", "nvidia", "cuda", "monitoring", "remote-ssh"],
+  "icon": "media/icon.png",
+  "main": "./out/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "configuration": {
+      "title": "LabWatch",
+      "properties": {
+        "labwatch.pythonPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Command used to run the LabWatch CLI. Leave empty to try `labwatch`, then `python3 -m labwatch`, then `python -m labwatch`.",
+          "scope": "resource"
+        },
+        "labwatch.refreshInterval": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 300,
+          "description": "Seconds between automatic refreshes."
+        },
+        "labwatch.statusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show GPU state in the status bar."
+        },
+        "labwatch.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Start LabWatch automatically in the background when a workspace is opened and no instance is running."
+        },
+        "labwatch.dashboardPort": {
+          "type": "number",
+          "default": 8123,
+          "description": "Port the dashboard is served on."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "labwatch",
+          "title": "LabWatch",
+          "icon": "media/labwatch.svg"
+        }
+      ]
+    },
+    "views": {
+      "labwatch": [
+        {
+          "id": "labwatch.gpus",
+          "name": "GPUs",
+          "icon": "media/labwatch.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "labwatch.gpus",
+        "contents": "LabWatch is not running yet.\n\n[Start LabWatch](command:labwatch.start)\n[Open Full Dashboard](command:labwatch.openDashboard)\n\nInstall it with `uvx labwatch`, `pipx install labwatch` or `pip install labwatch`."
+      }
+    ],
+    "commands": [
+      {
+        "command": "labwatch.openDashboard",
+        "title": "LabWatch: Open Full Dashboard",
+        "category": "LabWatch"
+      },
+      {
+        "command": "labwatch.start",
+        "title": "LabWatch: Start in Background",
+        "category": "LabWatch"
+      },
+      {
+        "command": "labwatch.stop",
+        "title": "LabWatch: Stop",
+        "category": "LabWatch"
+      },
+      {
+        "command": "labwatch.refresh",
+        "title": "LabWatch: Refresh",
+        "category": "LabWatch",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "labwatch.doctor",
+        "title": "LabWatch: Run Doctor",
+        "category": "LabWatch"
+      },
+      {
+        "command": "labwatch.showStatus",
+        "title": "LabWatch: Show GPU Summary",
+        "category": "LabWatch"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "labwatch.refresh",
+          "when": "view == labwatch.gpus",
+          "group": "navigation"
+        },
+        {
+          "command": "labwatch.openDashboard",
+          "when": "view == labwatch.gpus",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "labwatch.showStatus",
+          "when": "false"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "tsc -p ./ --noEmit",
+    "test": "node --test out/test/*.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "~5.9.3"
+  }
+}

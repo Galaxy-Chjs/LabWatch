@@ -12,7 +12,7 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import create_app
+from labwatch.server.main import create_app
 
 
 @pytest.fixture
@@ -109,7 +109,7 @@ def test_overview_includes_every_mount_by_default(demo_settings):
     the UI actually polls) must carry both, otherwise a data volume filling up is
     invisible.
     """
-    from app.main import create_app
+    from labwatch.server.main import create_app
 
     app = create_app(demo_settings)
     with TestClient(app) as client:
@@ -252,6 +252,32 @@ def test_openapi_schema_is_valid(client: TestClient):
 
 def test_unknown_api_route_returns_404(client: TestClient):
     assert client.get("/api/does-not-exist").status_code == 404
+
+
+def test_unknown_api_route_is_not_swallowed_by_the_spa_fallback(tmp_path, demo_settings):
+    """Regression found when the dashboard started shipping inside the package.
+
+    With a bundled UI present, the SPA fallback answered *every* unmatched path
+    with index.html. A typo in an API call therefore returned HTTP 200 and a page
+    of HTML instead of a 404, which is far harder to debug. Unknown ``/api/*``
+    paths must stay real 404s while client-side routes still fall back.
+    """
+    bundle = tmp_path / "static"
+    (bundle / "assets").mkdir(parents=True)
+    (bundle / "index.html").write_text("<!doctype html><title>LabWatch</title>", encoding="utf-8")
+    (bundle / "assets" / "app.js").write_text("console.log('x')", encoding="utf-8")
+
+    settings = demo_settings.model_copy(update={"static_dir": bundle})
+    app = create_app(settings)
+    with TestClient(app) as static_client:
+        missing = static_client.get("/api/does-not-exist")
+        assert missing.status_code == 404
+        assert missing.headers["content-type"].startswith("application/json")
+        assert "Unknown endpoint" in missing.json()["detail"]
+
+        # A real endpoint still works, and a client-side route still falls back.
+        assert static_client.get("/api/health").status_code == 200
+        assert static_client.get("/some/deep/route").status_code == 200
 
 
 def test_cors_preflight_is_allowed(client: TestClient):

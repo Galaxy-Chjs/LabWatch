@@ -54,7 +54,15 @@ playwright/.cache/
 
 # --- Node / frontend --------------------------------------------------------
 node_modules/
-frontend/dist/
+
+# VS Code extension build output (npm run compile)
+vscode-extension/out/
+vscode-extension/*.vsix
+.venv-test/
+dist-wheel/
+*.egg-info/
+.ruff_cache/
+__pycache__/
 frontend/coverage/
 .vite/
 *.tsbuildinfo

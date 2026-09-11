@@ -1,0 +1,120 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "labwatch"
+version = "1.1.0"
+description = "Run it and watch your GPUs: a lightweight self-hosted dashboard for NVIDIA GPUs and AI development servers."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+keywords = ["gpu", "nvidia", "monitoring", "nvml", "dashboard", "cuda", "devops", "observability"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Environment :: Web Environment",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: System :: Monitoring",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+# Deliberately small: nothing a GPU host does not already need. The CLI itself
+# uses only the standard library, so `labwatch --help` and `labwatch doctor`
+# work even if a dependency failed to build.
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "uvicorn[standard]>=0.30,<1.0",
+  "psutil>=5.9,<8.0",
+  "nvidia-ml-py>=12.535.108",
+  "SQLAlchemy>=2.0,<3.0",
+  "pydantic>=2.7,<3.0",
+  "pydantic-settings>=2.3,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2",
+  "pytest-asyncio>=0.23",
+  "pytest-cov>=5.0",
+  "httpx>=0.27",
+  "ruff>=0.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/OWNER/labwatch"
+Repository = "https://github.com/OWNER/labwatch"
+Issues = "https://github.com/OWNER/labwatch/issues"
+Changelog = "https://github.com/OWNER/labwatch/releases"
+
+[project.scripts]
+labwatch = "labwatch.cli:main"
+
+[tool.hatch.version]
+path = "labwatch/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+# Ships the whole package, which includes the built dashboard under
+# labwatch/templates — no npm, Node or build step for the user.
+packages = ["labwatch"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/labwatch",
+  "/tests",
+  "/frontend/src",
+  "/frontend/package.json",
+  "/frontend/vite.config.ts",
+  "/frontend/index.html",
+  "/docs",
+  "/README.md",
+  "/LICENSE",
+  "/pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+  "integration: tests that exercise the full FastAPI application",
+]
+asyncio_mode = "auto"
+filterwarnings = [
+  "ignore::DeprecationWarning:starlette.*",
+  "ignore::DeprecationWarning:httpx.*",
+]
+
+[tool.coverage.run]
+source = ["labwatch"]
+branch = true
+# The bundled dashboard under labwatch/ui is generated JavaScript, not code we
+# wrote; counting it would swamp the real number.
+omit = ["labwatch/ui/*", "*/labwatch/ui/*", "labwatch/ui/**"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["labwatch/ui"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RET", "ARG"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ARG001", "ARG002"]

@@ -13,8 +13,8 @@ from dataclasses import dataclass
 import psutil
 import pytest
 
-from app.collectors import gpu as gpu_module
-from app.collectors.gpu import NvmlGpuCollector, mb_to_bytes
+from labwatch.server.collectors import gpu as gpu_module
+from labwatch.server.collectors.gpu import NvmlGpuCollector, mb_to_bytes
 
 NVML_TEMPERATURE_GPU = 0
 NVML_CLOCK_SM = 1

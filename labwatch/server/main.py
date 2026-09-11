@@ -183,6 +183,17 @@ def _mount_frontend(app: FastAPI, settings: Settings) -> None:
     if assets.is_dir():
         app.mount("/assets", StaticFiles(directory=assets), name="assets")
 
+    @app.get("/api/{rest:path}", include_in_schema=False)
+    def api_not_found(rest: str) -> JSONResponse:
+        """Keep unknown ``/api/*`` paths as real 404s.
+
+        Registered before the SPA fallback below, which would otherwise answer
+        every unmatched path with index.html — turning a typo in an API call into
+        a confusing 200 that returns HTML. This only became reachable once the
+        built dashboard started shipping inside the package.
+        """
+        return JSONResponse(status_code=404, content={"detail": f"Unknown endpoint: /api/{rest}"})
+
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa(full_path: str) -> FileResponse:
         """Serve static files, falling back to index.html for client routes."""

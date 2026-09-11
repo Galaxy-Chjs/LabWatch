@@ -6,9 +6,9 @@ import time
 
 import pytest
 
-from app.collectors import DemoCollector
-from app.services.history import HistoryService
-from app.services.monitoring import MonitoringService
+from labwatch.server.collectors import DemoCollector
+from labwatch.server.services.history import HistoryService
+from labwatch.server.services.monitoring import MonitoringService
 
 
 @pytest.fixture
@@ -77,7 +77,7 @@ def test_demo_gpu_history_has_a_series_per_gpu(demo: DemoCollector):
 
 def test_demo_noise_is_deterministic_and_bounded():
     """Demo jitter must be reproducible and stay inside its documented range."""
-    from app.collectors.demo import _noise
+    from labwatch.server.collectors.demo import _noise
 
     for seed in (0.0, 3.0, 17.5):
         for timestamp in (0.0, 1.0, 1_700_000_000.0, 1_700_000_000.6):
@@ -91,7 +91,7 @@ def test_demo_noise_is_deterministic_and_bounded():
 
 def test_demo_noise_bucket_follows_the_sampling_interval():
     """Sampling a 1s signal at 10s steps aliases into noise; bucketing prevents it."""
-    from app.collectors.demo import _noise
+    from labwatch.server.collectors.demo import _noise
 
     # At a 1 second bucket, neighbouring seconds differ.
     assert _noise(1_700_000_000.0, 3) != _noise(1_700_000_001.0, 3)
@@ -104,7 +104,7 @@ def test_demo_noise_bucket_follows_the_sampling_interval():
 
 def test_demo_load_envelope_varies_over_time():
     """The load envelope exists so demo charts are not flat sinusoids."""
-    from app.collectors.demo import _load
+    from labwatch.server.collectors.demo import _load
 
     values = [_load(1_700_000_000.0 + step * 60) for step in range(120)]
     # Bounded well above zero: a busy host does not idle to 4%.
@@ -114,7 +114,7 @@ def test_demo_load_envelope_varies_over_time():
 
 def test_demo_history_uses_the_shared_gpu_signal(demo: DemoCollector):
     """Each history point must come from the documented signal function."""
-    from app.collectors.demo import DEMO_GPUS, _gpu_signals
+    from labwatch.server.collectors.demo import DEMO_GPUS, _gpu_signals
 
     interval = 10.0
     start = 1_700_000_000.0
@@ -130,7 +130,7 @@ def test_demo_history_uses_the_shared_gpu_signal(demo: DemoCollector):
 
 def test_demo_volatility_scales_with_the_window():
     """A 24h chart must not be a solid block, and a 1h chart must not be flat."""
-    from app.collectors.demo import _detail_level
+    from labwatch.server.collectors.demo import _detail_level
 
     short_amplitude, short_period = _detail_level(3600.0)
     long_amplitude, long_period = _detail_level(86_400.0)

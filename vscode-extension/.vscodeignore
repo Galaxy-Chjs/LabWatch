@@ -1,0 +1,7 @@
+# Files that must not ship inside the .vsix.
+.vscode/**
+src/**
+out/test/**
+**/*.map
+tsconfig.json
+node_modules/.cache/**

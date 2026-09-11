@@ -7,13 +7,15 @@ from pathlib import Path
 
 import pytest
 
-BACKEND_ROOT = Path(__file__).resolve().parent.parent
-if str(BACKEND_ROOT) not in sys.path:
-    sys.path.insert(0, str(BACKEND_ROOT))
+# Make the package importable when the test suite runs from a source checkout
+# without an installed distribution (`pytest` straight after cloning).
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
-from app.config import Settings  # noqa: E402
-from app.database import Database  # noqa: E402
-from app.services import HistoryService  # noqa: E402
+from labwatch.server.config import Settings  # noqa: E402
+from labwatch.server.database import Database  # noqa: E402
+from labwatch.server.services import HistoryService  # noqa: E402
 
 
 @pytest.fixture

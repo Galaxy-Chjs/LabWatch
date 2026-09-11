@@ -2,13 +2,42 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BACKEND_DIR = Path(__file__).resolve().parent.parent
+#: Where the built dashboard ships inside the installed package (the pre-built UI).
+SERVER_DIR = Path(__file__).resolve().parent
+PACKAGE_DIR = SERVER_DIR.parent
+UI_DIR = PACKAGE_DIR / "ui"
+
+
+def default_data_dir() -> Path:
+    """Directory for the SQLite history database.
+
+    Deliberately *outside* the package: installing a new version replaces the
+    package directory, and a user's history must not disappear when they upgrade.
+    Follows the platform convention (``%LOCALAPPDATA%`` on Windows,
+    ``$XDG_DATA_HOME`` or ``~/.local/share`` on Linux) and can always be
+    overridden with ``LABWATCH_DATA_DIR``.
+    """
+    override = os.environ.get("LABWATCH_DATA_DIR")
+    if override:
+        return Path(override).expanduser()
+
+    if sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
+        root = Path(base) if base else Path.home() / "AppData" / "Local"
+        return root / "LabWatch"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "LabWatch"
+    base = os.environ.get("XDG_DATA_HOME")
+    root = Path(base) if base else Path.home() / ".local" / "share"
+    return root / "labwatch"
 
 
 class Settings(BaseSettings):
@@ -53,7 +82,7 @@ class Settings(BaseSettings):
         description="SQLAlchemy database URL. Defaults to SQLite inside the data dir.",
     )
     data_dir: Path = Field(
-        default=BACKEND_DIR / "data",
+        default_factory=default_data_dir,
         description="Directory holding the SQLite database file.",
     )
 
@@ -128,12 +157,16 @@ class Settings(BaseSettings):
 
     @property
     def resolved_static_dir(self) -> Path | None:
-        """Directory of a pre-built frontend bundle, if one is present."""
+        """Directory of a pre-built frontend bundle, if one is present.
+
+        Defaults to the dashboard bundled inside the installed package. Set
+        ``LABWATCH_STATIC_DIR`` to point at a different build, which is how the
+        development server and the Docker image work.
+        """
         if self.static_dir is not None:
             candidate = Path(self.static_dir)
             return candidate if candidate.is_dir() else None
-        candidate = BACKEND_DIR / "static"
-        return candidate if candidate.is_dir() else None
+        return UI_DIR if UI_DIR.is_dir() else None
 
 
 @lru_cache(maxsize=1)

@@ -9,11 +9,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from app.config import Settings
-from app.main import create_app
-from app.services.collector import BackgroundCollector
-from app.services.history import HistoryService
-from app.services.monitoring import MonitoringService
+from labwatch.server.config import Settings
+from labwatch.server.main import create_app
+from labwatch.server.services.collector import BackgroundCollector
+from labwatch.server.services.history import HistoryService
+from labwatch.server.services.monitoring import MonitoringService
 
 
 class _FailingMonitoring:

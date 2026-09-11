@@ -1,3 +1,6 @@
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -10,6 +13,8 @@ import tailwindcss from '@tailwindcss/vite'
  * backend. Vite's CLI cannot carry extra flags, so the environment is the only
  * channel that behaves the same on Windows and POSIX.
  */
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
 function resolveApiTarget(): string {
   return process.env.LABWATCH_API_TARGET ?? 'http://127.0.0.1:8000'
 }
@@ -27,7 +32,10 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist',
+    // The built dashboard ships inside the Python package, so an installed
+    // LabWatch serves the real UI without npm or a build step.
+    outDir: resolve(__dirname, '..', 'labwatch', 'ui'),
+    emptyOutDir: true,
     sourcemap: false,
     chunkSizeWarningLimit: 900,
   },

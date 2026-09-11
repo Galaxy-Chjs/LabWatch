@@ -8,9 +8,9 @@ from types import SimpleNamespace
 import psutil
 import pytest
 
-from app.collectors import system as system_module
-from app.collectors.system import SystemCollector
-from app.schemas import HostInfo
+from labwatch.server.collectors import system as system_module
+from labwatch.server.collectors.system import SystemCollector
+from labwatch.server.schemas import HostInfo
 
 
 @pytest.fixture
@@ -306,7 +306,7 @@ def test_all_mounts_skips_pseudo_filesystems(monkeypatch):
 
 
 def test_uptime_human_formatting():
-    from app.schemas import format_duration, format_runtime
+    from labwatch.server.schemas import format_duration, format_runtime
 
     assert format_duration(0) == "0s"
     assert format_duration(90) == "1m 30s"

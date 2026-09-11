@@ -1,10 +1,14 @@
 <div align="center">
 
-# LabWatch Lite
+# LabWatch
 
-**A lightweight self-hosted dashboard for monitoring NVIDIA GPUs and AI development servers.**
+**Run one command and watch your GPUs.**
 
-Stop SSHing in to run `nvidia-smi`, `htop` and `df -h`. Open a browser instead.
+```bash
+uvx labwatch
+```
+
+Open <http://localhost:8123> — no clone, no npm, no config.
 
 **English** · [简体中文](README.zh-CN.md)
 
@@ -12,264 +16,263 @@ Stop SSHing in to run `nvidia-smi`, `htop` and `df -h`. Open a browser instead.
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-<img src="docs/images/hero.png" alt="LabWatch dashboard showing host tiles, GPU cards and the GPU process table" width="100%">
+<img src="docs/images/hero-labserver.png" alt="LabWatch monitoring an 8 x RTX 4090 research server" width="100%">
 
 </div>
 
 ---
 
-## Why
+## Install
 
-Training a model, running inference, or sweeping evaluations means asking the same
-questions over and over:
+One command, nothing to configure:
 
-- Which GPU is free right now?
-- Is the GPU actually computing, or just holding memory?
-- Who is using GPU 1, and how long have they been running?
-- Is RAM about to be exhausted? Is the disk nearly full?
-- What did utilisation look like over the last hour?
+```bash
+uvx labwatch
+```
 
-LabWatch answers all of them on one page that refreshes itself every two seconds.
+That is the whole install. `uvx` fetches LabWatch, starts it, and opens the dashboard.
 
-## Features
+Prefer a permanent command? Any of these work:
+
+```bash
+uv tool install labwatch     # then: labwatch
+pipx install labwatch        # then: labwatch
+pip install labwatch         # then: python -m labwatch
+```
+
+No NVIDIA GPU yet? Explore the UI with synthetic data:
+
+```bash
+uvx labwatch --demo
+```
+
+## Use
+
+```bash
+labwatch                     # start and open the dashboard
+labwatch --port 8124         # a different port
+labwatch --demo              # synthetic GPUs, no hardware needed
+labwatch doctor              # can this machine run LabWatch?
+labwatch start --background  # run it in the background
+labwatch status              # is it running, and what are the GPUs doing
+labwatch stop                # stop the background instance
+labwatch open                # open the dashboard again
+```
+
+`labwatch doctor` is the answer to "why is it not working":
+
+```text
+LabWatch Doctor
+
+✓ Python — 3.12.7
+✓ Dependencies — 7 runtime packages importable
+✓ NVML — available (driver 580.173.02)
+✓ GPUs — 8 detected
+  8 × NVIDIA GeForce RTX 4090
+✓ Port — 127.0.0.1:8123 available
+✓ Database — /home/you/.local/share/labwatch
+✓ Dashboard — bundled (640 KB)
+
+✓ Ready — 8 GPUs available.
+```
+
+`labwatch status` is the one-liner:
+
+```text
+LabWatch 1.1.0
+  gpu-node-01  ·  http://127.0.0.1:8123
+
+  4 busy / 8 GPUs  ·  4 free  driver 580.173.02
+
+  GPU 0  NVIDIA GeForce RTX 4090    98.4%      33 GB / 48 GB   67°C   448 W  busy
+  GPU 1  NVIDIA GeForce RTX 4090     0.0%       1 GB / 48 GB   31°C    16 W  free
+
+  CPU 9%  ·  RAM 9%  ·  8 GPU processes
+```
+
+`--json` on `status` and `doctor` gives machine-readable output, which is what the
+[VS Code extension](#vs-code) consumes.
+
+## VS Code
+
+A lightweight extension puts the GPU state where you are already looking.
+
+- **Status bar**: `GPU 4 busy / 8` or `GPU 0 98% · 33/48GB`, refreshed on an interval.
+- **LabWatch sidebar**: one compact card per GPU — utilisation, VRAM, temperature.
+- **Open Full Dashboard**: jumps to the web UI for history, processes and charts.
+
+It works locally and over **Remote-SSH**: the extension runs in the remote
+workspace, sees the remote GPUs, and VS Code forwards the dashboard port to your
+browser automatically. LabWatch is never reimplemented inside the editor — the
+extension is a view onto the same collector.
+
+See [`vscode-extension/README.md`](vscode-extension/README.md) to build and install
+it from source (the Marketplace listing is not published yet).
+
+## What it shows
 
 | | |
 |---|---|
-| **GPU telemetry** | Utilisation, VRAM, temperature, power (with its limit), fan, SM/memory clocks, persistence mode and process count for every NVIDIA device. |
-| **GPU process mapping** | NVML compute PIDs joined to OS process data: user, full command line, CPU %, resident memory, start time and runtime. |
-| **Host telemetry** | CPU (usage, cores, frequency, load average), RAM, disk (primary mount plus optional extra mounts), hostname, OS, kernel and uptime. |
+| **GPU telemetry** | Utilisation, VRAM, temperature, power (with its limit), fan, SM/memory clocks, persistence mode, process count for every NVIDIA device. |
+| **GPU processes** | NVML compute PIDs joined to OS process data: user, full command line, CPU %, resident memory, runtime. Cross-user on a shared server. |
+| **Host telemetry** | CPU (usage, cores, frequency, load average), RAM, every real filesystem, hostname, OS, kernel, uptime. |
 | **History** | CPU, RAM, disk, GPU utilisation, VRAM, temperature and power persisted to SQLite, charted over **1H / 6H / 24H**. |
-| **Process table** | Sort by any numeric column, filter by GPU, and search across PID, process name, command and user. |
-| **Graceful degradation** | No driver, no GPU, an unsupported sensor or a process that exits mid-query shows `N/A` — never a broken page or a crashing API. |
-| **Demo mode** | `LABWATCH_DEMO_MODE=true` serves realistic synthetic GPUs, processes and history, clearly labelled **Demo Data**, so the UI works without an NVIDIA card. |
-| **Themes** | System / Light / Dark, applied before first paint so there is no flash. |
-| **Read-only** | LabWatch never modifies the host it monitors. No agents to install, no shell, no scheduler. |
+| **Process table** | Sort any numeric column, filter by GPU, search across PID, name, command and user. |
+| **Graceful degradation** | No driver, no GPU, an unsupported sensor or a process that exits mid-query shows `N/A` — never a broken page. |
+| **Themes** | System / Light / Dark, applied before first paint. |
+| **Read-only** | LabWatch never starts, stops or signals a workload. |
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/gpu-cards.png" alt="GPU cards"><br><sub><b>One card per GPU</b> — the visual centre of the page</sub></td>
-<td width="50%"><img src="docs/images/process-table.png" alt="GPU process table"><br><sub><b>GPU processes</b> — sortable, filterable, searchable</sub></td>
+<td width="50%"><img src="docs/images/gpu-cards-labserver.png" alt="Eight GPU cards"><br><sub><b>One card per GPU</b> — eight RTX 4090s under live load</sub></td>
+<td width="50%"><img src="docs/images/process-table-labserver.png" alt="GPU process table"><br><sub><b>GPU processes</b> — sortable, filterable, searchable</sub></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/images/host-overview.png" alt="Host tiles"><br><sub><b>Host overview</b> — CPU, RAM, disk, system</sub></td>
-<td width="50%"><img src="docs/images/history-1h.png" alt="History charts"><br><sub><b>History</b> — 1H / 6H / 24H</sub></td>
+<td width="50%"><img src="docs/images/host-overview-labserver.png" alt="Host tiles and filesystems"><br><sub><b>Host overview</b> — CPU, RAM, every filesystem</sub></td>
+<td width="50%"><img src="docs/images/history-1h-labserver.png" alt="History charts"><br><sub><b>History</b> — 1H / 6H / 24H</sub></td>
 </tr>
 <tr>
-<td colspan="2"><img src="docs/images/hero-light.png" alt="LabWatch in light theme" width="100%"><br><sub><b>Light theme</b> — same information density, different surface</sub></td>
-</tr>
-<tr>
-<td colspan="2"><img src="docs/images/hero-labserver.png" alt="LabWatch monitoring an 8 x RTX 4090 research server" width="100%"><br><sub><b>Real research server</b> — 8 x RTX 4090 under live experimental load, with the filesystem panel flagging a data volume at 98.4 %</sub></td>
-</tr>
-<tr>
-<td colspan="2"><img src="docs/images/hero-real.png" alt="LabWatch reading a real RTX 4060" width="100%"><br><sub><b>Real hardware, no demo data</b> — an RTX 4060 through NVML, and the empty state when nothing holds GPU memory</sub></td>
+<td colspan="2"><img src="docs/images/hero-light.png" alt="LabWatch in light theme" width="100%"><br><sub><b>Light theme</b> — same information density</sub></td>
 </tr>
 </table>
 
-## Quick Start
+## Configuration
 
-### Docker Compose (recommended)
+Everything is an environment variable with the `LABWATCH_` prefix; see
+[`.env.example`](.env.example). The common ones:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `LABWATCH_PORT` | `8123` | Port to serve on. |
+| `LABWATCH_HOST` | `127.0.0.1` | Bind address. Use `0.0.0.0` to reach it from elsewhere. |
+| `LABWATCH_DATA_DIR` | platform data dir | Where `labwatch.db` lives. |
+| `LABWATCH_POLL_INTERVAL` | `2` | Live refresh interval, seconds. |
+| `LABWATCH_HISTORY_INTERVAL` | `10` | History write interval, seconds. |
+| `LABWATCH_RETENTION_HOURS` | `24` | How long history is kept. |
+| `LABWATCH_DEMO_MODE` | `false` | Synthetic data, labelled **Demo Data**. |
+| `LABWATCH_INCLUDE_ALL_MOUNTS` | `true` | Report every real filesystem, not just `/`. |
+| `LABWATCH_INCLUDE_GRAPHICS_PROCESSES` | `false` | Also list graphics contexts. Noisy on Windows desktops. |
+
+## Architecture
+
+<img src="docs/architecture.svg" alt="Architecture: browser polls FastAPI, which reads NVML and psutil and persists history to SQLite" width="100%">
+
+One process, one host, three data sources: **NVML** for GPU telemetry and compute
+process IDs, **psutil** for host metrics and process enrichment, **SQLite** for
+history. The dashboard polls `/api/overview`, so a refresh is a single round trip,
+and polling pauses while the tab is hidden.
+
+The built dashboard ships inside the Python package, which is why `uvx labwatch`
+needs no Node toolchain. v1 deliberately has no WebSockets, no queue, no cache
+layer and no authentication: at a two second refresh they would add operational
+surface without changing the experience.
+
+```
+labwatch/
+├── labwatch/                 # the Python package
+│   ├── cli/                  # labwatch doctor / status / start / stop
+│   ├── server/               # FastAPI app, collectors, services
+│   └── ui/                   # the built dashboard, shipped in the wheel
+├── vscode-extension/         # status bar, sidebar, open-dashboard
+├── docker-compose.yml        # server deployment option
+└── docs/                     # report, acceptance checklist, screenshots
+```
+
+## Advanced deployment
+
+Docker is the right answer for a shared server, not for a laptop:
+
+```bash
+docker compose up -d
+```
+
+GPU access needs the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+on the host. Without a GPU the container still monitors CPU, RAM and disk.
+
+### From source
 
 ```bash
 git clone https://github.com/OWNER/labwatch.git
 cd labwatch
-docker compose up -d
+pip install -e ".[dev]"
+labwatch --demo
 ```
 
-Open <http://localhost:8000>. History is stored in the `labwatch-data` volume and
-survives restarts.
-
-GPU access requires the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-on the host. Without a GPU the container still runs — CPU, RAM and disk are
-monitored as usual.
-
-**No GPU? Try the demo:**
+The dashboard is committed under `labwatch/ui`, so a source checkout needs no npm
+either. Only rebuild it if you change the frontend:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.override.yml up --build
+cd frontend && npm install && npm run build   # writes into labwatch/ui
 ```
-
-### Run from source
-
-Backend:
-
-```bash
-cd backend
-python -m venv .venv && . .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Frontend (second terminal):
-
-```bash
-cd frontend
-npm install
-npm run dev        # http://localhost:5173, proxies /api to :8000
-```
-
-For a single-origin deployment, build the UI and let FastAPI serve it:
-
-```bash
-cd frontend && npm run build && cp -r dist ../backend/static
-# backend now serves the dashboard at http://localhost:8000
-```
-
-## Architecture
-
-<img src="docs/architecture.svg" alt="Architecture diagram: browser polls FastAPI, which reads NVML and psutil and persists history to SQLite" width="100%">
-
-One host, one container, three data sources:
-
-- **NVML** (`nvidia-ml-py`) for GPU telemetry and compute process IDs.
-- **psutil** for host metrics and for enriching GPU PIDs with user, command, CPU and runtime.
-- **SQLite** for the history series, in WAL mode, pruned to a configurable retention window.
-
-The dashboard polls `/api/overview` on an interval the backend advertises, which
-collapses a refresh into a single round trip. Polling pauses while the tab is
-hidden. v1 deliberately avoids WebSockets: at a 2 second refresh they add
-complexity without changing the experience.
-
-```
-labwatch/
-├── backend/
-│   ├── app/
-│   │   ├── api/            # route modules: health, system, gpu, history, overview
-│   │   ├── collectors/     # psutil host collector, NVML GPU collector, demo source
-│   │   ├── services/       # monitoring facade, history persistence, background loop
-│   │   ├── config.py       # LABWATCH_* settings
-│   │   ├── database.py     # SQLAlchemy models: host_samples, gpu_samples
-│   │   ├── schemas.py      # Pydantic response models
-│   │   └── main.py         # app factory, lifespan, static frontend mount
-│   ├── tests/              # 96 pytest tests
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── components/     # header, host tiles, GPU cards, process table, charts
-│   │   ├── hooks/          # SWR polling, theme
-│   │   ├── lib/            # formatting and status-level helpers
-│   │   ├── services/       # typed API client
-│   │   └── types/          # mirrors backend/app/schemas.py
-│   ├── e2e/                # Playwright suite
-│   └── scripts/            # dev server, screenshot automation
-├── docs/images/            # screenshots used above
-├── docker-compose.yml
-└── .github/workflows/ci.yml
-```
-
-## Configuration
-
-Everything is an environment variable with the `LABWATCH_` prefix. See
-[`.env.example`](.env.example) for the annotated list.
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `LABWATCH_POLL_INTERVAL` | `2` | Seconds between live metrics refreshes advertised to the UI. |
-| `LABWATCH_HISTORY_INTERVAL` | `10` | Seconds between persisted history rows. |
-| `LABWATCH_RETENTION_HOURS` | `24` | How long history is kept. |
-| `LABWATCH_RETENTION_MAX_ROWS` | `200000` | Safety cap per table; oldest rows are pruned first. |
-| `LABWATCH_DATA_DIR` | `backend/data` | Directory holding `labwatch.db`. |
-| `LABWATCH_DATABASE_URL` | *(derived)* | Full SQLAlchemy URL; overrides `DATA_DIR`. |
-| `LABWATCH_DEMO_MODE` | `false` | Serve synthetic data labelled **Demo Data**. |
-| `LABWATCH_ENABLE_BACKGROUND_COLLECTOR` | `true` | Persist history in the background. |
-| `LABWATCH_COLLECT_COMMANDS` | `true` | Read full process command lines (`/proc` access permitting). |
-| `LABWATCH_INCLUDE_GRAPHICS_PROCESSES` | `false` | Also list graphics contexts. On Windows desktops this adds every compositing GUI process. |
-| `LABWATCH_PROCESS_LIMIT` | `64` | Maximum GPU processes enriched per sample. |
-| `LABWATCH_CORS_ORIGINS` | `*` | Comma-separated allowed origins. |
-| `LABWATCH_LOG_LEVEL` | `INFO` | Standard Python log level. |
-
-### Reporting GPU processes the way you expect
-
-NVML exposes compute (`C`) and graphics (`G`) contexts. LabWatch lists **compute
-processes by default**, matching `nvidia-smi --query-compute-apps`. On Windows
-every WDDM application appears in that list, so the table can be long; that is
-the driver's view of the device, not a bug. Set
-`LABWATCH_INCLUDE_GRAPHICS_PROCESSES=true` to include graphics contexts as well.
 
 ## API
 
-Interactive documentation is served at `/api/docs`.
+Interactive documentation is at `/api/docs`.
 
 | Endpoint | Returns |
 |---|---|
-| `GET /api/health` | Service status, database state, NVML availability and collector state. |
-| `GET /api/overview` | System + GPUs + processes in one payload (what the UI polls). |
-| `GET /api/system` | Host CPU, memory, disk and uptime. `?all_mounts=true` adds every mount. |
-| `GET /api/gpus` | Live state of every GPU, including `available`/`error` when NVML is unusable. |
-| `GET /api/processes` | GPU processes. `?gpu_index=1` filters to one device. |
-| `GET /api/history/system?range=1h` | Host history. `range` is `1h`, `6h` or `24h`. |
-| `GET /api/history/gpus?range=1h` | GPU history for all devices. |
-| `GET /api/history/gpus/{index}?range=1h` | GPU history for one device. |
+| `GET /api/health` | Service, database, NVML and collector state. |
+| `GET /api/overview` | System + GPUs + processes in one payload. |
+| `GET /api/system` | Host CPU, memory, filesystems, uptime. |
+| `GET /api/gpus` | Every GPU, including `available`/`error` when NVML is unusable. |
+| `GET /api/processes` | GPU processes; `?gpu_index=1` filters to one device. |
+| `GET /api/history/system?range=1h` | Host history; `range` is `1h`, `6h` or `24h`. |
+| `GET /api/history/gpus` | GPU history for all devices. |
 
 ```bash
-curl -s localhost:8000/api/overview | jq '.gpus.gpus[] | {index, utilization_percent, temperature_c}'
+curl -s localhost:8123/api/overview | jq '.gpus.gpus[] | {index, utilization_percent, temperature_c}'
 ```
-
-Fields a host cannot report are `null`, which the dashboard renders as `N/A`.
-`/api/gpus` and `/api/processes` still return HTTP 200 with `available: false`
-and an `error` string when the driver is missing, so a health check can tell
-"reachable but degraded" apart from "unreachable".
 
 ## Testing
 
 ```bash
-# Backend: 121 tests, collector failure modes included
-cd backend && pip install -r requirements-dev.txt && pytest
+pip install -e ".[dev]"
+pytest              # 122 backend tests
+ruff check labwatch backend
 
-# Frontend: 77 tests
-cd frontend && npm install && npm run test
-
-# Browser end-to-end: 8 tests, starts its own demo backend and dev server
-cd frontend && npx playwright install chromium && npm run e2e
+cd frontend
+npm run test        # 77 frontend tests
+npm run e2e         # 8 Playwright tests, starts its own demo backend
 ```
 
-The backend suite replaces NVML with a fake, so it covers a missing driver, a
-host with no GPU, unsupported power/fan/clock sensors, processes that exit
-between the NVML query and the psutil lookup, and NVML calls that raise. CI runs
-lint, backend tests with coverage, frontend tests, the production build, the
-Playwright suite and a Docker build with a container smoke test.
+CI additionally verifies that `labwatch/ui` matches the frontend sources, that the
+wheel contains and serves the dashboard, and that the Docker image comes up
+healthy.
 
-## Tech Stack
+## Tech stack
 
+**Package** hatchling · console-script entry point · standard-library-only CLI
 **Backend** Python 3.10+ · FastAPI · pydantic-settings · psutil · nvidia-ml-py · SQLAlchemy 2 · SQLite · pytest
 **Frontend** React 19 · TypeScript (strict) · Vite · Tailwind CSS v4 · Recharts · SWR · Vitest · Testing Library
+**Editor** VS Code extension (TypeScript)
 **Deployment** Docker (multi-stage) · Docker Compose · GitHub Actions
 
 ## Limitations
 
-- **Single host.** LabWatch monitors the machine it runs on. Multi-server
-  aggregation is out of scope for v1.
-- **No authentication.** Intended for trusted private networks. Process command
-  lines can contain sensitive arguments, so do not expose it to the public
-  internet without a reverse proxy that adds authentication.
+- **Single host.** LabWatch monitors the machine it runs on.
+- **No authentication.** Intended for trusted private networks; process command
+  lines can be sensitive. Use a reverse proxy if you must expose it.
 - **NVIDIA only.** AMD and Intel GPUs are not read.
-- **Graphics contexts on Windows** are noisy by default; see above.
-- **History is sampled, not streamed.** A 10 second write interval means brief
-  spikes between samples are not captured.
-- **Load average is `N/A` on Windows**, because the platform does not expose it.
-- **Disk reports the most meaningful mounted filesystem.** The primary disk is
-  the root filesystem when it is a real device. In a container whose root is an
-  `overlay` filesystem (Docker Desktop, for example) it falls back to the
-  shallowest real mount, and container disk figures describe the container's
-  filesystem rather than the host's. Run LabWatch directly on the host if you
-  need host disk numbers.
+- **Graphics contexts on Windows** are noisy; compute processes are the default.
+- **Load average is `N/A` on Windows**, which does not expose it.
+- **`uvx labwatch` needs a published release.** Packaging and verification are in
+  place and tested against the built wheel; the PyPI publication itself has not
+  been done, so for now use `uvx --from <path-or-wheel> labwatch`.
 
 ## Roadmap
 
-Beyond v1, driven by actual use rather than speculation:
-
-- Optional token authentication for exposed deployments
+- Publish to PyPI so `uvx labwatch` resolves without `--from`
+- VS Code extension on the Marketplace
 - Prometheus `/metrics` export
-- Alert thresholds (VRAM, temperature, disk) with webhook delivery
-- Multi-host aggregation behind a single dashboard
-- WebSocket push for sub-second refresh
+- Threshold alerts (VRAM, temperature, disk) with webhook delivery
+- Multi-host aggregation
 
 ## Documentation
 
-- [`docs/PROJECT_REPORT.html`](docs/PROJECT_REPORT.html) — consolidated build report (English + 中文): features, architecture, test results, bugs found and fixed, and release readiness.
-- [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) — the manual acceptance checklist and its measured results (English + 中文).
+- [`docs/PROJECT_REPORT.html`](docs/PROJECT_REPORT.html) — consolidated report (English + 中文): features, architecture, test results, every bug found and fixed, release readiness.
+- [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md) — acceptance checklist with measured results, including the 8-GPU server validation.
 
 ## License
 
