@@ -1,0 +1,76 @@
+v1.1.0: make LabWatch something you install and forget
+
+v1.1 asks a different question from v1.0. v1.0 answered "what is happening on my
+GPU server"; v1.1 answers "how do I open LabWatch without thinking about it".
+The monitoring core is untouched.
+
+Packaging
+- The backend is now a real Python package: `labwatch` with the server under
+  `labwatch.server`, the CLI under `labwatch.cli`, and the built dashboard bundled
+  at `labwatch/ui`. A single pyproject.toml at the repository root (hatchling) is
+  the only source of truth for dependencies, the console script and the wheel.
+- The dashboard ships inside the wheel, so an installed LabWatch serves the real
+  UI and no user ever runs npm. CI fails if the committed bundle drifts from the
+  frontend sources it was built from.
+- History moved to the platform data directory. Keeping it inside the package
+  would have meant that upgrading LabWatch deletes the user's history.
+- backend/pyproject.toml, the requirements files and the whole backend/app tree
+  are gone; tests live at the repository root.
+
+CLI (standard library only, so --help and doctor survive a broken install)
+- `labwatch` serves and opens the browser; --demo, --port, --host, --data-dir,
+  --no-browser.
+- `labwatch doctor` checks Python, dependencies, NVML, GPUs, the port, the data
+  directory and the bundled dashboard, and names the fix for each failure.
+- `labwatch start|stop|status|open|version`, with --json on status and doctor as
+  the machine-readable interface the editor consumes.
+- status is built for a one-line answer: "7 busy / 8 GPUs - 1 free", then one
+  aligned row per GPU.
+- Background start is portable; stop signals only the PID LabWatch recorded for
+  itself, after checking it still looks like LabWatch, so a recycled PID is never
+  killed.
+
+VS Code extension (vscode-extension/)
+- Status bar summary, a glance-only GPU sidebar, and Open Full Dashboard.
+- It runs `labwatch status --json` rather than reimplementing the collector, so
+  the editor and the dashboard cannot disagree.
+- Remote-SSH is the designed case: the extension host runs on the server, so the
+  CLI it invokes describes that machine, and vscode.env.asExternalUri asks VS Code
+  to forward the dashboard port. No manual tunnel, nothing exposed on the server.
+- The formatting layer has no vscode imports and is unit tested under plain Node.
+
+Defects found because of this work (14-17 in the report)
+- The bundled dashboard made the SPA fallback answer unknown /api/* paths with
+  HTTP 200 and HTML, turning an API typo into a confusing success. Now a real 404.
+- The CLI emitted check marks to a GBK Windows console and crashed with
+  UnicodeEncodeError on the happy path. It now detects what the stream can encode.
+- An f-string with reused quotes was a syntax error on Python 3.10, which
+  pyproject claims to support.
+- The package move left 18 relative imports one level too deep.
+
+New dev tooling, all wired into CI
+- scripts/check-imports.py: resolves every relative import against real files.
+- scripts/check-syntax-floor.py: parses the package with the supported floor.
+- scripts/check-ci.py: job graph sanity, because a job that never runs looks
+  exactly like a job that passed.
+- scripts/make-extension-icon.mjs: generates the PNG icon with zlib only.
+- scripts/verify-extension-e2e.mjs: feeds the live CLI payload from the lab server
+  through the extension's real parser and formatters.
+
+Validation
+- 179 backend tests at 87% coverage (was 122 at 59% before the CLI tests), 77
+  frontend, 8 E2E, 13 extension. ruff, import check, syntax floor and CI graph all
+  clean. The E2E suite now starts the server through `python -m labwatch serve`,
+  so it exercises the public entry point too.
+- Wheel verified: installs into a clean venv and serves the bundled UI.
+- VS Code extension packaged as a .vsix and installed into VS Code.
+- Lab server: v1.1.0 installed offline (the server cannot reach PyPI), doctor all
+  green, dashboard served from the package, other users' eight CUDA processes
+  untouched.
+
+A failure worth recording, in .lab/README.md and docs/ACCEPTANCE.md: the first
+attempt reused the v1.0 venv's dependency directory through PYTHONPATH, and
+rebuilding the venv three times destroyed the only copy of that dependency set on
+a host with no PyPI access. Recovery was to download cp311 manylinux wheels and
+install entirely offline; the lesson (park with mv, never rm -rf, until the new
+install is proven) is now in the script.

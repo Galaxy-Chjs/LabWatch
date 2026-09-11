@@ -57,6 +57,9 @@ node_modules/
 
 # VS Code extension build output (npm run compile)
 vscode-extension/out/
+
+# Playwright's demo data directory
+.e2e-data/
 vscode-extension/*.vsix
 .venv-test/
 dist-wheel/

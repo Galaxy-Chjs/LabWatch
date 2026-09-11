@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LabWatch Lite — Project Report v1.0.1 / 项目汇报 v1.0.1</title>
+    <title>LabWatch — Project Report v1.1.0 / 项目汇报 v1.1.0</title>
     <script>
       // Apply the saved language before first paint so the report never flashes
       // the wrong language.
@@ -131,9 +131,9 @@
         <p class="sub lang-en">A lightweight self-hosted dashboard for monitoring NVIDIA GPUs and AI development servers.</p>
         <p class="sub lang-zh">轻量级、自托管的 NVIDIA GPU 与 AI 开发服务器监控面板。</p>
         <div class="meta">
-          <span class="chip ok"><span class="lang-en">v1.0.1 validated on real 8-GPU server</span><span class="lang-zh">v1.0.1 已在真实 8 卡服务器验证</span></span>
+          <span class="chip ok"><span class="lang-en">v1.1.0 installable tool + validated on a real 8-GPU server</span><span class="lang-zh">v1.1.0 可安装工具 + 已在真实 8 卡服务器验证</span></span>
           <span class="chip"><span class="lang-en">Single host · multiple GPUs</span><span class="lang-zh">单机 · 多卡</span></span>
-          <span class="chip"><span class="lang-en">121 backend tests</span><span class="lang-zh">后端 121 个测试</span></span>
+          <span class="chip"><span class="lang-en">179 backend tests</span><span class="lang-zh">后端 179 个测试</span></span>
           <span class="chip"><span class="lang-en">77 frontend tests</span><span class="lang-zh">前端 77 个测试</span></span>
           <span class="chip"><span class="lang-en">8 browser E2E tests</span><span class="lang-zh">浏览器 E2E 8 个</span></span>
           <span class="chip"><span class="lang-en">Docker + GPU verified</span><span class="lang-zh">Docker + GPU 已验证</span></span>
@@ -162,7 +162,7 @@
         <div class="stat"><div class="v">2 s</div><div class="k"><span class="lang-en">Live refresh interval</span><span class="lang-zh">实时刷新间隔</span></div></div>
         <div class="stat"><div class="v">10 s</div><div class="k"><span class="lang-en">History write interval</span><span class="lang-zh">历史写入间隔</span></div></div>
         <div class="stat"><div class="v">24 h</div><div class="k"><span class="lang-en">Default retention</span><span class="lang-zh">默认保留时长</span></div></div>
-        <div class="stat"><div class="v">94 %</div><div class="k"><span class="lang-en">Backend line coverage</span><span class="lang-zh">后端行覆盖率</span></div></div>
+        <div class="stat"><div class="v">87 %</div><div class="k"><span class="lang-en">Backend line coverage</span><span class="lang-zh">后端行覆盖率</span></div></div>
       </div>
 
       <h3 class="lang-en">Implemented features</h3>
@@ -276,7 +276,7 @@
       <table class="lang-en">
         <thead><tr><th>Suite</th><th class="num">Tests</th><th>Result</th><th>Notes</th></tr></thead>
         <tbody>
-          <tr><td>Backend (pytest)</td><td class="num">121</td><td class="ok">pass</td><td>94 % line coverage over <code>app/</code>; NVML replaced by a configurable fake. Verified stable over eight consecutive runs.</td></tr>
+          <tr><td>Backend (pytest)</td><td class="num">179</td><td class="ok">pass</td><td>87 % line coverage over <code>labwatch/</code>; NVML replaced by a configurable fake. Verified stable over eight consecutive runs.</td></tr>
           <tr><td>Frontend (Vitest)</td><td class="num">77</td><td class="ok">pass</td><td>Formatting, theme, API client, host tiles, GPU cards, process table sorting/filtering/search, empty and no-GPU states.</td></tr>
           <tr><td>End-to-end (Playwright)</td><td class="num">8</td><td class="ok">pass</td><td>Real Chromium against a demo backend and the dev server; also asserts zero console errors.</td></tr>
           <tr><td>Ruff lint</td><td class="num">—</td><td class="ok">clean</td><td><code>ruff check app tests</code></td></tr>
@@ -292,7 +292,7 @@
       <table class="lang-zh">
         <thead><tr><th>套件</th><th class="num">数量</th><th>结果</th><th>说明</th></tr></thead>
         <tbody>
-          <tr><td>后端（pytest）</td><td class="num">121</td><td class="ok">通过</td><td><code>app/</code> 行覆盖率 94%；用可配置的仿真实现替换 NVML。连续 8 次运行均稳定。</td></tr>
+          <tr><td>后端（pytest）</td><td class="num">179</td><td class="ok">通过</td><td><code>labwatch/</code> 行覆盖率 87%；用可配置的仿真实现替换 NVML。连续 8 次运行均稳定。</td></tr>
           <tr><td>前端（Vitest）</td><td class="num">77</td><td class="ok">通过</td><td>格式化、主题、API 客户端、主机卡片、GPU 卡片、进程表排序/过滤/搜索、空状态与无 GPU 状态。</td></tr>
           <tr><td>端到端（Playwright）</td><td class="num">8</td><td class="ok">通过</td><td>真实 Chromium 对接演示后端与开发服务器；同时断言零 console 错误。</td></tr>
           <tr><td>Ruff 静态检查</td><td class="num">—</td><td class="ok">干净</td><td><code>ruff check app tests</code></td></tr>
@@ -552,9 +552,129 @@
         <figcaption class="lang-en">History from the real server: host utilisation, eight GPU utilisation traces, VRAM per GPU, and temperature.</figcaption>
         <figcaption class="lang-zh">真实服务器的历史曲线：主机利用率、8 条 GPU 利用率轨迹、逐卡显存占用与温度。</figcaption>
       </figure>
-      <!-- ================= 6. BUGS ================= -->
-      <h2 class="lang-en">6. Bugs found and fixed during development</h2>
-      <h2 class="lang-zh">6. 开发过程中发现并修复的缺陷</h2>
+      <!-- ================= 6. v1.1 PRODUCTIZATION ================= -->
+      <h2 class="lang-en">6. v1.1 — from a project to a tool</h2>
+      <h2 class="lang-zh">6. v1.1 —— 从"项目"变成"工具"</h2>
+      <p class="lang-en">
+        v1.0 answered "what is happening on my GPU server?" v1.1 answers a different
+        question: "how do I open LabWatch without thinking about it?" The monitoring core
+        was frozen; everything here is install, start, access and daily use.
+      </p>
+      <p class="lang-zh">
+        v1.0 回答的是"我的 GPU 服务器上发生了什么"。v1.1 回答的是另一个问题：
+        "我怎么能不假思索地打开 LabWatch"。核心监控功能全部冻结，这一轮只改进安装、
+        启动、访问与日常使用。
+      </p>
+
+      <div class="grid">
+        <div class="stat"><div class="v">1</div><div class="k"><span class="lang-en">command to install</span><span class="lang-zh">安装命令条数</span></div></div>
+        <div class="stat"><div class="v">0</div><div class="k"><span class="lang-en">npm steps for users</span><span class="lang-zh">用户需执行的 npm 步骤</span></div></div>
+        <div class="stat"><div class="v">250 KB</div><div class="k"><span class="lang-en">wheel with dashboard</span><span class="lang-zh">含面板的 wheel 体积</span></div></div>
+        <div class="stat"><div class="v">87 %</div><div class="k"><span class="lang-en">Backend coverage</span><span class="lang-zh">后端覆盖率</span></div></div>
+      </div>
+
+      <h3 class="lang-en">Packaging</h3>
+      <h3 class="lang-zh">打包</h3>
+      <ul class="lang-en">
+        <li>The backend became a real Python package: <code>labwatch</code> with the server under <code>labwatch.server</code>, the command line under <code>labwatch.cli</code>, and the built dashboard bundled at <code>labwatch/ui</code>. One <code>pyproject.toml</code> at the repository root is the single source of truth for dependencies, the console script and the wheel contents.</li>
+        <li>The dashboard ships inside the wheel, so an installed LabWatch serves the real UI. Users never run <code>npm install</code> or <code>npm run build</code>; that is a development step. CI fails if the committed bundle drifts from the sources it was built from.</li>
+        <li>History moved to the platform data directory (for example <code>~/.local/share/labwatch</code>). Putting it inside the package would have meant that upgrading LabWatch deletes the user's history.</li>
+      </ul>
+      <ul class="lang-zh">
+        <li>后端成为真正的 Python 包：<code>labwatch</code>，服务器代码在 <code>labwatch.server</code>，命令行在 <code>labwatch.cli</code>，构建好的前端打包在 <code>labwatch/ui</code>。仓库根目录的单个 <code>pyproject.toml</code> 是依赖、console script 与 wheel 内容的唯一来源。</li>
+        <li>面板随 wheel 一起分发，因此安装后的 LabWatch 直接提供真实 UI。用户永远不需要执行 <code>npm install</code> 或 <code>npm run build</code> —— 那属于开发流程。CI 会在提交的前端产物与源码不一致时失败。</li>
+        <li>历史数据改到平台数据目录（如 <code>~/.local/share/labwatch</code>）。放在包目录里意味着升级 LabWatch 会删掉用户的历史。</li>
+      </ul>
+
+      <h3 class="lang-en">CLI</h3>
+      <h3 class="lang-zh">命令行</h3>
+      <pre class="lang-en"><code>labwatch                     # serve and open the dashboard
+labwatch --demo              # synthetic GPUs, no hardware
+labwatch doctor              # can this machine run LabWatch?
+labwatch start --background  # detached
+labwatch status              # one-line answer, or --json
+labwatch stop / open / version</code></pre>
+      <pre class="lang-zh"><code>labwatch                     # 启动并打开面板
+labwatch --demo              # 合成 GPU，无需硬件
+labwatch doctor              # 这台机器能跑 LabWatch 吗
+labwatch start --background  # 后台运行
+labwatch status              # 一行答案，或 --json
+labwatch stop / open / version</code></pre>
+      <p class="lang-en">
+        The CLI uses only the standard library, deliberately: <code>--help</code> and
+        <code>doctor</code> must work even when a dependency failed to install. <code>doctor</code>
+        checks Python, the dependencies, NVML, the GPUs, the port, the data directory and the
+        bundled dashboard, and names the fix for each failure rather than printing a traceback.
+        <code>status --json</code> is the interface the editor consumes.
+      </p>
+      <p class="lang-zh">
+        CLI 刻意只使用标准库：即使某个依赖安装失败，<code>--help</code> 与 <code>doctor</code>
+        也必须能用。<code>doctor</code> 检查 Python、依赖、NVML、GPU、端口、数据目录与打包的面板，
+        并为每一项失败给出修复建议，而不是抛一堆栈。<code>status --json</code> 是编辑器消费的接口。
+      </p>
+
+      <h3 class="lang-en">VS Code extension</h3>
+      <h3 class="lang-zh">VS Code 扩展</h3>
+      <ul class="lang-en">
+        <li>Status bar summary, a glance-only GPU sidebar, and Open Full Dashboard.</li>
+        <li>It runs <code>labwatch status --json</code> instead of reimplementing the collector, so the editor and the dashboard cannot disagree.</li>
+        <li><strong>Remote-SSH is the designed case.</strong> The extension host runs on the remote machine, so the CLI it invokes describes that machine's GPUs; <code>vscode.env.asExternalUri</code> asks VS Code to forward the dashboard port. No manual tunnel, and nothing is exposed on the server's network.</li>
+        <li>The formatting layer has no <code>vscode</code> imports and is unit tested under plain Node, including malformed CLI payloads.</li>
+      </ul>
+      <ul class="lang-zh">
+        <li>状态栏摘要、只用于"扫一眼"的 GPU 侧边栏，以及 Open Full Dashboard。</li>
+        <li>它执行 <code>labwatch status --json</code>，而不是重新实现采集器，因此编辑器与面板不可能给出不一致的数据。</li>
+        <li><strong>Remote-SSH 是重点设计场景。</strong>扩展宿主运行在远端机器上，所以它调用的 CLI 描述的就是那台机器的 GPU；<code>vscode.env.asExternalUri</code> 让 VS Code 转发面板端口。无需手工隧道，也不会在服务器网络上暴露任何端口。</li>
+        <li>格式化层不引用 <code>vscode</code>，用纯 Node 做单元测试，包含对畸形 CLI 输出的处理。</li>
+      </ul>
+
+      <h3 class="lang-en">Defects found while doing this</h3>
+      <h3 class="lang-zh">本轮发现的缺陷</h3>
+      <p class="lang-en">
+        Four problems surfaced that only exist because the tool became installable; they are
+        entries 14–17 in the list below. The most interesting was not a code defect at all:
+        bundling the dashboard inside the package made the SPA fallback answer unknown
+        <code>/api/*</code> paths with HTTP 200 and a page of HTML, so an API typo started
+        looking like success. That is precisely the class of bug that appears when a
+        development-only deployment becomes a product.
+      </p>
+      <p class="lang-zh">
+        有四个问题只有在"变成可安装的工具"之后才会出现，列在下方第 14–17 条。其中最有意思的一个
+        甚至不算代码缺陷：把面板打进包里之后，SPA 兜底路由开始把未知的 <code>/api/*</code>
+        返回成 HTTP 200 + 一页 HTML，于是一个 API 拼写错误看起来像调用成功。这正是"开发环境专用部署"
+        变成"产品"时才会冒出来的那一类问题。
+      </p>
+
+      <h3 class="lang-en">Where it was validated</h3>
+      <h3 class="lang-zh">验证位置</h3>
+      <table class="lang-en">
+        <thead><tr><th>Path</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>Wheel contents</td><td class="ok">250 KB, includes <code>labwatch/ui</code>; package-data test asserts the dashboard is present and served</td></tr>
+          <tr><td><code>uvx</code> equivalent (local wheel and local checkout)</td><td class="ok">starts, serves the bundled UI (HTTP 200 on <code>/</code> and on <code>/assets/*.js</code>)</td></tr>
+          <tr><td>Editable install, CLI end to end</td><td class="ok">doctor, start, status, stop, open, version, <code>python -m labwatch</code></td></tr>
+          <tr><td>VS Code extension</td><td class="ok">packaged as .vsix, installed into VS Code (11 files, 15 KB)</td></tr>
+          <tr><td>Extension against the real server CLI</td><td class="ok">parser and formatters fed the live 8-GPU payload over SSH; every contract check passed</td></tr>
+          <tr><td>Lab server, packaged install</td><td class="ok">v1.1.0 installed offline, doctor all green, dashboard served from the package, other users' 8 CUDA processes untouched</td></tr>
+          <tr><td>Docker build</td><td class="warn">blocked by this machine's Docker DNS at the time of writing; the Dockerfile was rewritten for the package layout and the CI job verifies it independently</td></tr>
+        </tbody>
+      </table>
+      <table class="lang-zh">
+        <thead><tr><th>路径</th><th>结果</th></tr></thead>
+        <tbody>
+          <tr><td>wheel 内容</td><td class="ok">250 KB，包含 <code>labwatch/ui</code>；有测试断言面板存在且可被托管</td></tr>
+          <tr><td><code>uvx</code> 等价路径（本地 wheel 与本地仓库）</td><td class="ok">可启动，托管打包 UI（<code>/</code> 与 <code>/assets/*.js</code> 均 200）</td></tr>
+          <tr><td>可编辑安装 + CLI 全流程</td><td class="ok">doctor、start、status、stop、open、version、<code>python -m labwatch</code></td></tr>
+          <tr><td>VS Code 扩展</td><td class="ok">已打包为 .vsix 并成功安装到 VS Code（11 个文件，15 KB）</td></tr>
+          <tr><td>扩展对接真实服务器 CLI</td><td class="ok">解析器与格式化函数直接消费经 SSH 取回的真实 8 卡数据，全部契约检查通过</td></tr>
+          <tr><td>实验服务器上的包化安装</td><td class="ok">v1.1.0 离线安装成功，doctor 全绿，面板由包直接托管，其他用户的 8 个 CUDA 进程未受影响</td></tr>
+          <tr><td>Docker 构建</td><td class="warn">撰写时被本机 Docker 的 DNS 故障阻塞；Dockerfile 已按包化结构重写，CI 中有独立 job 验证</td></tr>
+        </tbody>
+      </table>
+
+      <!-- ================= 7. BUGS ================= -->
+      <h2 class="lang-en">7. Bugs found and fixed during development</h2>
+      <h2 class="lang-zh">7. 开发过程中发现并修复的缺陷</h2>
       <p class="lang-en">These were found by the tests, by looking at the rendered UI, or by comparing against the driver — not by reading code alone.</p>
       <p class="lang-zh">以下缺陷来自测试、来自观察真实渲染的界面、或来自与驱动的对比 —— 而不是仅靠阅读代码发现的。</p>
 
@@ -620,6 +740,31 @@
             <td>Primary disk detection picked the longest matching mount point, so inside a container it selected <code>/etc/resolv.conf</code> — a 2.5 GB ext4 bind mount.</td>
             <td>Found only by rendering the dashboard against the real container: the disk tile showed a config file instead of the filesystem. A plausible-looking but meaningless number is worse than no number.</td>
             <td>Ignore pseudo filesystems and container-injected file mounts, prefer the root filesystem, and otherwise take the shallowest real mount.</td>
+          </tr>
+          <tr>
+            <td>14</td>
+            <td>Bundling the dashboard inside the package made the SPA fallback answer unknown <code>/api/*</code> paths with HTTP 200 and a page of HTML.</td>
+            <td>A typo in an API call returned "success" with HTML body, which is far harder to debug than a 404. Only reachable once a built UI always exists, so the development deployment never showed it.</td>
+            <td>Register an explicit <code>/api/{rest}</code> 404 handler before the SPA catch-all, and test it with a bundle present.</td>
+          </tr>
+          <tr>
+            <td>15</td>
+            <td>The CLI printed check marks to a Windows console using a legacy code page (GBK) and crashed with <code>UnicodeEncodeError</code>.</td>
+            <td><code>labwatch doctor</code> crashed on the happy path, which is the worst possible moment to fail.</td>
+            <td>Detect whether the output stream can encode the markers, and fall back to ASCII when it cannot.</td>
+          </tr>
+          <tr>
+            <td>16</td>
+            <td>An f-string reused the same quote character inside its expression, which is a syntax error on Python 3.10 — the floor that <code>pyproject.toml</code> claims to support.</td>
+            <td>The CLI would fail to import on the oldest supported interpreter while passing every test on 3.12.</td>
+            <td>Restructured the f-string, and added <code>scripts/check-syntax-floor.py</code>, which parses the package with the 3.10 grammar in CI.</td>
+          </tr>
+          <tr>
+            <td>17</td>
+            <td>Moving the code into a package left 18 relative imports one level too deep, so modules failed to import at runtime.</td>
+            <td>A structural refactor like this breaks imports silently until an affected path runs; the failures surfaced only when the CLI was exercised.</td>
+            <td><code>scripts/check-imports.py</code> resolves every relative import against the files that exist and runs in CI.</td>
+          </tr>
           </tr>
           <tr>
             <td>11</td>
@@ -706,6 +851,31 @@
             <td>排除伪文件系统与容器注入的文件挂载，优先根文件系统，否则取路径最浅的真实挂载点。</td>
           </tr>
           <tr>
+            <td>14</td>
+            <td>把面板打进包里之后，SPA 兜底路由开始把未知的 <code>/api/*</code> 返回成 HTTP 200 加一页 HTML。</td>
+            <td>一个 API 拼写错误会返回"成功"但内容是 HTML，比 404 难排查得多。只有在"构建产物总是存在"之后才会触发，所以开发环境从未暴露。</td>
+            <td>在 SPA 兜底之前显式注册 <code>/api/{rest}</code> 的 404 处理，并在存在构建产物的场景下加测试。</td>
+          </tr>
+          <tr>
+            <td>15</td>
+            <td>CLI 向使用旧代码页（GBK）的 Windows 控制台输出勾号时，抛出 <code>UnicodeEncodeError</code> 崩溃。</td>
+            <td><code>labwatch doctor</code> 在最顺利的路径上崩溃 —— 这是最不该出错的时刻。</td>
+            <td>先探测输出流能否编码这些符号，不能则退化为 ASCII。</td>
+          </tr>
+          <tr>
+            <td>16</td>
+            <td>某个 f-string 在表达式内复用了相同的引号字符，这在 Python 3.10 上是语法错误 —— 而 <code>pyproject.toml</code> 声称支持 3.10。</td>
+            <td>CLI 在最低支持版本上无法导入，但在 3.12 上所有测试都通过。</td>
+            <td>改写该 f-string，并新增 <code>scripts/check-syntax-floor.py</code>，在 CI 中用 3.10 语法解析整个包。</td>
+          </tr>
+          <tr>
+            <td>17</td>
+            <td>把代码搬进包结构后，18 处相对导入多了一层，导致模块在运行时无法导入。</td>
+            <td>这类结构重构会静默破坏导入，直到受影响的路径被执行；这里是靠实际跑 CLI 才暴露的。</td>
+            <td>新增 <code>scripts/check-imports.py</code>，把每个相对导入与真实存在的文件做解析校验，并纳入 CI。</td>
+          </tr>
+          </tr>
+          <tr>
             <td>11</td>
             <td>面板此前只显示根文件系统。在实验服务器上发现：<code>/nfs-data1</code> 已用 98.4 %，而界面只报 <code>/</code> 的 91.7 %，其余一概不显示。</td>
             <td>科研服务器上真正要紧的磁盘通常是数据盘，因此面板恰好隐藏了唯一需要处理的那个数字：一个还剩 226 GB 的 15 TB 卷完全不可见。</td>
@@ -727,8 +897,8 @@
       </table>
 
       <!-- ================= 6. LIMITATIONS ================= -->
-      <h2 class="lang-en">7. Known limitations</h2>
-      <h2 class="lang-zh">7. 已知限制</h2>
+      <h2 class="lang-en">8. Known limitations</h2>
+      <h2 class="lang-zh">8. 已知限制</h2>
 
       <table class="lang-en">
         <thead><tr><th>Limitation</th><th>Reason / mitigation</th></tr></thead>
@@ -761,8 +931,8 @@
       </table>
 
       <!-- ================= 7. HYGIENE ================= -->
-      <h2 class="lang-en">8. Repository hygiene</h2>
-      <h2 class="lang-zh">8. 仓库整洁度</h2>
+      <h2 class="lang-en">9. Repository hygiene</h2>
+      <h2 class="lang-zh">9. 仓库整洁度</h2>
       <ul class="lang-en">
         <li>No scratch scripts, no <code>tmp/</code>, no <code>debug.json</code>, no stray logs. Every tracked file is source, test, documentation, deployment configuration or a referenced image.</li>
         <li>Generated and runtime artifacts are ignored: <code>backend/data/</code>, <code>*.db*</code>, <code>node_modules/</code>, <code>dist/</code>, coverage, Playwright reports, <code>.env</code>.</li>
@@ -779,8 +949,8 @@
       </ul>
 
       <!-- ================= 8. RELEASE READINESS ================= -->
-      <h2 class="lang-en">9. Release readiness</h2>
-      <h2 class="lang-zh">9. 发布就绪度</h2>
+      <h2 class="lang-en">10. Release readiness</h2>
+      <h2 class="lang-zh">10. 发布就绪度</h2>
 
       <table class="lang-en">
         <thead><tr><th>Definition-of-done item</th><th>Status</th></tr></thead>
@@ -790,7 +960,7 @@
           <tr><td>GPU process mapping works</td><td class="ok">NVML pids joined to psutil detail</td></tr>
           <tr><td>Historical charts work</td><td class="ok">1H/6H/24H, persisted in SQLite</td></tr>
           <tr><td>No-GPU failure is graceful</td><td class="ok">tested; host metrics keep working</td></tr>
-          <tr><td>Tests pass</td><td class="ok">121 + 77 + 8</td></tr>
+          <tr><td>Tests pass</td><td class="ok">179 + 77 + 8 + 13</td></tr>
           <tr><td>CI passes</td><td class="ok">lint, tests, build, E2E, Docker smoke test</td></tr>
           <tr><td>Docker works</td><td class="ok">built, smoke tested, and run with GPU passthrough</td></tr>
           <tr><td>README complete</td><td class="ok">features, quick start, architecture, config, API, limitations, roadmap (English + 中文)</td></tr>
@@ -810,7 +980,7 @@
           <tr><td>GPU 进程映射可用</td><td class="ok">NVML PID 与 psutil 信息关联</td></tr>
           <tr><td>历史图表可用</td><td class="ok">1H/6H/24H，持久化于 SQLite</td></tr>
           <tr><td>无 GPU 时优雅降级</td><td class="ok">已测试；主机指标照常工作</td></tr>
-          <tr><td>测试通过</td><td class="ok">121 + 77 + 8</td></tr>
+          <tr><td>测试通过</td><td class="ok">179 + 77 + 8 + 13</td></tr>
           <tr><td>CI 通过</td><td class="ok">lint、测试、构建、E2E、Docker 冒烟测试</td></tr>
           <tr><td>Docker 可用</td><td class="ok">已构建、已冒烟测试、已验证 GPU 直通</td></tr>
           <tr><td>README 完整</td><td class="ok">功能、快速开始、架构、配置、API、限制、路线图（英文 + 中文）</td></tr>
@@ -823,26 +993,26 @@
       </table>
 
       <div class="note lang-en">
-        <strong>Verdict:</strong> LabWatch Lite v1.0.1 meets its definition of done and is ready to publish.
+        <strong>Verdict:</strong> LabWatch v1.1.0 meets its definition of done and is ready to publish.
         It was validated on a real 8 x RTX 4090 research server under live experimental load, in
         addition to the single-GPU development host and the Docker image with GPU passthrough. That
         validation found and fixed three genuine defects, all listed in section 6.
       </div>
       <div class="note lang-zh">
-        <strong>结论：</strong>LabWatch Lite v1.0.1 已满足完成度定义，可以公开发布。除单卡开发机与
+        <strong>结论：</strong>LabWatch v1.1.0 已满足完成度定义，可以公开发布。除单卡开发机与
         Docker GPU 直通之外，还在真实的 8 × RTX 4090 科研服务器上、于实验负载运行期间完成了验证。
         正是这次验证发现并修复了三个真实缺陷，详见第 6 节。
       </div>
 
       <footer>
         <span class="lang-en">
-          LabWatch Lite v1.0.1 · MIT · Consolidated build report for the v1.0 development cycle.
+          LabWatch v1.1.0 · MIT · Consolidated build report for the v1.0 development cycle.
           Reproduction commands for every number on this page are in
           <a href="ACCEPTANCE.md">ACCEPTANCE.md</a>. This report is bilingual; the language toggle
           is verified in a real browser by <code>frontend/scripts/verify-report.mjs</code>.
         </span>
         <span class="lang-zh">
-          LabWatch Lite v1.0.1 · MIT · v1.0 开发周期的唯一完整汇报文档。
+          LabWatch v1.1.0 · MIT · v1.0 → v1.1 开发周期的唯一完整汇报文档。
           本页每个数字的重现命令见 <a href="ACCEPTANCE.md">ACCEPTANCE.md</a>。
           本报告为中英双语，语言切换由 <code>frontend/scripts/verify-report.mjs</code>
           在真实浏览器中验证。

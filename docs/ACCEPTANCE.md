@@ -213,6 +213,57 @@ modified. The experiments of other users ran untouched throughout.
 
 ---
 
+## Test 10 - v1.1: install, start, access
+
+v1.0 asked "what is happening on my GPU server". v1.1 asks "how do I open LabWatch
+without thinking about it", so the thing under test is the install and start path
+itself.
+
+| # | Check | Result |
+|---|---|---|
+| 10.1 | `pip install` from the built wheel in a clean virtualenv | ✅ installs; the `labwatch` console script is created |
+| 10.2 | The wheel contains the dashboard | ✅ 250 KB, `labwatch/ui/index.html` plus hashed assets; a test asserts it |
+| 10.3 | `uvx`-equivalent from a local wheel and from a local checkout | ✅ both start and serve the bundled UI (`/` and `/assets/*.js` return 200) |
+| 10.4 | `labwatch doctor` | ✅ all seven checks green on this host, including "Dashboard - bundled" |
+| 10.5 | `labwatch start` / `status` / `stop` | ✅ start detaches and logs; status reports the real GPUs; stop signals only the recorded PID |
+| 10.6 | `labwatch --demo` needs no GPU | ✅ serves 3 synthetic GPUs, clearly labelled |
+| 10.7 | `python -m labwatch` as an alternative entry point | ✅ prints the version |
+| 10.8 | `--json` contract consumed by the editor | ✅ parser and formatters fed the live 8-GPU payload over SSH; 8/8 contract checks pass |
+| 10.9 | VS Code extension packages and installs | ✅ 15 KB .vsix, installed as `labwatch.labwatch-vscode@1.1.0` |
+| 10.10 | The packaged release installs on the real server | ✅ v1.1.0 installed offline, `doctor` all green, dashboard served from the package, other users' 8 CUDA processes untouched |
+| 10.11 | History survives the upgrade | ✅ the v1.0.1 database was carried over (1.9 MB) |
+| 10.12 | No npm step for an end user | ✅ the dashboard is committed under `labwatch/ui` |
+
+**What could not be verified here:** the extension's visual behaviour inside a
+running VS Code window (status bar text, sidebar rendering). The extension host
+cannot be driven headlessly from this environment, so what is proven is the data
+path - real CLI, real parser, real formatters - plus a successful package install.
+The rendering itself needs a human with the window open.
+
+## Test 11 - the failure that cost the most
+
+Not a success, recorded because it is the most instructive thing that happened in
+this cycle.
+
+When reinstalling the lab server for v1.1, the first attempt reused the v1.0
+virtualenv's dependency directory through `PYTHONPATH`. Rebuilding the venv three
+times in that loop destroyed the only copy of the working dependency set, and the
+server cannot reinstall from PyPI (its pip DNS fails), so LabWatch was left not
+importable on the server for a period.
+
+Recovery: download the dependency wheels on a networked machine for the server's
+interpreter (`cp311`, manylinux), ship them, and install entirely offline. That is
+now `.lab/install-v11-offline.sh`, with the dependency set pinned to the
+combination v1.0.1 proved on this host.
+
+The lesson is in the script: park the old venv with `mv`, never `rm -rf`, until the
+new install has been proven to import and serve. Two traps that cost round trips:
+
+- `uvicorn[standard]` pulls `uvloop` only on POSIX, so a download performed on
+  Windows silently omits it.
+- Verifying by `pip install` succeeding is not verification: an install with
+  `--no-deps` "succeeds" and then fails at first import, which reads like a code bug.
+
 ## Product question
 
 > Is this actually more convenient than the way I worked before?
@@ -240,7 +291,7 @@ servers this tool targets.
 | README | ✅ feature overview, quick start, architecture, configuration, API, limitations, roadmap (English + 中文) |
 | LICENSE | ✅ MIT |
 | .gitignore | ✅ Python, Node, SQLite, test artifacts, editors |
-| Tests | ✅ 121 backend + 77 frontend + 8 Playwright |
+| Tests | ✅ 179 backend + 77 frontend + 8 Playwright + 13 extension |
 | CI | ✅ lint, backend tests with coverage, frontend tests, build, E2E, Docker smoke test |
 | Build | ✅ `npx tsc -b` clean, `vite build` succeeds |
 | Release | ✅ v1.0.0 tagged and documented |
@@ -443,6 +494,51 @@ venv，conda 环境本身零改动。
    现改用 `free` 口径，并暴露 `free` / `cached` / `available`。
 3. **首次采样进程 CPU 显示 0.0 %。** `ps` 显示 109 % 的 CUDA 进程被显示为空闲，因为
    psutil 基准只存在了几毫秒。现在在形成真实差值前不返回数值。
+## Test 10 - v1.1：安装、启动、访问
+
+v1.0 回答的是“我的 GPU 服务器上发生了什么”。v1.1 回答的是
+“我怎么能不假思索地打开 LabWatch”，所以被测试的对象就是安装与启动路径本身。
+
+| # | 检查项 | 结果 |
+|---|---|---|
+| 10.1 | 在干净 venv 中从 wheel 执行 `pip install` | ✅ 安装成功；生成 `labwatch` console script |
+| 10.2 | wheel 内含面板 | ✅ 250 KB，含 `labwatch/ui/index.html` 与哈希资源；有测试断言 |
+| 10.3 | `uvx` 等价路径（本地 wheel 与本地仓库） | ✅ 均可启动并托管打包 UI（`/` 与 `/assets/*.js` 均 200） |
+| 10.4 | `labwatch doctor` | ✅ 本机七项全绿，含 “Dashboard - bundled” |
+| 10.5 | `labwatch start` / `status` / `stop` | ✅ start 后台化并记日志；status 报真实 GPU；stop 只向自己记录的 PID 发信号 |
+| 10.6 | `labwatch --demo` 无需 GPU | ✅ 提供 3 张合成 GPU，界面明确标注 |
+| 10.7 | `python -m labwatch` 作为备用入口 | ✅ 正常输出版本 |
+| 10.8 | 给编辑器消费的 `--json` 契约 | ✅ 解析器与格式化函数直接消费经 SSH 取回的真实 8 卡数据，8/8 契约检查通过 |
+| 10.9 | VS Code 扩展打包与安装 | ✅ 15 KB .vsix，已安装为 `labwatch.labwatch-vscode@1.1.0` |
+| 10.10 | 包化发布在真实服务器上安装 | ✅ v1.1.0 离线安装成功，doctor 全绿，面板由包直接托管，其他用户的 8 个 CUDA 进程未受影响 |
+| 10.11 | 升级后历史数据保留 | ✅ v1.0.1 的数据库被完整保留（1.9 MB） |
+| 10.12 | 终端用户无需执行 npm | ✅ 面板已提交在 `labwatch/ui` |
+
+**本次无法验证的部分：** VS Code 窗口内扩展的可视表现（状态栏文字、
+侧边栏渲染）。本环境无法无头驱动扩展宿主，因此已证明的是数据链路
+—— 真实 CLI、真实解析器、真实格式化函数 —— 以及包能成功安装。
+渲染本身需要人在真实窗口前确认。
+
+## Test 11 - 代价最大的一次失误
+
+这不是一个成功项，之所以记录，是因为它是本轮最值得记住的事。
+
+为 v1.1 重装实验服务器时，第一版方案试图用 `PYTHONPATH` 复用 v1.0
+venv 的依赖目录。在那个循环里三次重建 venv，把唯一一份可用的依赖集
+覆盖掉了；而服务器无法从 PyPI 重装（pip 的 DNS 不可用），于是 LabWatch
+在服务器上一段时间内无法导入。
+
+恢复方式：在有网络的机器上为服务器的解释器（`cp311`、manylinux）下载
+依赖 wheel，传过去全离线安装。这就是现在的 `.lab/install-v11-offline.sh`，
+且依赖版本锁定在 v1.0.1 在本机验证过的组合上。
+
+教训已写进脚本：用 `mv` 把旧 venv 存放起来，绝不 `rm -rf`，直到新安装已被
+证明可导入且可服务。两个浪费了往返的坑：
+
+- `uvicorn[standard]` 只在 POSIX 上拉 `uvloop`，所以在 Windows 上执行的下载会静默地漏掉它。
+- “pip install 成功”不算验证：带 `--no-deps` 的安装会“成功”，然后在首次
+  导入时失败，看起来像代码缺陷而不是缺依赖。
+
 ## 产品问题
 
 > 它是否真的比我原来的方法更方便？
@@ -466,7 +562,7 @@ Linux GPU 服务器不受影响。
 | README | ✅ 功能总览、快速开始、架构、配置、API、限制、路线图（英文 + 中文） |
 | LICENSE | ✅ MIT |
 | .gitignore | ✅ Python、Node、SQLite、测试产物、编辑器 |
-| 测试 | ✅ 后端 121 + 前端 77 + Playwright 8 |
+| 测试 | ✅ 后端 179 + 前端 77 + Playwright 8 + 扩展 13 |
 | CI | ✅ lint、带覆盖率的后端测试、前端测试、构建、E2E、Docker 冒烟测试 |
 | 构建 | ✅ `npx tsc -b` 干净，`vite build` 成功 |
 | 发布 | ✅ 已打 v1.0.0 标签并附文档 |

@@ -1,27 +1,5 @@
 <div align="center">
 
-# LabWatch
-
-**Run one command and watch your GPUs.**
-
-```bash
-uvx labwatch
-```
-
-Open <http://localhost:8123> — no clone, no npm, no config.
-
-**English** · [简体中文](README.zh-CN.md)
-
-[![CI](https://github.com/OWNER/labwatch/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
-![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
-![License](https://img.shields.io/badge/license-MIT-blue)
-
-<img src="docs/images/hero-labserver.png" alt="LabWatch monitoring an 8 x RTX 4090 research server" width="100%">
-
-</div>
-
 ---
 
 ## Install
@@ -113,16 +91,16 @@ it from source (the Marketplace listing is not published yet).
 
 ## What it shows
 
-| | |
-|---|---|
-| **GPU telemetry** | Utilisation, VRAM, temperature, power (with its limit), fan, SM/memory clocks, persistence mode, process count for every NVIDIA device. |
-| **GPU processes** | NVML compute PIDs joined to OS process data: user, full command line, CPU %, resident memory, runtime. Cross-user on a shared server. |
-| **Host telemetry** | CPU (usage, cores, frequency, load average), RAM, every real filesystem, hostname, OS, kernel, uptime. |
-| **History** | CPU, RAM, disk, GPU utilisation, VRAM, temperature and power persisted to SQLite, charted over **1H / 6H / 24H**. |
-| **Process table** | Sort any numeric column, filter by GPU, search across PID, name, command and user. |
-| **Graceful degradation** | No driver, no GPU, an unsupported sensor or a process that exits mid-query shows `N/A` — never a broken page. |
-| **Themes** | System / Light / Dark, applied before first paint. |
-| **Read-only** | LabWatch never starts, stops or signals a workload. |
+|                                |                                                                                                                                         |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **GPU telemetry**        | Utilisation, VRAM, temperature, power (with its limit), fan, SM/memory clocks, persistence mode, process count for every NVIDIA device. |
+| **GPU processes**        | NVML compute PIDs joined to OS process data: user, full command line, CPU %, resident memory, runtime. Cross-user on a shared server.   |
+| **Host telemetry**       | CPU (usage, cores, frequency, load average), RAM, every real filesystem, hostname, OS, kernel, uptime.                                  |
+| **History**              | CPU, RAM, disk, GPU utilisation, VRAM, temperature and power persisted to SQLite, charted over**1H / 6H / 24H**.                  |
+| **Process table**        | Sort any numeric column, filter by GPU, search across PID, name, command and user.                                                      |
+| **Graceful degradation** | No driver, no GPU, an unsupported sensor or a process that exits mid-query shows`N/A` — never a broken page.                         |
+| **Themes**               | System / Light / Dark, applied before first paint.                                                                                      |
+| **Read-only**            | LabWatch never starts, stops or signals a workload.                                                                                     |
 
 <table>
 <tr>
@@ -143,17 +121,17 @@ it from source (the Marketplace listing is not published yet).
 Everything is an environment variable with the `LABWATCH_` prefix; see
 [`.env.example`](.env.example). The common ones:
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `LABWATCH_PORT` | `8123` | Port to serve on. |
-| `LABWATCH_HOST` | `127.0.0.1` | Bind address. Use `0.0.0.0` to reach it from elsewhere. |
-| `LABWATCH_DATA_DIR` | platform data dir | Where `labwatch.db` lives. |
-| `LABWATCH_POLL_INTERVAL` | `2` | Live refresh interval, seconds. |
-| `LABWATCH_HISTORY_INTERVAL` | `10` | History write interval, seconds. |
-| `LABWATCH_RETENTION_HOURS` | `24` | How long history is kept. |
-| `LABWATCH_DEMO_MODE` | `false` | Synthetic data, labelled **Demo Data**. |
-| `LABWATCH_INCLUDE_ALL_MOUNTS` | `true` | Report every real filesystem, not just `/`. |
-| `LABWATCH_INCLUDE_GRAPHICS_PROCESSES` | `false` | Also list graphics contexts. Noisy on Windows desktops. |
+| Variable                                | Default           | Purpose                                                  |
+| --------------------------------------- | ----------------- | -------------------------------------------------------- |
+| `LABWATCH_PORT`                       | `8123`          | Port to serve on.                                        |
+| `LABWATCH_HOST`                       | `127.0.0.1`     | Bind address. Use`0.0.0.0` to reach it from elsewhere. |
+| `LABWATCH_DATA_DIR`                   | platform data dir | Where`labwatch.db` lives.                              |
+| `LABWATCH_POLL_INTERVAL`              | `2`             | Live refresh interval, seconds.                          |
+| `LABWATCH_HISTORY_INTERVAL`           | `10`            | History write interval, seconds.                         |
+| `LABWATCH_RETENTION_HOURS`            | `24`            | How long history is kept.                                |
+| `LABWATCH_DEMO_MODE`                  | `false`         | Synthetic data, labelled**Demo Data**.             |
+| `LABWATCH_INCLUDE_ALL_MOUNTS`         | `true`          | Report every real filesystem, not just`/`.             |
+| `LABWATCH_INCLUDE_GRAPHICS_PROCESSES` | `false`         | Also list graphics contexts. Noisy on Windows desktops.  |
 
 ## Architecture
 
@@ -211,15 +189,15 @@ cd frontend && npm install && npm run build   # writes into labwatch/ui
 
 Interactive documentation is at `/api/docs`.
 
-| Endpoint | Returns |
-|---|---|
-| `GET /api/health` | Service, database, NVML and collector state. |
-| `GET /api/overview` | System + GPUs + processes in one payload. |
-| `GET /api/system` | Host CPU, memory, filesystems, uptime. |
-| `GET /api/gpus` | Every GPU, including `available`/`error` when NVML is unusable. |
-| `GET /api/processes` | GPU processes; `?gpu_index=1` filters to one device. |
-| `GET /api/history/system?range=1h` | Host history; `range` is `1h`, `6h` or `24h`. |
-| `GET /api/history/gpus` | GPU history for all devices. |
+| Endpoint                             | Returns                                                            |
+| ------------------------------------ | ------------------------------------------------------------------ |
+| `GET /api/health`                  | Service, database, NVML and collector state.                       |
+| `GET /api/overview`                | System + GPUs + processes in one payload.                          |
+| `GET /api/system`                  | Host CPU, memory, filesystems, uptime.                             |
+| `GET /api/gpus`                    | Every GPU, including`available`/`error` when NVML is unusable. |
+| `GET /api/processes`               | GPU processes;`?gpu_index=1` filters to one device.              |
+| `GET /api/history/system?range=1h` | Host history;`range` is `1h`, `6h` or `24h`.               |
+| `GET /api/history/gpus`            | GPU history for all devices.                                       |
 
 ```bash
 curl -s localhost:8123/api/overview | jq '.gpus.gpus[] | {index, utilization_percent, temperature_c}'

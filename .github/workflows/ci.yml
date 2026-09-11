@@ -134,6 +134,41 @@ jobs:
           path: dist/*.whl
           if-no-files-found: error
 
+  extension:
+    name: VS Code extension
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vscode-extension
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: vscode-extension/package.json
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Compile (type check)
+        run: npm run compile
+
+      # The formatting and parsing layer has no vscode imports, so it runs under
+      # plain Node. That is deliberate: it is where a wrong number would show up.
+      - name: Unit tests
+        run: npm test
+
+      - name: Package the extension
+        run: npx --yes @vscode/vsce package --no-dependencies
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: labwatch-vsix
+          path: vscode-extension/*.vsix
+          if-no-files-found: error
+
   e2e:
     name: End-to-end tests
     runs-on: ubuntu-latest
@@ -164,8 +199,8 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: frontend
 
-      # The E2E suite starts the backend in demo mode itself, so no NVIDIA GPU
-      # and no production build are required on the runner.
+      # The E2E suite starts the backend through python -m labwatch serve --demo,
+      # so no NVIDIA GPU and no production build are required on the runner.
       - name: Run Playwright
         run: npx playwright test
         working-directory: frontend
