@@ -129,10 +129,15 @@ name that must not be published. **Move the tag onto current `main` first:**
 
 ```powershell
 cd D:\IDE\vscode\MyDemo\LabWatch-lite
+git pull origin main                             # make sure you are on the latest main
 git push origin :refs/tags/v1.1.0                # delete the old remote tag
-git tag -f -a v1.1.0 -m "LabWatch v1.1.0" 0639f4a  # re-tag the current main
+git tag -f -a v1.1.0 -m "LabWatch v1.1.0" HEAD   # re-tag the current main
 git push origin v1.1.0                           # push the moved tag -> triggers Release
 ```
+
+Tag the tip of `main`, not the older commit: it has to contain the
+`labwatch-lite` name and the README fixes. · 标签要打在 `main` 的最新提交上，而不是旧提交：
+它必须包含 `labwatch-lite` 这个名字与 README 的修正。
 
 (Deleting and re-pushing a tag on a personal repository whose release nobody has
 consumed yet is harmless; it is only rude once others depend on it. · 个人仓库、发布还没
@@ -323,9 +328,10 @@ Not required for a release; only if you want them.
 # Push
 git push -u origin main && git push origin v1.0.0 v1.0.1 v1.1.0
 
-# Move v1.1.0 onto the commit that carries the labwatch-lite name (once, before Step 4)
+# Move v1.1.0 onto the tip of main, which carries the labwatch-lite name (once, before Step 4)
+git pull origin main
 git push origin :refs/tags/v1.1.0
-git tag -f -a v1.1.0 -m "LabWatch v1.1.0" 0639f4a
+git tag -f -a v1.1.0 -m "LabWatch v1.1.0" HEAD
 git push origin v1.1.0
 
 # Release a new version
