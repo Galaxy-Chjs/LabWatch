@@ -212,7 +212,7 @@ Marketplace 发布者账号。
 
 ### Right now: install it for yourself · 现在就能自己安装
 
-Installed on this machine as `galaxy-chjs.labwatch-vscode@1.1.0`. To reinstall
+Installed on this machine as `chjs.labwatch-vscode@1.1.0`. To reinstall
 after a change:
 
 ```powershell
@@ -229,11 +229,27 @@ icon in the Activity Bar.
 
 ### Step 1 · Create a publisher · 创建发布者
 
-1. <https://marketplace.visualstudio.com/manage> → sign in with GitHub.
-2. **Create publisher**. The publisher id is permanent and appears in the
-   extension id (`publisher.name`). Use **`galaxy-chjs`**, matching the PyPI
-   username; `vscode-extension/package.json` already declares it, so the two agree
-   and the extension will live at `galaxy-chjs.labwatch-vscode`.
+1. <https://marketplace.visualstudio.com/manage> → sign in with the Microsoft
+   account you will also use for the Azure DevOps token.
+2. **Create publisher**. Two different strings are involved, and mixing them up
+   costs a publish attempt:
+
+   | What | Value here | Where it is used |
+   |---|---|---|
+   | **ID** (identifier) | `chjs` | `publisher` in `package.json`, the extension id, the API |
+   | **Name** (display name) | `galaxy-chjs` | shown on the publisher page only |
+
+   `vscode-extension/package.json` declares `"publisher": "chjs"` — the manifest
+   must contain the **ID**, never the display name.
+
+> **What went wrong the first time.** A publish attempt failed with *"Your
+> extension has suspicious content"* while `package.json` said
+> `"publisher": "galaxy-chjs"`. That string is the publisher's *display name*; its
+> ID is `chjs`. The scanner's message pointed at the metadata, and the mismatch
+> was indeed in the metadata — an unhelpful message, not a wrong one. · 第一次失败的
+> 提示是"扩展包含可疑内容"，而当时 `package.json` 里写的是 `"publisher": "galaxy-chjs"`
+> —— 那是发布者的**显示名**，其 ID 是 `chjs`。提示指向元数据，而错误确实在元数据里：
+> 信息不友好，但方向是对的。
 
 ### Step 2 · Create an Azure DevOps PAT · 创建 Azure DevOps Token
 
@@ -281,12 +297,34 @@ here. The token page lives inside an organization, so create one first:
 
 ```powershell
 cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
-npx --yes @vscode/vsce login <your-publisher-id>     # paste the PAT when asked
+npx --yes @vscode/vsce login chjs                      # paste the PAT when asked
 npx --yes @vscode/vsce publish --no-dependencies
 ```
 
 Check <https://marketplace.visualstudio.com/manage/publishers/> — the extension
 should appear within a few minutes.
+
+### If the Marketplace says "suspicious content" · 如果提示"可疑内容"
+
+That message is the scanner refusing the upload, and the usual cause is something
+in the metadata rather than in the code. Check, in this order:
+
+1. **Publisher ID.** The sidebar of the Manage page shows `id (display name)` —
+   for example `chjs (galaxy-chjs)`. `package.json` must carry the **id**.
+   This is the mistake that was made here.
+2. **Reachable public URLs.** `repository` must be a public repo; any
+   `homepage` / `bugs` URL must answer 200.
+3. **Nothing extra in the VSIX.** `.vscodeignore`, no `node_modules`, no
+   binaries, no scripts.
+4. **If all of that is clean**, the flag is an account-level false positive, which
+   new publishers hit often. Prove it with the inert probe in
+   `D:\IDE\vscode\MyDemo\marketplace-probe\` (see its README): if that 3 KB
+   extension is refused too, no edit to LabWatch will help. Escalate to the
+   Marketplace team — <https://aka.ms/marketplacepublishersupport> (which lands on
+   <https://partner.microsoft.com/en-us/support/v2>) or `vsmarketplace@microsoft.com` —
+   with the extension id, the repository, the exact error text and the `vsce`
+   output. · 若元数据全都正确，那就是新账号常见的账号级误报。用 marketplace-probe
+   里那个 3 KB 的空壳扩展证明这一点，然后按上面的地址提工单。
 
 ### Step 4 · Update the README · 更新 README
 
@@ -294,7 +332,7 @@ The READMEs currently say the Marketplace listing is not published. Once it is,
 replace that note with:
 
 ```markdown
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/<publisher-id>.labwatch-vscode)](https://marketplace.visualstudio.com/items?itemName=<publisher-id>.labwatch-vscode)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/chjs.labwatch-vscode)](https://marketplace.visualstudio.com/items?itemName=chjs.labwatch-vscode)
 ```
 
 …and change "See `vscode-extension/README.md` to build from source" to an install
@@ -317,8 +355,12 @@ metadata problem, and the error messages are clearer in a terminal.
 
 ## Part 4 · After the first release · 首次发布之后
 
-- [ ] Add the PyPI badges (Part 2 step 6) — tell me and I will edit both READMEs.
-- [ ] Update the two "not published yet" notes in the READMEs.
+- [x] Add the PyPI badges — done, in both READMEs.
+- [x] Update the two "not published yet" notes in the READMEs — done; the PyPI
+  publication is now stated as live and the Marketplace one moved to Limitations.
+- [ ] Publish the extension, then replace the "not on the Marketplace yet" note in
+  both READMEs with the Marketplace badge and an install link. Tell me and I will
+  do that edit.
 - [ ] Re-check the lab server still runs v1.1.0 (path in your own deployment
   notes — `.lab/` is no longer in the repository):
 

@@ -656,7 +656,7 @@ labwatch stop / open / version</code></pre>
           <tr><td>Wheel contents</td><td class="ok">250 KB, includes <code>labwatch/ui</code>; package-data test asserts the dashboard is present and served</td></tr>
           <tr><td><code>uvx</code> equivalent (local wheel and local checkout)</td><td class="ok">starts, serves the bundled UI (HTTP 200 on <code>/</code> and on <code>/assets/*.js</code>)</td></tr>
           <tr><td>Editable install, CLI end to end</td><td class="ok">doctor, start, status, stop, open, version, <code>python -m labwatch</code></td></tr>
-          <tr><td>VS Code extension</td><td class="ok">packaged as .vsix, installed into VS Code (11 files, 15 KB)</td></tr>
+          <tr><td>VS Code extension</td><td class="ok">packaged as .vsix, installed into VS Code as <code>chjs.labwatch-vscode</code> (12 files, 16.5 KB)</td></tr>
           <tr><td>Extension against the real server CLI</td><td class="ok">parser and formatters fed the live 8-GPU payload over SSH; every contract check passed</td></tr>
           <tr><td>Lab server, packaged install</td><td class="ok">v1.1.0 installed offline, doctor all green, dashboard served from the package, other users' 8 CUDA processes untouched</td></tr>
           <tr><td>Docker build</td><td class="warn">blocked by this machine's Docker DNS at the time of writing; the Dockerfile was rewritten for the package layout and the CI job verifies it independently</td></tr>
@@ -668,7 +668,7 @@ labwatch stop / open / version</code></pre>
           <tr><td>wheel 内容</td><td class="ok">250 KB，包含 <code>labwatch/ui</code>；有测试断言面板存在且可被托管</td></tr>
           <tr><td><code>uvx</code> 等价路径（本地 wheel 与本地仓库）</td><td class="ok">可启动，托管打包 UI（<code>/</code> 与 <code>/assets/*.js</code> 均 200）</td></tr>
           <tr><td>可编辑安装 + CLI 全流程</td><td class="ok">doctor、start、status、stop、open、version、<code>python -m labwatch</code></td></tr>
-          <tr><td>VS Code 扩展</td><td class="ok">已打包为 .vsix 并成功安装到 VS Code（11 个文件，15 KB）</td></tr>
+          <tr><td>VS Code 扩展</td><td class="ok">已打包为 .vsix，并以 <code>chjs.labwatch-vscode</code> 成功安装到 VS Code（12 个文件，16.5 KB）</td></tr>
           <tr><td>扩展对接真实服务器 CLI</td><td class="ok">解析器与格式化函数直接消费经 SSH 取回的真实 8 卡数据，全部契约检查通过</td></tr>
           <tr><td>实验服务器上的包化安装</td><td class="ok">v1.1.0 离线安装成功，doctor 全绿，面板由包直接托管，其他用户的 8 个 CUDA 进程未受影响</td></tr>
           <tr><td>Docker 构建</td><td class="warn">撰写时被本机 Docker 的 DNS 故障阻塞；Dockerfile 已按包化结构重写，CI 中有独立 job 验证</td></tr>

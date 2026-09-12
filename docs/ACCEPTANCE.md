@@ -229,12 +229,13 @@ itself.
 | 10.6 | `labwatch --demo` needs no GPU | ✅ serves 3 synthetic GPUs, clearly labelled |
 | 10.7 | `python -m labwatch` as an alternative entry point | ✅ prints the version |
 | 10.8 | `--json` contract consumed by the editor | ✅ parser and formatters fed the live 8-GPU payload over SSH; 8/8 contract checks pass |
-| 10.9 | VS Code extension packages and installs | ✅ 15 KB .vsix, installed as `galaxy-chjs.labwatch-vscode@1.1.0` |
+| 10.9 | VS Code extension packages and installs | ✅ 16.5 KB .vsix, installed as `chjs.labwatch-vscode@1.1.0` |
 | 10.10 | The packaged release installs on the real server | ✅ v1.1.0 installed offline, `doctor` all green, dashboard served from the package, other users' 8 CUDA processes untouched |
 | 10.11 | History survives the upgrade | ✅ the v1.0.1 database was carried over (1.9 MB) |
 | 10.12 | No npm step for an end user | ✅ the dashboard is committed under `labwatch/ui` |
 | 10.13 | Published to PyPI under a name this project owns | ✅ `labwatch-lite 1.1.0`, wheel + sdist, by the Release workflow over Trusted Publishing |
 | 10.14 | The published artifact actually works for a stranger | ✅ fresh isolated environment: `uv tool run --from labwatch-lite labwatch version` prints `labwatch 1.1.0`, fetched from the real index |
+| 10.15 | The publisher id in the manifest matches the portal | ❌ first attempt failed: `package.json` carried the publisher's *display name* (`galaxy-chjs`) instead of its id (`chjs`), and the scanner reported it as "suspicious content". Fixed; recorded in RELEASING.md |
 
 **What could not be verified here:** the extension's visual behaviour inside a
 running VS Code window (status bar text, sidebar rendering). The extension host
@@ -511,12 +512,13 @@ v1.0 回答的是“我的 GPU 服务器上发生了什么”。v1.1 回答的�
 | 10.6 | `labwatch --demo` 无需 GPU | ✅ 提供 3 张合成 GPU，界面明确标注 |
 | 10.7 | `python -m labwatch` 作为备用入口 | ✅ 正常输出版本 |
 | 10.8 | 给编辑器消费的 `--json` 契约 | ✅ 解析器与格式化函数直接消费经 SSH 取回的真实 8 卡数据，8/8 契约检查通过 |
-| 10.9 | VS Code 扩展打包与安装 | ✅ 15 KB .vsix，已安装为 `galaxy-chjs.labwatch-vscode@1.1.0` |
+| 10.9 | VS Code 扩展打包与安装 | ✅ 16.5 KB .vsix，已安装为 `chjs.labwatch-vscode@1.1.0` |
 | 10.10 | 包化发布在真实服务器上安装 | ✅ v1.1.0 离线安装成功，doctor 全绿，面板由包直接托管，其他用户的 8 个 CUDA 进程未受影响 |
 | 10.11 | 升级后历史数据保留 | ✅ v1.0.1 的数据库被完整保留（1.9 MB） |
 | 10.12 | 终端用户无需执行 npm | ✅ 面板已提交在 `labwatch/ui` |
 | 10.13 | 以本项目自己拥有的名字发布到 PyPI | ✅ `labwatch-lite 1.1.0`，wheel + sdist，由 Release 工作流通过可信发布完成 |
 | 10.14 | 已发布的产物对陌生人确实可用 | ✅ 全新隔离环境：`uv tool run --from labwatch-lite labwatch version` 从真实索引拉取并输出 `labwatch 1.1.0` |
+| 10.15 | 清单中的发布者 ID 与门户一致 | ❌ 首次尝试失败：`package.json` 里填的是发布者的**显示名**（`galaxy-chjs`）而不是它的 ID（`chjs`），扫描器把这个不一致报成了"可疑内容"。已修好并记入 RELEASING.md |
 
 **本次无法验证的部分：** VS Code 窗口内扩展的可视表现（状态栏文字、
 侧边栏渲染）。本环境无法无头驱动扩展宿主，因此已证明的是数据链路
