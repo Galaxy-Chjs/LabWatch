@@ -358,26 +358,62 @@ result eliminates the "new publisher false positive" explanation and proves the
 trigger is inside this package. · 账号不是问题：一个 3 KB 的空壳探针扩展通过同样的
 网页路径**上传成功**，因此"新账号误报"这一解释被排除，触发点就在本项目的包里。
 
-**Bisect it rather than guess.** `scripts/make-marketplace-stages.py` writes five
-VSIX files into `dist-vsix/`, each adding back one suspect on top of the previous
-one (it patches the manifest inside the VSIX only; the repository is untouched):
+**The mechanism is a keyword blocklist, answered by Microsoft in a comparable
+case.** Another project refused with this exact message
+([aallan/vera#1106](https://github.com/aallan/vera/issues/1106)) escalated, and
+Marketplace Support replied on 20 July 2026:
 
-| Stage | Adds | Suspect it isolates |
-|---|---|---|
-| `stage1-minimal-metadata` | - | baseline: no "monitor" wording, one category, no `viewsWelcome`, no `configuration` |
-| `stage2-monitor-wording` | monitoring description + keywords | the words *monitoring / monitor / Remote-SSH* |
-| `stage3-views-welcome` | `viewsWelcome` markdown, the `Other` category | markdown command links in the welcome view |
-| `stage4-no-startup-activation` | empty `activationEvents` | `onStartupFinished`, i.e. code that runs at editor startup |
-| `stage5-full-manifest` | `configuration` schema | the settings schema; identical to the shipping package |
+> Due to the widespread use of certain keywords in spam or malicious content, we
+> have blocked a few words from the Marketplace. Kindly share the complete VSIX
+> manifest file for review so we can investigate further and provide you with an
+> update.
 
-Upload them in order and stop at the first refusal - that stage names the trigger.
-Unpublish any that succeed. · 按顺序上传，遇到第一个被拒的就停下，那一级就是触发点；
-上传成功的记得 Unpublish。
+That project had already eliminated the file-content explanations the hard way:
+two uploads with materially different contents - one containing an executable
+shell helper, one containing no executable of any kind - got byte-identical
+verdicts. The check is a **string match against the metadata**, which is why the
+message says *metadata* and why *content* sends everyone hunting through files.
+Its own suspects were `llm` and `contracts`. · 另一项目遇到同一条报错并升级询问，
+Marketplace 支持在 2026-07-20 明确回答：**因为某些关键词被大量用于垃圾/恶意内容，
+Marketplace 屏蔽了部分词**，与文件内容无关。判定是对**元数据做字符串匹配**。该项目的
+可疑词是 `llm` 与 `contracts`。
 
-If stage 1 is refused too, the only remaining differences from the successful
-probe are the extension's own code (it runs `labwatch status --json` through
-`child_process`) and the status bar / sidebar contributions; at that point the
-case belongs with the Marketplace team, using the template below.
+**Why our earlier stages never tested this.** `vsce` copies `keywords` from
+`package.json` into the VSIX manifest as `<Tags>`, and every stage kept
+`gpu, nvidia, cuda, …`:
+
+```xml
+<Tags>gpu,nvidia,cuda,monitoring,remote-ssh</Tags>
+```
+
+So when stage 1 was refused, that did *not* exonerate the keywords - it never
+varied them. `vscode-nvidia-gpu-monitor`-class extensions do publish, but the
+blocklist is plausibly aimed at crypto-mining extensions, which use exactly this
+vocabulary. · 之前的分级包之所以没能证明什么，是因为每一级的 `<Tags>` 都保留了
+`gpu,nvidia,cuda` —— 被拒只说明这一级也被拦，并不说明关键词无辜。
+
+**Test it.** `scripts/make-keyword-variants.py` writes six VSIX files into
+`dist-vsix/`, each starting from the minimal stage-1 manifest and changing only
+the free text:
+
+| Upload order | File | `<Tags>` | Description |
+|---|---|---|---|
+| 1 | `kw0-neutral` | none | names no vendor or hardware |
+| 2 | `kw0-none` | none | still says "NVIDIA GPU" |
+| 3 | `kw1-gpu` | `gpu` | |
+| 4 | `kw2-gpu-nvidia` | `gpu,nvidia` | |
+| 5 | `kw3-gpu-nvidia-cuda` | `gpu,nvidia,cuda` | |
+| 6 | `kw4-all` | the current shipping set | |
+
+Stop at the first refusal. Variant 1 succeeding while 2 fails would mean the
+description is matched too; 2 succeeding names the tags as the trigger. · 按顺序
+上传，遇到第一个被拒的停下。第 1 个成功而第 2 个失败，说明描述文本也参与匹配；第 2 个
+成功则说明问题在 tags。
+
+If even the first variant is refused, the trigger is not free text, and the ask to
+Microsoft is a one-line request: *which term or field is blocked* - their own
+support phrasing, so it is answerable. · 若连第一个变体都被拒，说明不是文本匹配，
+此时向 Microsoft 只问一句："被屏蔽的是哪个词或哪个字段"。
 
 Attach the VSIX and this information:
 
@@ -393,6 +429,10 @@ Attach the VSIX and this information:
   is being objected to. · 关键对照：空壳探针（3,390 字节，无网络、无子进程、无启动
   激活）在同一发布者下**几分钟前上传成功**。因此这不是账号级拦截，被拦的是两个包之间的
   差别，请指明是哪一处。
+- **The question to ask**, in Support's own vocabulary: *which keyword is on the
+  blocklist, and what is the complete list?* Ask for the full manifest review they
+  offered in the comparable case above. · 要问的问题就用支持自己的说法：**被屏蔽的是
+  哪个关键词、完整名单是什么**，并按他们在那起案例中提出的方式请求复核 manifest。
 
 <https://aka.ms/marketplacepublishersupport> (lands on
 <https://partner.microsoft.com/en-us/support/v2>) or `vsmarketplace@microsoft.com`.

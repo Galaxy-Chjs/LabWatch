@@ -236,7 +236,7 @@ itself.
 | 10.13 | Published to PyPI under a name this project owns | ✅ `labwatch-lite 1.1.0`, wheel + sdist, by the Release workflow over Trusted Publishing |
 | 10.14 | The published artifact actually works for a stranger | ✅ fresh isolated environment: `uv tool run --from labwatch-lite labwatch version` prints `labwatch 1.1.0`, fetched from the real index |
 | 10.15 | The publisher id in the manifest matches the portal | ❌ two failed attempts, both instructive. (a) The CLI refused the first upload as "suspicious content" although the manifest was correct. (b) The Manage page header `chjs (galaxy-chjs)` was then read as `id (display-name)`, the manifest was changed to `chjs`, and the portal answered with the decisive message: *Publisher ID 'chjs' … should match the publisher ID 'galaxy-chjs'*. Reverted to `galaxy-chjs`: the ID is the long string, the short one is the display name. The lesson is in RELEASING.md - when the portal names the expected ID, believe the error, not the page layout. |
-| 10.16 | Extension listed on the Marketplace | ⏳ refused as "suspicious content" by both the CLI and the web upload. The publisher account is proven fine - an inert 3 KB probe extension uploaded successfully under the same publisher - so the trigger is inside this package. `scripts/make-marketplace-stages.py` builds four staged VSIX files to find it by bisection |
+| 10.16 | Extension listed on the Marketplace | ⏳ refused as "suspicious content" by both the CLI and the web upload. The publisher account is proven fine (an inert 3 KB probe uploaded successfully under the same publisher), and a comparable case with Microsoft's answer shows the check is a **keyword blocklist matched against the metadata**, not a scan of the files. Every earlier attempt kept `keywords = gpu, nvidia, cuda, …`, which `vsce` copies into the manifest `<Tags>` - so the keywords were never actually tested. `scripts/make-keyword-variants.py` now builds six variants that vary only the free text |
 
 **What could not be verified here:** the extension's visual behaviour inside a
 running VS Code window (status bar text, sidebar rendering). The extension host
@@ -520,7 +520,7 @@ v1.0 回答的是“我的 GPU 服务器上发生了什么”。v1.1 回答的�
 | 10.13 | 以本项目自己拥有的名字发布到 PyPI | ✅ `labwatch-lite 1.1.0`，wheel + sdist，由 Release 工作流通过可信发布完成 |
 | 10.14 | 已发布的产物对陌生人确实可用 | ✅ 全新隔离环境：`uv tool run --from labwatch-lite labwatch version` 从真实索引拉取并输出 `labwatch 1.1.0` |
 | 10.15 | 清单中的发布者 ID 与门户一致 | ❌ 两次失败，都有价值。(a) 第一次命令行上传虽然清单正确，却被判为"可疑内容"。(b) 随后把 Manage 页的 `chjs (galaxy-chjs)` 误读成 `ID (显示名)`，把清单改成 `chjs`，门户随即给出决定性报错：*Publisher ID 'chjs' … should match the publisher ID 'galaxy-chjs'*。已改回 `galaxy-chjs`：长的是 ID，短的是显示名。教训记在 RELEASING.md —— 门户报错点名了期望的 ID 时，以报错为准，不要靠页面排版猜。 |
-| 10.16 | 扩展上架 Marketplace | ⏳ 命令行与网页上传均被判为"可疑内容"。已证明发布者账号没问题 —— 同一发布者下一个 3 KB 的空壳探针扩展上传成功 —— 因此触发点在本项目的包内。`scripts/make-marketplace-stages.py` 生成四个分级 VSIX，用二分法定位 |
+| 10.16 | 扩展上架 Marketplace | ⏳ 命令行与网页上传均被判为"可疑内容"。发布者账号已证明正常（同一发布者下 3 KB 空壳探针上传成功），而与 Microsoft 的一次同类往来显示：该检查是**针对元数据的关键词黑名单匹配**，不是扫描文件内容。此前每一次尝试都保留着 `keywords = gpu, nvidia, cuda, …`，而 `vsce` 会把它写进 manifest 的 `<Tags>` —— 也就是说关键词从未被真正测试过。`scripts/make-keyword-variants.py` 现在生成六个只改自由文本的变体 |
 
 **本次无法验证的部分：** VS Code 窗口内扩展的可视表现（状态栏文字、
 侧边栏渲染）。本环境无法无头驱动扩展宿主，因此已证明的是数据链路
