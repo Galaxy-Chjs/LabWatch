@@ -347,10 +347,12 @@ in the metadata rather than in the code. Check, in this order:
 3. **Nothing extra in the VSIX.** `.vscodeignore`, no `node_modules`, no
    binaries, no scripts.
 4. **User-provided SVG.** `vsce` refuses to publish extensions containing
-   user-supplied SVG images, and the Activity Bar icon here is
-   `media/labwatch.svg`. If this message appears with otherwise clean metadata,
-   convert it to a PNG. · `vsce` 拒绝包含用户自带 SVG 的扩展，而本扩展的活动栏图标
-   是 `media/labwatch.svg`；元数据干净却仍报错时，把它换成 PNG。
+   user-supplied SVG images. This was the last candidate inside the package: the
+   Activity Bar icon was `media/labwatch.svg` and is now `media/labwatch.png`,
+   regenerated from the same geometry by `scripts/make-viewcontainer-icon.ps1`. ·
+   `vsce` 拒绝包含用户自带 SVG 的扩展。这是包内最后一个可疑项：活动栏图标原为
+   `media/labwatch.svg`，现已改为 `media/labwatch.png`，由
+   `scripts/make-viewcontainer-icon.ps1` 按同样的几何形状生成。
 5. **If all of that is clean**, the flag is an account-level false positive, which
    new publishers hit often. Prove it with the inert probe in
    `D:\IDE\vscode\MyDemo\marketplace-probe\` (see its README): if that 3 KB

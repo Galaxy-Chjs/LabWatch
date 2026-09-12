@@ -937,7 +937,7 @@ labwatch stop / open / version</code></pre>
           <tr><td>Per-process CPU needs two polls</td><td>CPU usage is a counter delta, so the first sample after startup reports <code>N/A</code> for process CPU. Documented behaviour, not a defect.</td></tr>
           <tr><td>Container disk figures describe the container</td><td>When the root filesystem is an <code>overlay</code> (Docker Desktop), LabWatch falls back to the shallowest real mount, which may be a data volume. Run LabWatch natively for host disk numbers.</td></tr>
           <tr><td>Multiple GPUs verified in demo mode only</td><td>This development machine has one GPU, so multi-device rendering was exercised with three synthetic devices. The collector enumerates NVML devices generically, with no single-device assumption.</td></tr>
-          <tr><td>Not on the VS Code Marketplace yet</td><td>The extension builds, packages and installs from a VSIX, but the Marketplace upload was refused - first by an unhelpful "suspicious content" scanner message with a correct manifest, then by a publisher-ID mismatch introduced while chasing that message. The ID is <code>galaxy-chjs</code>. The one remaining candidate inside the package is the user-supplied <code>media/labwatch.svg</code> Activity Bar icon, which <code>vsce</code> is documented to reject; converting it to PNG is the next step.</td></tr>
+          <tr><td>Not on the VS Code Marketplace yet</td><td>The extension builds, packages and installs from a VSIX (12 files, 17 KB, no SVG, no bundled dependencies), but the Marketplace upload is still refused. Two causes have already been found and fixed: an unhelpful "suspicious content" refusal with a correct manifest, and a publisher-ID mismatch introduced while chasing it (the ID is <code>galaxy-chjs</code>; the short name beside it in the Manage page is the display name). If the next upload is refused too, the remaining candidate is the account itself - new publishers are flagged as false positives - and the case goes to Marketplace support with the command-line log.</td></tr>
         </tbody>
       </table>
 
@@ -953,7 +953,7 @@ labwatch stop / open / version</code></pre>
           <tr><td>逐进程 CPU 需要两次采样</td><td>CPU 使用率是计数器差值，因此启动后的第一次采样中进程 CPU 报 <code>N/A</code>。这是有意的行为，不是缺陷。</td></tr>
           <tr><td>容器内的磁盘数字描述容器本身</td><td>当根文件系统是 <code>overlay</code>（Docker Desktop）时，LabWatch 退回最浅的真实挂载点，可能是数据卷。需要宿主机磁盘数字请直接在宿主机运行。</td></tr>
           <tr><td>多卡仅在演示模式下验证过</td><td>本开发机只有一张 GPU，因此多设备渲染是通过 3 个合成设备验证的。采集器采用通用 NVML 设备枚举，没有任何单卡假设。</td></tr>
-          <tr><td>尚未上架 VS Code Marketplace</td><td>扩展能构建、打包并从 VSIX 安装，但 Marketplace 上传被拒：先是清单正确却被扫描器笼统报为"可疑内容"，随后在追查该报错时又引入了发布者 ID 不一致。ID 是 <code>galaxy-chjs</code>。包内最后一个可疑项是活动栏图标 <code>media/labwatch.svg</code> —— <code>vsce</code> 官方文档说明会拒绝用户自带的 SVG，下一步就是把它转成 PNG。</td></tr>
+          <tr><td>尚未上架 VS Code Marketplace</td><td>扩展能构建、打包并从 VSIX 安装（12 个文件、17 KB，无 SVG、无打包依赖），但 Marketplace 上传仍被拒。已发现并修好两个原因：清单正确时被笼统报为"可疑内容"，以及追查该报错时引入的发布者 ID 不一致（ID 是 <code>galaxy-chjs</code>，Manage 页里那个短名是显示名）。若下次上传仍被拒，剩下的可能就是账号本身 —— 新发布者常被误判 —— 届时应带着命令行日志向 Marketplace 支持提工单。</td></tr>
         </tbody>
       </table>
 
