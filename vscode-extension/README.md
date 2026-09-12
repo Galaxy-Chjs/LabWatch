@@ -80,7 +80,7 @@ Then package and install the `.vsix`:
 
 ```bash
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-vscode-1.1.0.vsix --force
+code --install-extension labwatch-gpu-status-1.2.0.vsix --force
 ```
 
 For development, open the repository in VS Code and press <kbd>F5</kbd> —

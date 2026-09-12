@@ -212,7 +212,7 @@ Marketplace 发布者账号。
 
 ### Right now: install it for yourself · 现在就能自己安装
 
-Installed on this machine as `galaxy-chjs.labwatch-vscode@1.1.0`. To reinstall
+Installed on this machine as `galaxy-chjs.labwatch-gpu-status@1.2.0`. To reinstall
 after a change:
 
 ```powershell
@@ -220,12 +220,17 @@ cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
 npm install
 npm run compile
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-vscode-1.1.0.vsix --force
+code --install-extension labwatch-gpu-status-1.2.0.vsix --force
 ```
 
 Then reload the VS Code window: `Ctrl+Shift+P` → **Developer: Reload Window**.
-You should see a GPU summary in the status bar (bottom left) and a **LabWatch**
-icon in the Activity Bar.
+You should see a GPU summary in the status bar (bottom left) and a **LabWatch GPU
+Monitor** icon in the Activity Bar.
+
+The extension identity is `galaxy-chjs.labwatch-gpu-status` with the display name
+`LabWatch GPU Monitor`. Both were chosen after two earlier identities were burnt;
+see the note below on why neither can be changed. · 扩展身份为
+`galaxy-chjs.labwatch-gpu-status`，显示名 `LabWatch GPU Monitor`。
 
 ### Step 1 · Create a publisher · 创建发布者
 
@@ -322,7 +327,7 @@ npx --yes @vscode/vsce package --no-dependencies
 ```
 
 Then <https://marketplace.visualstudio.com/manage> → your publisher → **New
-extension → Visual Studio Code** → upload `labwatch-vscode-1.1.0.vsix`.
+extension → Visual Studio Code** → upload `labwatch-gpu-status-1.2.0.vsix`.
 
 Or by command line, once the token works:
 
@@ -467,16 +472,41 @@ manifest and the passing one:
 | C | the rest of `contributes` (`viewsWelcome`, `configuration`) | 1.1.6 |
 | A+B+C | all of it | 1.1.7 |
 
-| Order | Version | File | Adds | A refusal would mean |
+| Order | Version | File | Adds | Result |
 |---|---|---|---|---|
-| 4 | 1.1.4 | `vendor-description` | A | edit the description |
-| 5 | 1.1.5 | `extra-keywords` | B | drop those two tags |
-| 6 | 1.1.6 | `full-contributes` | C | trim `viewsWelcome` / `configuration` |
-| 7 | 1.1.7 | `all-three` | A+B+C | should reproduce the original refusal, confirming the bisection |
+| 1 | 1.1.1 | `tags-gpu` | description says GPU, tag `gpu` | ✅ passed |
+| 2 | 1.1.2 | `tags-gpu-nvidia` | tag `nvidia` | ✅ passed |
+| 3 | 1.1.3 | `tags-gpu-nvidia-cuda` | tag `cuda` | ✅ passed |
+| 4 | 1.1.4 | `vendor-description` | A | ✅ passed |
+| 5 | 1.1.5 | `extra-keywords` | B | ✅ passed |
+| 6 | 1.1.6 | `full-contributes` | C | ✅ passed |
+| 7 | 1.1.7 | `all-three` | A+B+C | ✅ passed |
 
-Whichever version is refused first names the culprit, and the release is then cut
-as **1.2.0** with that one element fixed. · 第一个被拒的版本就指出了元凶；随后以
-**1.2.0** 修正该处并正式发布。
+**Every variant passed, including 1.1.7 - which by construction carries exactly the
+metadata of the manifest that was originally refused**: the vendor word in the
+description, all five tags, and the full `contributes` set.
+
+So the original refusal was *not* reproducible from the metadata. Since 1.1.7 and
+the refused 1.1.0 differ in nothing else, the likely causes are the two things that
+cannot be replayed - the version number and the publishing history of that first
+listing (`labwatch-vscode`, published, unpublished, removed) - or a transient
+scanner false positive. This also retires the keyword-blocklist hypothesis for this
+project, even though that mechanism is real and documented.
+
+· **七个变体全部通过**，其中 1.1.7 按构造就带着当初被拒那份清单的全部元数据：描述里的
+厂商词、五个 tags、完整的 `contributes`。因此原始那次被拒**无法用元数据复现**。它与
+1.1.7 之间已无其他差异，剩下的可能只有无法重放的因素（版本号、那个已被发布又删除的
+首个条目）或扫描器偶发误判。针对本项目，关键词黑名单这一假设也随之排除 —— 尽管该机制
+本身真实存在且已被微软确认。
+
+**Final release: 1.2.0**, built from the repository manifest with the full metadata
+restored - the richest description, all five keywords, complete `contributes`. ·
+**正式发布为 1.2.0**，使用仓库清单、元数据全部保留。
+
+```powershell
+cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
+npx --yes @vscode/vsce package --no-dependencies
+```
 
 If the vendor-description variant is refused too, the trigger is not free text at
 all, and the ask to Microsoft becomes a single line: *which term or field is
@@ -486,7 +516,7 @@ NVIDIA"这一版也被拒，说明触发点不是 tags，只需向 Microsoft 问
 
 Attach the VSIX and this information:
 
-- Extension ID `galaxy-chjs.labwatch-vscode`, publisher `galaxy-chjs`
+- Extension ID `galaxy-chjs.labwatch-gpu-status`, publisher `galaxy-chjs`
 - VSIX SHA256 `79919EFC0F6FC928B66BE2E141110CF0B2A985F88CA0B738A4B999C5B4F091B7`, 17468 bytes
 - Public repository <https://github.com/Galaxy-Chjs/LabWatch> (all sources, MIT)
 - The command-line log and the web-upload screenshot
@@ -541,7 +571,7 @@ The READMEs currently say the Marketplace listing is not published. Once it is,
 replace that note with:
 
 ```markdown
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/galaxy-chjs.labwatch-vscode)](https://marketplace.visualstudio.com/items?itemName=galaxy-chjs.labwatch-vscode)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/galaxy-chjs.labwatch-gpu-status)](https://marketplace.visualstudio.com/items?itemName=galaxy-chjs.labwatch-gpu-status)
 ```
 
 …and change "See `vscode-extension/README.md` to build from source" to an install
@@ -645,7 +675,7 @@ uvx labwatch-lite --version && uvx labwatch-lite doctor
 # Rebuild and reinstall the extension locally
 cd vscode-extension && npm run compile \
   && npx --yes @vscode/vsce package --no-dependencies \
-  && code --install-extension labwatch-vscode-1.1.0.vsix --force
+  && code --install-extension labwatch-gpu-status-1.2.0.vsix --force
 ```
 
 ## What is already verified, so you do not have to · 已经验证过、你不必再验的部分

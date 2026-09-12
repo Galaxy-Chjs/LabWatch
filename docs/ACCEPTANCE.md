@@ -229,14 +229,15 @@ itself.
 | 10.6 | `labwatch --demo` needs no GPU | ✅ serves 3 synthetic GPUs, clearly labelled |
 | 10.7 | `python -m labwatch` as an alternative entry point | ✅ prints the version |
 | 10.8 | `--json` contract consumed by the editor | ✅ parser and formatters fed the live 8-GPU payload over SSH; 8/8 contract checks pass |
-| 10.9 | VS Code extension packages and installs | ✅ 16.5 KB .vsix, installed as `galaxy-chjs.labwatch-vscode@1.1.0` |
+| 10.9 | VS Code extension packages and installs | ✅ 17.5 KB .vsix, installed as `galaxy-chjs.labwatch-gpu-status@1.2.0` |
 | 10.10 | The packaged release installs on the real server | ✅ v1.1.0 installed offline, `doctor` all green, dashboard served from the package, other users' 8 CUDA processes untouched |
 | 10.11 | History survives the upgrade | ✅ the v1.0.1 database was carried over (1.9 MB) |
 | 10.12 | No npm step for an end user | ✅ the dashboard is committed under `labwatch/ui` |
 | 10.13 | Published to PyPI under a name this project owns | ✅ `labwatch-lite 1.1.0`, wheel + sdist, by the Release workflow over Trusted Publishing |
 | 10.14 | The published artifact actually works for a stranger | ✅ fresh isolated environment: `uv tool run --from labwatch-lite labwatch version` prints `labwatch 1.1.0`, fetched from the real index |
-| 10.15 | The publisher id in the manifest matches the portal | ❌ two failed attempts, both instructive. (a) The CLI refused the first upload as "suspicious content" although the manifest was correct. (b) The Manage page header `chjs (galaxy-chjs)` was then read as `id (display-name)`, the manifest was changed to `chjs`, and the portal answered with the decisive message: *Publisher ID 'chjs' … should match the publisher ID 'galaxy-chjs'*. Reverted to `galaxy-chjs`: the ID is the long string, the short one is the display name. The lesson is in RELEASING.md - when the portal names the expected ID, believe the error, not the page layout. |
-| 10.16 | Extension listed on the Marketplace | ⏳ refused as "suspicious content" by both the CLI and the web upload. The publisher account is proven fine (an inert 3 KB probe uploaded successfully under the same publisher), and a comparable case with Microsoft's answer shows the check is a **keyword blocklist matched against the metadata**, not a scan of the files. Every earlier attempt kept `keywords = gpu, nvidia, cuda, …`, which `vsce` copies into the manifest `<Tags>` - so the keywords were never actually tested. `scripts/make-keyword-variants.py` now builds six variants that vary only the free text |
+| 10.15 | The publisher id in the manifest matches the portal | ❌ first attempt: the Manage page header `chjs (galaxy-chjs)` was read as `id (display-name)` and the manifest was changed to `chjs`; the portal answered *Publisher ID 'chjs' … should match the publisher ID 'galaxy-chjs'*. Reverted - the ID is the long string, the short one is the display name. |
+| 10.16 | Extension listed on the Marketplace | ⏳ 1.2.0 (`galaxy-chjs.labwatch-gpu-status`) is packaged and awaiting upload. Getting there cost two burnt extension identities and seven probe uploads - every probe from 1.1.1 to 1.1.7 was accepted, including 1.1.7, whose metadata is identical to the originally refused manifest. |
+| 10.17 | Was the refusal about our metadata? | ✅ **no.** 1.1.7 carried exactly the metadata of the refused manifest - vendor word in the description, all five tags, full `contributes` - and was accepted. With nothing else left to differ, the trigger was the first listing's own history (published, unpublished and removed) or a transient scanner false positive. This also retires the keyword-blocklist hypothesis for this project. |
 
 **What could not be verified here:** the extension's visual behaviour inside a
 running VS Code window (status bar text, sidebar rendering). The extension host
@@ -513,14 +514,15 @@ v1.0 回答的是“我的 GPU 服务器上发生了什么”。v1.1 回答的�
 | 10.6 | `labwatch --demo` 无需 GPU | ✅ 提供 3 张合成 GPU，界面明确标注 |
 | 10.7 | `python -m labwatch` 作为备用入口 | ✅ 正常输出版本 |
 | 10.8 | 给编辑器消费的 `--json` 契约 | ✅ 解析器与格式化函数直接消费经 SSH 取回的真实 8 卡数据，8/8 契约检查通过 |
-| 10.9 | VS Code 扩展打包与安装 | ✅ 16.5 KB .vsix，已安装为 `galaxy-chjs.labwatch-vscode@1.1.0` |
+| 10.9 | VS Code 扩展打包与安装 | ✅ 17.5 KB .vsix，已安装为 `galaxy-chjs.labwatch-gpu-status@1.2.0` |
 | 10.10 | 包化发布在真实服务器上安装 | ✅ v1.1.0 离线安装成功，doctor 全绿，面板由包直接托管，其他用户的 8 个 CUDA 进程未受影响 |
 | 10.11 | 升级后历史数据保留 | ✅ v1.0.1 的数据库被完整保留（1.9 MB） |
 | 10.12 | 终端用户无需执行 npm | ✅ 面板已提交在 `labwatch/ui` |
 | 10.13 | 以本项目自己拥有的名字发布到 PyPI | ✅ `labwatch-lite 1.1.0`，wheel + sdist，由 Release 工作流通过可信发布完成 |
 | 10.14 | 已发布的产物对陌生人确实可用 | ✅ 全新隔离环境：`uv tool run --from labwatch-lite labwatch version` 从真实索引拉取并输出 `labwatch 1.1.0` |
-| 10.15 | 清单中的发布者 ID 与门户一致 | ❌ 两次失败，都有价值。(a) 第一次命令行上传虽然清单正确，却被判为"可疑内容"。(b) 随后把 Manage 页的 `chjs (galaxy-chjs)` 误读成 `ID (显示名)`，把清单改成 `chjs`，门户随即给出决定性报错：*Publisher ID 'chjs' … should match the publisher ID 'galaxy-chjs'*。已改回 `galaxy-chjs`：长的是 ID，短的是显示名。教训记在 RELEASING.md —— 门户报错点名了期望的 ID 时，以报错为准，不要靠页面排版猜。 |
-| 10.16 | 扩展上架 Marketplace | ⏳ 命令行与网页上传均被判为"可疑内容"。发布者账号已证明正常（同一发布者下 3 KB 空壳探针上传成功），而与 Microsoft 的一次同类往来显示：该检查是**针对元数据的关键词黑名单匹配**，不是扫描文件内容。此前每一次尝试都保留着 `keywords = gpu, nvidia, cuda, …`，而 `vsce` 会把它写进 manifest 的 `<Tags>` —— 也就是说关键词从未被真正测试过。`scripts/make-keyword-variants.py` 现在生成六个只改自由文本的变体 |
+| 10.15 | 清单中的发布者 ID 与门户一致 | ❌ 首次失败：把 Manage 页的 `chjs (galaxy-chjs)` 误读成 `ID (显示名)`，把清单改成 `chjs`，门户随即给出决定性报错：*Publisher ID 'chjs' … should match the publisher ID 'galaxy-chjs'*。已改回 —— 长的是 ID，短的是显示名。 |
+| 10.16 | 扩展上架 Marketplace | ⏳ 1.2.0（`galaxy-chjs.labwatch-gpu-status`）已打包待上传。走到这一步付出了两个被锁死的扩展身份与七次探针上传：1.1.1 至 1.1.7 **全部被接受**，其中 1.1.7 的元数据与当初被拒的那份清单完全一致。 |
+| 10.17 | 当初那次被拒是我们的元数据问题吗？ | ✅ **不是。** 1.1.7 带着与被拒清单完全相同的元数据（描述含厂商词、五个 tags、完整 `contributes`）却被接受。既然已无其他差异，触发原因只能归于首个条目自身的发布历史（发布→下架→删除）或扫描器偶发误判。这也排除了本项目存在关键词黑名单问题的可能。 |
 
 **本次无法验证的部分：** VS Code 窗口内扩展的可视表现（状态栏文字、
 侧边栏渲染）。本环境无法无头驱动扩展宿主，因此已证明的是数据链路

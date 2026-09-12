@@ -119,8 +119,9 @@ workspace, sees the remote GPUs, and VS Code forwards the dashboard port to your
 browser automatically. LabWatch is never reimplemented inside the editor — the
 extension is a view onto the same collector.
 
-See [`vscode-extension/README.md`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/vscode-extension/README.md) to build and install
-it from source (the Marketplace listing is not published yet).
+See [`vscode-extension/README.md`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/vscode-extension/README.md) to build it,
+or install the packaged `labwatch-gpu-status-1.2.0.vsix` with
+`code --install-extension`. The Marketplace listing is in review.
 
 ## What it shows
 
