@@ -416,49 +416,52 @@ is in the vocabulary the later variants add back: *NVIDIA*, *GPU*, *CUDA*,
 
 **Three hard constraints, each paid for with a failed upload.**
 
-1. **An extension listing's identity is fixed at its first upload.** Both halves are
-   reserved permanently, and neither can be changed afterwards:
+1. **An extension listing's identity is fixed at its first upload.** Both halves
+   are reserved permanently and neither can be changed afterwards:
 
-   - changing the extension **name** gives *"The extension 'labwatch-gpu' already
-     exists in the Marketplace. Please use a different 'name'"* - because the name
-     still belongs to the existing listing;
-   - keeping the name but changing the **display name** gives *"This extension
+   - a different extension **name** gives *"The extension 'labwatch-gpu' already
+     exists in the Marketplace. Please use a different 'name'"*;
+   - the same name with a different **display name** gives *"This extension
      display name is taken"*;
-   - and **unpublishing or even removing the listing frees neither**: after variant
-     1 was unpublished *and* removed, uploads still named `labwatch-gpu` were
-     refused, because the entry in the portal is what holds the name.
+   - **unpublishing and even removing the listing release neither.** That was
+     verified twice: after the first listing was unpublished *and* removed, uploads
+     still named `labwatch-vscode` were refused; and after the second listing
+     (`labwatch-gpu`) was published, unpublished, and then removed, uploads named
+     `labwatch-gpu` were still refused.
 
-   So the identity must be chosen once, before the first upload of a series, and
-   after that the **only** thing that may change is the version, which must go up.
-   The identity used from here on is:
+   So the identity has to be chosen **before the first upload of a series** and
+   then left alone; the only thing that may change is the version, which must rise.
+   Full sequence of identities used, in order:
 
-       name         labwatch-gpu
-       displayName  LabWatch GPU
+   | Attempt | `name` | `displayName` | Outcome |
+   |---|---|---|---|
+   | 1 | `labwatch-vscode` | `LabWatch` | published 1.1.0, then removed - both names burnt |
+   | 2 | `labwatch-gpu` | `LabWatch GPU` | published 1.1.0, then removed - both names burnt |
+   | 3 | `labwatch-gpu-status` | `LabWatch GPU Status` | current |
 
-   · **一个扩展条目的身份在首次上传时就固定了**：改名会报"扩展名已存在"，保留扩展名但改
-   显示名会报"显示名已被占用"，而且 **Unpublish 甚至 Remove 都不会释放这两个名字** ——
-   持有名字的是门户里那个条目本身。因此身份必须在上传前一次选定，之后**只能提高版本号**。
-   本轮固定为 `labwatch-gpu` / `LabWatch GPU`。
+   · **一个扩展条目的身份在首次上传时即固定**：改名报"扩展名已存在"，同名改显示名报
+   "显示名已被占用"，而 **Unpublish 与 Remove 都不释放这两个名字**（已两次实测）。
+   因此身份必须在上传前一次选定，之后**只能提高版本号**。
 2. **A variant must be produced by a real `vsce package`.** Editing `keywords` in
    the `package.json` inside an already-built VSIX changes nothing, because `vsce`
    had already copied them into `extension.vsixmanifest` as `<Tags>` - the file the
    Marketplace actually reads.
-3. **The version on the listing only goes up.** 1.1.0 is already on it, so the
-   bisection continues from 1.1.1 and the real release is cut afterwards as 1.2.0.
+3. **The version only goes up.** 1.1.0 is the version that was refused with the full
+   manifest, so the bisection starts at 1.1.1 and the real release is cut afterwards
+   as **1.2.0** - leaving room, because a published listing can never accept a
+   lower version again.
 
-| Order | Version | File | `<Tags>` | Description | A refusal would mean |
-|---|---|---|---|---|---|
-| - | 1.1.0 | *(already on the listing)* | *(empty)* | vendor-free | ✅ **passed** |
-| 1 | 1.1.1 | `kw5-vendor-description` | *(empty)* | names the vendor | the **description** vocabulary |
-| 2 | 1.1.2 | `kw1-gpu` | `gpu` | neutral | the tag `gpu` |
-| 3 | 1.1.3 | `kw2-gpu-nvidia` | `gpu,nvidia` | neutral | the tag `nvidia` |
-| 4 | 1.1.4 | `kw3-gpu-nvidia-cuda` | `gpu,nvidia,cuda` | neutral | the tag `cuda` |
-| 5 | 1.1.5 | `kw4-monitoring` | `gpu,monitoring` | neutral | the tag `monitoring` |
+| Order | Version | File | `<Tags>` | A refusal would mean |
+|---|---|---|---|---|
+| - | 1.1.0 | *(the refused original)* | `gpu,nvidia,cuda,…` | ✅ refused - that is why we are here |
+| 1 | 1.1.1 | `tags-gpu` | `gpu` | the tag `gpu` (the description also says GPU) |
+| 2 | 1.1.2 | `tags-gpu-nvidia` | `gpu,nvidia` | the tag `nvidia` |
+| 3 | 1.1.3 | `tags-gpu-nvidia-cuda` | `gpu,nvidia,cuda` | the tag `cuda` |
 
-Every variant keeps the same identity and only the free text changes, so read it
-pairwise: 1.1.0 vs 1.1.1 asks whether the description is matched at all; 1.1.1 vs
-1.1.2 isolates `gpu`; 1.1.2 vs 1.1.3 `nvidia`; 1.1.3 vs 1.1.4 `cuda`; 1.1.3 vs
-1.1.5 `monitoring`. · 各版身份完全相同、只改自由文本，按相邻两两比较即可定位。
+The two shapes already tested bracket this range: *no tags and a description that
+never says GPU* passed, while *five tags and "NVIDIA GPU"* was refused - so these
+three narrow it from below. · 已验证的两端是"无 tags 且描述不提 GPU → 通过"与
+"五个 tags 且描述写 NVIDIA GPU → 被拒"，因此这三版从下往上逐词逼近。
 
 If the vendor-description variant is refused too, the trigger is not free text at
 all, and the ask to Microsoft becomes a single line: *which term or field is

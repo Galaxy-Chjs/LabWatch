@@ -1,32 +1,24 @@
-"""Build the metadata bisection variants for one fixed extension identity.
+"""Build the metadata bisection variants for one fixed, still-free identity.
 
-Facts established so far, each one paid for with a failed upload:
+Rules this script now enforces, each learned from a refused upload:
 
-  * An inert probe extension uploads fine under this publisher, so the account is
-    not the problem.
-  * **A vendor-free description with an empty tag list passes.** That was variant
-    `kw0-neutral`, and it is now published (unpublished in the portal) as
-    `labwatch-gpu` 1.1.0.
-  * **The extension name and the display name are reserved permanently, and
-    changing either one means starting a new listing.** An earlier attempt to keep
-    the name `labwatch-gpu` but give the next variant a different display name was
-    refused as "display name is taken"; renaming the extension to get around it
-    would refuse as "extension already exists". So the only way to iterate is to
-    keep one identity and raise the version.
+  1. An extension listing's **identity is fixed at its first upload**. Changing
+     either half afterwards is refused - a different `name` gives "extension
+     already exists", the same `name` with a different `displayName` gives "display
+     name is taken" - and unpublishing or removing the listing releases neither.
+     So the identity is declared exactly once, here, and only the version varies.
+  2. **The version only goes up.** 1.1.0 is the version that was refused with the
+     full manifest, so the bisection uses 1.1.1+ and the real release is cut later
+     as 1.2.0. That leaves room: a successful listing can never accept a lower
+     version again.
+  3. **A variant must be produced by a real `vsce package`.** Editing `keywords`
+     inside an already-built VSIX does nothing, because `vsce` had already copied
+     them into `extension.vsixmanifest` as `<Tags>`, which is what the Marketplace
+     reads.
 
-    Consequence: **choose the identity once, before the first upload of a series.**
-    Both halves are already reserved to this publisher, so they are reused here and
-    never changed again:
-
-        name        : labwatch-gpu
-        displayName : LabWatch GPU
-
-  * `vsce` copies `keywords` into `extension.vsixmanifest` as `<Tags>` when it
-    packages, so a variant has to be produced by a real `vsce package` - editing
-    the keywords inside a built VSIX changes nothing.
-
-Versions must increase for each upload, so the sequence starts at 1.1.1 (1.1.0 is
-already on the listing) and the real release is cut later as 1.2.0.
+Burnt identities, in order: `labwatch-vscode`/"LabWatch", then
+`labwatch-gpu`/"LabWatch GPU". The one below is the third attempt and is chosen to
+be a name worth keeping if it works.
 
 Usage:
     python scripts/make-keyword-variants.py
@@ -45,50 +37,42 @@ EXT = REPO / "vscode-extension"
 PKG = EXT / "package.json"
 OUT_DIR = REPO / "dist-vsix"
 
-EXTENSION_NAME = "labwatch-gpu"
-DISPLAY_NAME = "LabWatch GPU"
+# Declared once. Do not change these between uploads.
+EXTENSION_NAME = "labwatch-gpu-status"
+DISPLAY_NAME = "LabWatch GPU Status"
 
-NEUTRAL_DESCRIPTION = (
-    "Show graphics accelerator utilisation, memory and temperature in the VS Code status bar and sidebar."
-)
-VENDOR_DESCRIPTION = (
-    "Show NVIDIA GPU utilisation, memory and temperature in the VS Code status bar and sidebar."
-)
+NEUTRAL_DESCRIPTION = "Show GPU utilisation, memory and temperature in the VS Code status bar and sidebar."
 
-# Nothing here changes the identity: only the two free-text fields under test, and
-# the version, which must increase. Ordered by upload sequence.
+# Version, label, changes, and what a refusal would mean.
 VARIANTS: list[tuple[str, str, dict, str]] = [
     (
-        "kw5-vendor-description",
         "1.1.1",
-        {"description": VENDOR_DESCRIPTION, "keywords": []},
-        "description names the vendor -> if refused, the description vocabulary is the trigger",
-    ),
-    (
-        "kw1-gpu",
-        "1.1.2",
+        "tags-gpu",
         {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu"]},
-        "tag `gpu` alone -> if refused, that tag is the trigger",
+        "the description says GPU and the tag list is just `gpu`",
     ),
     (
-        "kw2-gpu-nvidia",
-        "1.1.3",
+        "1.1.2",
+        "tags-gpu-nvidia",
         {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu", "nvidia"]},
-        "adds tag `nvidia`",
+        "adds the tag `nvidia` -> if refused, that tag is the trigger",
     ),
     (
-        "kw3-gpu-nvidia-cuda",
-        "1.1.4",
+        "1.1.3",
+        "tags-gpu-nvidia-cuda",
         {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu", "nvidia", "cuda"]},
-        "adds tag `cuda`",
-    ),
-    (
-        "kw4-monitoring",
-        "1.1.5",
-        {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu", "monitoring"]},
-        "adds tag `monitoring`",
+        "adds the tag `cuda` -> if refused, that tag is the trigger",
     ),
 ]
+
+# The pass/fail history that makes this ordering informative:
+#   1.1.0 equivalent, no keywords, "graphics accelerator" description -> PASSED
+#   1.1.0 equivalent, full keywords, "NVIDIA GPU" description         -> REFUSED
+PRIOR = """prior results (different identities, same metadata shapes):
+   no tags  + "graphics accelerator"  -> PASSED
+   gpu,nvidia,cuda,monitoring + "NVIDIA GPU" -> REFUSED
+so 1.1.1 here tests the middle of that range: the word GPU, and the tag `gpu`.
+"""
 
 
 def vsce(*args: str) -> None:
@@ -110,8 +94,9 @@ def main() -> None:
     OUT_DIR.mkdir(exist_ok=True)
 
     try:
-        print(f"identity (never varied): {EXTENSION_NAME} / {DISPLAY_NAME}\n")
-        for label, version, changes, meaning in VARIANTS:
+        print(f"identity, declared once and never varied: {EXTENSION_NAME} / {DISPLAY_NAME}")
+        print(PRIOR)
+        for version, label, changes, meaning in VARIANTS:
             candidate = json.loads(original)
             candidate.update(changes)
             candidate["name"] = EXTENSION_NAME
@@ -154,14 +139,15 @@ def main() -> None:
 
             print(f"{version}  {target.name}  ({target.stat().st_size} bytes)")
             print(f"   {shown}")
-            print(f"   tags: {actual or '(none)'}")
+            print(f"   {tags}")
             print(f"   {meaning}")
     finally:
         PKG.write_text(original, encoding="utf-8")
 
     print(
         f"\nwrote {len(VARIANTS)} packages to {OUT_DIR}\n"
-        "identity is fixed for all of them: upload by version, never rename"
+        "upload 1.1.1 first; every later upload is the same identity with a higher\n"
+        "version, so no rename and no delete is ever needed"
     )
 
 
