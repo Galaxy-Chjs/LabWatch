@@ -145,13 +145,18 @@ export async function diagnose(options: ResolveOptions): Promise<CliDiagnosis> {
 
   // Nothing works. Which advice applies depends on what is missing.
   const { found, sawTooOld } = await findPython(runner, platform)
-  const repairing = venvPythonExists(options.venvDir, platform)
+  const venvExists = venvPythonExists(options.venvDir, platform)
 
-  if (repairing) {
+  // A venv whose collector does not import is a failed install, not a mystery:
+  // say so instead of offering to install something that is already there.
+  const staleEnvironment = venvExists && !(await managedEnvironmentWorks(options.venvDir, runner, platform))
+  if (staleEnvironment) {
     return {
       trouble: 'needs-repair',
       command: null,
-      detail: 'A private environment exists but its collector does not answer.',
+      detail:
+        'The private environment exists but the collector is not importable from it. ' +
+        'Repairing rebuilds only this extension’s own folder.',
     }
   }
   if (found !== null) {
@@ -192,6 +197,31 @@ export interface StatusOptions {
   platform?: NodeJS.Platform
 }
 
+/**
+ * The last line of a stack trace, with the noise removed.
+ *
+ * A sidebar must not carry `/home/.../venv/bin/python -m labwatch status --port
+ * 8123` followed by a Node error - the user needs the sentence, not the
+ * invocation. The full text goes to the output channel.
+ */
+export function tidyError(text: string, limit = 160): string {
+  const lines = text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '')
+  const meaningful =
+    [...lines].reverse().find((line) => /error|not found|No module|Traceback|failed|cannot|denied/i.test(line)) ??
+    lines[lines.length - 1] ??
+    ''
+  const cleaned = meaningful.replace(/^Command failed:\s*/i, '').replace(/\s+/g, ' ')
+  return cleaned.length > limit ? `${cleaned.slice(0, limit - 1)}…` : cleaned
+}
+
+/** True when the collector simply is not importable from the environment used. */
+export function looksUninstalled(text: string): boolean {
+  return /No module named ['"]?labwatch|labwatch: command not found|not recognized as an internal/i.test(text)
+}
+
 /** Read the current status. Never throws: failures come back as `ok: false`. */
 export async function fetchStatus(options: StatusOptions): Promise<CliResult> {
   const { preferredPython, port, cache, venvDir, timeoutMs = 15_000, runner, platform } = options
@@ -221,13 +251,12 @@ export async function fetchStatus(options: StatusOptions): Promise<CliResult> {
     if (status !== null) {
       return { ok: true, status, command, error: null, stderr: null }
     }
-    return {
-      ok: false,
-      status: null,
-      command,
-      error: failure.message ?? 'labwatch status failed',
-      stderr: failure.stderr?.trim() ?? null,
-    }
+    // A bare "the collector is not installed" must not read as a crash.
+    const combined = `${failure.stderr ?? ''}\n${failure.message ?? ''}`
+    const error_ = looksUninstalled(combined)
+      ? 'The collector is not available from the environment this extension resolved.'
+      : tidyError(combined) || 'labwatch status failed'
+    return { ok: false, status: null, command, error: error_, stderr: failure.stderr?.trim() ?? null }
   }
 }
 

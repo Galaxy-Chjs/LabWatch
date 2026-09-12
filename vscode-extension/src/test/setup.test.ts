@@ -8,11 +8,17 @@
  */
 
 import { strict as assert } from 'node:assert'
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { test } from 'node:test'
 
 import { guidanceFor, connectionGuide, MANUAL_COMMANDS } from '../guidance'
-import { diagnose } from '../labwatchCli'
+import { actionsFor, NOT_RUNNING_ACTIONS } from '../stateActions'
+import { diagnose, looksUninstalled, tidyError } from '../labwatchCli'
 import {
+  abiTag,
+  bundledWheelsFor,
   findPython,
   isSupported,
   managedEnvironmentWorks,
@@ -20,6 +26,7 @@ import {
   pythonCandidates,
   setupManagedEnvironment,
   venvPythonPath,
+  wheelPlatformTag,
   type RunOutput,
   type Runner,
 } from '../pythonEnv'
@@ -263,6 +270,83 @@ test('the failure state shows the real reason rather than a generic apology', ()
   assert.match(guidance.steps[0], /no matching distribution/)
 })
 
+test('the bundled wheel directory is chosen by platform and interpreter', () => {
+  assert.equal(abiTag([3, 11, 4]), 'cp311')
+  assert.equal(wheelPlatformTag('linux', 'x64', false), 'manylinux2014_x86_64')
+  assert.equal(wheelPlatformTag('linux', 'arm64', false), 'manylinux2014_aarch64')
+  assert.equal(wheelPlatformTag('linux', 'x64', true), 'musllinux_1_2_x86_64')
+  assert.equal(wheelPlatformTag('win32', 'x64'), 'win_amd64')
+  assert.equal(wheelPlatformTag('win32', 'arm64'), 'win_arm64')
+
+  assert.equal(bundledWheelsFor(undefined, [3, 11, 4]), null)
+  assert.equal(bundledWheelsFor(join(tmpdir(), 'nope-does-not-exist'), [3, 11, 4]), null)
+
+  const root = mkdtempSync(join(tmpdir(), 'lw-wheels-'))
+  try {
+    // Linux wheels must never be handed to a Windows interpreter: that mismatch
+    // made pip answer "No matching distribution" for an otherwise valid bundle.
+    mkdirSync(join(root, 'manylinux2014_x86_64-cp311'))
+    mkdirSync(join(root, 'win_amd64-cp311'))
+    assert.equal(
+      bundledWheelsFor(root, [3, 11, 4], 'manylinux2014_x86_64'),
+      join(root, 'manylinux2014_x86_64-cp311'),
+    )
+    assert.equal(bundledWheelsFor(root, [3, 11, 4], 'win_amd64'), join(root, 'win_amd64-cp311'))
+    // Combinations the bundle does not cover fall through to PyPI rather than fail.
+    assert.equal(bundledWheelsFor(root, [3, 13, 0], 'manylinux2014_x86_64'), null)
+    assert.equal(bundledWheelsFor(root, [3, 11, 4], 'musllinux_1_2_x86_64'), null)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('setup installs from the bundled wheels with --no-index, so no network is needed', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'lw-wheels-'))
+  mkdirSync(join(root, 'manylinux2014_x86_64-cp311'))
+  const { run, calls } = fakeRunner((_file, args) => {
+    if (args.includes('--version')) return { stdout: 'Python 3.11.14', stderr: '' }
+    if (args.includes('install')) return { stdout: 'Successfully installed labwatch-lite', stderr: '' }
+    if (args.includes('version')) return { stdout: VERSION_JSON, stderr: '' }
+    return { stdout: '', stderr: '' }
+  })
+
+  try {
+    const outcome = await setupManagedEnvironment({
+      venvDir: '/tmp/lw-venv',
+      platform: 'linux',
+      run,
+      bundledWheelsDir: root,
+    })
+    assert.equal(outcome.ok, true)
+    const install = calls.find((call) => call.includes('install'))
+    assert.ok(install, 'pip install ran')
+    const line = install?.join(' ') ?? ''
+    assert.match(line, /--no-index/)
+    assert.match(line, /--find-links/)
+    assert.match(line, /manylinux2014_x86_64-cp311/)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('a missing bundle for this interpreter still reaches for PyPI', async () => {
+  const { run, calls } = fakeRunner((_file, args) => {
+    if (args.includes('--version')) return { stdout: 'Python 3.13.1', stderr: '' }
+    if (args.includes('install')) return { stdout: 'ok', stderr: '' }
+    if (args.includes('version')) return { stdout: VERSION_JSON, stderr: '' }
+    return { stdout: '', stderr: '' }
+  })
+  const outcome = await setupManagedEnvironment({
+    venvDir: '/tmp/lw-venv',
+    platform: 'linux',
+    run,
+    bundledWheelsDir: join(tmpdir(), 'nope-does-not-exist'),
+  })
+  assert.equal(outcome.ok, true)
+  const install = calls.find((call) => call.includes('install'))
+  assert.equal((install?.join(' ') ?? '').includes('--no-index'), false)
+})
+
 test('the connection guide covers all four routes and both languages', () => {
   const guide = connectionGuide()
   for (const command of MANUAL_COMMANDS) {
@@ -272,4 +356,48 @@ test('the connection guide covers all four routes and both languages', () => {
   assert.match(guide, /pipIndexUrl/)
   assert.match(guide, /pythonPath/)
   assert.match(guide, /Remote-SSH/)
+})
+
+test('tidyError keeps the sentence and drops the invocation', () => {
+  const raw = [
+    'Command failed: /home/u/.vscode-server/data/User/globalStorage/x/venv/bin/python -m labwatch status --port 8123',
+    '',
+    'Traceback (most recent call last):',
+    'ModuleNotFoundError: No module named labwatch',
+  ].join('\n')
+  const tidied = tidyError(raw)
+  assert.match(tidied, /No module named labwatch/)
+  assert.equal(tidied.includes('vscode-server'), false)
+  assert.equal(tidied.includes('\n'), false)
+})
+
+test('tidyError truncates rather than letting the sidebar stretch', () => {
+  const tidied = tidyError(`error: ${'x'.repeat(400)}`, 60)
+  assert.equal(tidied.length, 60)
+  assert.ok(tidied.endsWith('…'))
+})
+
+test('an unimportable collector is recognised as such, not as a crash', () => {
+  assert.equal(looksUninstalled('ModuleNotFoundError: No module named labwatch'), true)
+  assert.equal(looksUninstalled('labwatch: command not found'), true)
+  assert.equal(looksUninstalled('Connection refused while polling'), false)
+})
+
+test('every setup state offers at least one way out, and starts with the fix', () => {  const expected: Record<string, string> = {
+    installable: 'labwatch.setup',
+    repair: 'labwatch.setup',
+    'no-python': 'labwatch.showGuide',
+    failed: 'labwatch.doctor',
+  }
+  for (const [state, command] of Object.entries(expected)) {
+    const actions = actionsFor(state as never)
+    assert.ok(actions.length > 0, `${state} needs actions`)
+    assert.equal(actions[0].command, command, `${state} should lead with its fix`)
+    for (const action of actions) {
+      assert.ok(action.label.length > 0, `${state} action needs a label`)
+      assert.match(action.command, /^labwatch\./)
+    }
+  }
+  assert.equal(actionsFor('ready').length, 0)
+  assert.equal(NOT_RUNNING_ACTIONS[0].command, 'labwatch.start')
 })

@@ -220,7 +220,7 @@ cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
 npm install
 npm run compile
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-gpu-status-1.3.0.vsix --force
+code --install-extension labwatch-gpu-status-1.3.1.vsix --force
 ```
 
 Then reload the VS Code window: `Ctrl+Shift+P` → **Developer: Reload Window**.
@@ -327,7 +327,7 @@ npx --yes @vscode/vsce package --no-dependencies
 ```
 
 Then <https://marketplace.visualstudio.com/manage> → your publisher → **New
-extension → Visual Studio Code** → upload `labwatch-gpu-status-1.3.0.vsix`.
+extension → Visual Studio Code** → upload `labwatch-gpu-status-1.3.1.vsix`.
 
 Or by command line, once the token works:
 
@@ -535,7 +535,7 @@ builds a temporary environment with a real interpreter and installs into it. ·
 ```powershell
 cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-gpu-status-1.3.0.vsix --force
+code --install-extension labwatch-gpu-status-1.3.1.vsix --force
 ```
 
 If the vendor-description variant is refused too, the trigger is not free text at
@@ -705,7 +705,7 @@ uvx labwatch-lite --version && uvx labwatch-lite doctor
 # Rebuild and reinstall the extension locally
 cd vscode-extension && npm run compile \
   && npx --yes @vscode/vsce package --no-dependencies \
-  && code --install-extension labwatch-gpu-status-1.3.0.vsix --force
+  && code --install-extension labwatch-gpu-status-1.3.1.vsix --force
 ```
 
 ## What is already verified, so you do not have to · 已经验证过、你不必再验的部分

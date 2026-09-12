@@ -1,18 +1,17 @@
 /**
- * The GPU tree shown in the LabWatch sidebar.
+ * The LabWatch sidebar.
  *
- * A single flat list of GPUs plus a host row: the sidebar is for glancing, and
- * the full dashboard is one click away for everything else.
- *
- * When there is nothing to show, the tree shows why and what to do about it,
- * rather than an empty pane. That first minute is the whole point of the setup
- * work: an empty sidebar tells a new user nothing.
+ * Reading order is deliberate: one headline (what is happening), then the rows
+ * that matter (GPUs), then a single way out (the dashboard). Nothing is repeated
+ * that the label already says, and long machine output never lands here - it goes
+ * to the LabWatch output channel, because a sidebar is for glancing.
  */
 
 import * as vscode from 'vscode'
 
 import { formatUptime, gpuCardLines, gpuDescription, gpuIcon, type LabwatchStatus } from './format'
 import type { SetupState } from './guidance'
+import { actionsFor, NOT_RUNNING_ACTIONS, type StateAction } from './stateActions'
 
 export interface TreeState {
   status: LabwatchStatus | null
@@ -21,63 +20,85 @@ export interface TreeState {
   setup: SetupState
 }
 
-export class GpuTreeProvider implements vscode.TreeDataProvider<GpuNode> {
-  private readonly emitter = new vscode.EventEmitter<GpuNode | undefined>()
+export class GpuTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
+  private readonly emitter = new vscode.EventEmitter<vscode.TreeItem | undefined>()
   readonly onDidChangeTreeData = this.emitter.event
 
   private state: TreeState = { status: null, problem: '', setup: 'ready' }
 
-  /** Replace the data shown in the tree. */
   update(state: TreeState): void {
     this.state = state
     this.emitter.fire(undefined)
   }
 
-  getTreeItem(element: GpuNode): vscode.TreeItem {
+  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element
   }
 
-  getChildren(element?: GpuNode): GpuNode[] {
+  getChildren(element?: vscode.TreeItem): vscode.TreeItem[] {
+    if (element instanceof StateNode) return element.children
     if (element) return []
-    return GpuNode.fromState(this.state)
+    return buildRows(this.state)
   }
 }
 
-/** Rows offered when the collector is missing, per state. */
-const SETUP_ACTIONS: Record<Exclude<SetupState, 'ready'>, { label: string; command: string; icon: string }[]> = {
-  provisioning: [],
-  installable: [
-    { label: 'Set up LabWatch (one click)', command: 'labwatch.setup', icon: 'cloud-download' },
-    { label: 'Install it myself', command: 'labwatch.showManualSteps', icon: 'terminal' },
-  ],
-  repair: [
-    { label: 'Repair the private environment', command: 'labwatch.setup', icon: 'tools' },
-    { label: 'Install it myself', command: 'labwatch.showManualSteps', icon: 'terminal' },
-  ],
-  'no-python': [
-    { label: 'How to connect', command: 'labwatch.showGuide', icon: 'book' },
-    { label: 'Open settings', command: 'labwatch.openSettings', icon: 'settings-gear' },
-  ],
-  failed: [
-    { label: 'Run Doctor', command: 'labwatch.doctor', icon: 'heart' },
-    { label: 'How to connect', command: 'labwatch.showGuide', icon: 'book' },
-    { label: 'Install it myself', command: 'labwatch.showManualSteps', icon: 'terminal' },
-  ],
+/** A headline row that owns the actions resolving its state. */
+export class StateNode extends vscode.TreeItem {
+  readonly children: ActionNode[]
+
+  constructor(options: {
+    label: string
+    description?: string
+    icon: string
+    state: SetupState | 'stopped'
+    problem?: string
+    actions: StateAction[]
+  }) {
+    super(
+      options.label,
+      options.actions.length > 0
+        ? vscode.TreeItemCollapsibleState.Expanded
+        : vscode.TreeItemCollapsibleState.None,
+    )
+    if (options.description) this.description = options.description
+    this.iconPath = new vscode.ThemeIcon(options.icon)
+    this.contextValue = `labwatch.state.${options.state}`
+    // The headline is what the user reads; the reason lives in the tooltip, so a
+    // long machine message never stretches the sidebar.
+    this.tooltip = new vscode.MarkdownString(
+      options.problem
+        ? `**${options.label}**\n\n${options.problem}\n\nFull output: the **LabWatch** output channel.`
+        : `**${options.label}**`,
+    )
+    this.children = options.actions.map((action) => new ActionNode(action))
+  }
 }
 
-const SETUP_HEADLINE: Record<Exclude<SetupState, 'ready'>, string> = {
-  provisioning: 'Setting up LabWatch…',
-  installable: 'One step left: install the collector',
-  repair: 'The private environment needs repair',
-  'no-python': 'Python 3.10+ not found',
-  failed: 'Setup needs attention',
+/** A clickable row that runs a command. */
+export class ActionNode extends vscode.TreeItem {
+  constructor(action: StateAction) {
+    super(action.label, vscode.TreeItemCollapsibleState.None)
+    if (action.description) this.description = action.description
+    this.iconPath = new vscode.ThemeIcon(action.icon)
+    this.contextValue = 'labwatch.action'
+    this.tooltip = action.description ? `${action.label} — ${action.description}` : action.label
+    this.command = { command: action.command, title: action.label }
+  }
 }
 
 export class GpuNode extends vscode.TreeItem {
-  private constructor(
+  /** Prefer `GpuNode.host` / `GpuNode.gpu`; this is public only so rows for
+   *  unusual states can be built in the same file. */
+  constructor(
     label: string,
     collapsible: vscode.TreeItemCollapsibleState,
-    options: { description?: string; tooltip?: vscode.MarkdownString; icon?: string; context?: string; command?: vscode.Command } = {},
+    options: {
+      description?: string
+      tooltip?: vscode.MarkdownString
+      icon?: string
+      context?: string
+      command?: vscode.Command
+    } = {},
   ) {
     super(label, collapsible)
     if (options.description) this.description = options.description
@@ -87,93 +108,38 @@ export class GpuNode extends vscode.TreeItem {
     if (options.command) this.command = options.command
   }
 
-  /** Build the visible rows for a snapshot. */
-  static fromState(state: TreeState): GpuNode[] {
-    const { status, problem, setup } = state
+  static host(status: LabwatchStatus): GpuNode {
+    const bits: string[] = []
+    if (status.driver_version) bits.push(`driver ${status.driver_version}`)
+    if (status.uptime_seconds !== null) bits.push(`up ${formatUptime(status.uptime_seconds)}`)
+    return new GpuNode(status.hostname ?? 'this host', vscode.TreeItemCollapsibleState.None, {
+      description: bits.join('  ·  ') || undefined,
+      tooltip: new vscode.MarkdownString(
+        [
+          `**${status.hostname ?? 'LabWatch'}**`,
+          '',
+          status.driver_version ? `driver ${status.driver_version}` : '',
+          status.cuda_version ? `CUDA ${status.cuda_version}` : '',
+          status.url ? `[${status.url}](${status.url})` : '',
+        ]
+          .filter(Boolean)
+          .join('  \n'),
+      ),
+      icon: status.demo ? 'beaker' : 'server',
+      context: 'labwatch.host',
+    })
+  }
 
-    if (setup !== 'ready') {
-      const nodes: GpuNode[] = [
-        new GpuNode(SETUP_HEADLINE[setup], vscode.TreeItemCollapsibleState.None, {
-          description: problem || undefined,
-          tooltip: new vscode.MarkdownString(problem ? `**${SETUP_HEADLINE[setup]}**\n\n${problem}` : undefined),
-          icon: setup === 'no-python' ? 'circle-slash' : setup === 'provisioning' ? 'sync~spin' : 'warning',
-          context: `labwatch.setup.${setup}`,
-        }),
-      ]
-      for (const action of SETUP_ACTIONS[setup]) {
-        nodes.push(
-          new GpuNode(action.label, vscode.TreeItemCollapsibleState.None, {
-            icon: action.icon,
-            context: 'labwatch.setupAction',
-            command: { command: action.command, title: action.label },
-          }),
-        )
-      }
-      return nodes
-    }
-
-    if (problem !== '') {
-      return [
-        new GpuNode('LabWatch unavailable', vscode.TreeItemCollapsibleState.None, {
-          description: 'click for details',
-          icon: 'warning',
-          context: 'labwatch.problem',
-        }),
-      ]
-    }
-
-    if (status === null || !status.running) {
-      return [
-        new GpuNode('LabWatch is not running', vscode.TreeItemCollapsibleState.None, {
-          description: 'click to start',
-          icon: 'debug-start',
-          context: 'labwatch.stopped',
-          command: { command: 'labwatch.start', title: 'Start LabWatch' },
-        }),
-      ]
-    }
-
-    const nodes: GpuNode[] = []
-
-    const hostBits = [status.hostname ?? 'unknown host']
-    if (status.driver_version) hostBits.push(`driver ${status.driver_version}`)
-    if (status.uptime_seconds !== null) hostBits.push(`up ${formatUptime(status.uptime_seconds)}`)
-    nodes.push(
-      new GpuNode(status.demo ? 'Demo data' : 'Host', vscode.TreeItemCollapsibleState.None, {
-        description: hostBits.join('  ·  '),
-        tooltip: new vscode.MarkdownString(
-          [
-            `**${status.hostname ?? 'LabWatch'}**`,
-            '',
-            status.driver_version ? `driver ${status.driver_version}` : '',
-            status.cuda_version ? `CUDA ${status.cuda_version}` : '',
-            status.url ? `[${status.url}](${status.url})` : '',
-          ]
-            .filter(Boolean)
-            .join('  \n'),
-        ),
-        icon: status.demo ? 'beaker' : 'server',
-        context: 'labwatch.host',
-      }),
-    )
-
-    if (!status.gpu_available) {
-      nodes.push(
-        new GpuNode('NVIDIA GPU unavailable', vscode.TreeItemCollapsibleState.None, {
-          description: status.gpu_error ?? 'unknown reason',
-          icon: 'circle-slash',
-        }),
-      )
-      return nodes
-    }
-
-    for (const gpu of status.gpus) {
-      const [utilization, memory, temperature] = gpuCardLines(gpu)
-      const tooltip = new vscode.MarkdownString(
+  static gpu(status: LabwatchStatus, index: number): GpuNode {
+    const gpu = status.gpus[index]
+    const [utilization, memory, temperature] = gpuCardLines(gpu)
+    return new GpuNode(utilization, vscode.TreeItemCollapsibleState.None, {
+      description: `${memory}  ·  ${temperature}`,
+      tooltip: new vscode.MarkdownString(
         [
           `**GPU ${gpu.index}** — ${gpu.name ?? 'NVIDIA GPU'}`,
           '',
-          `Utilization: ${utilization}`,
+          `Utilisation: ${utilization}`,
           `VRAM: ${memory}`,
           `Temperature: ${temperature}`,
           gpu.power_watts !== null ? `Power: ${gpu.power_watts.toFixed(0)} W` : '',
@@ -183,27 +149,10 @@ export class GpuNode extends vscode.TreeItem {
         ]
           .filter((line) => line !== '')
           .join('  \n'),
-      )
-      nodes.push(
-        new GpuNode(`GPU ${gpu.index}  ${utilization}`, vscode.TreeItemCollapsibleState.None, {
-          description: `${memory}  ·  ${temperature}`,
-          tooltip,
-          icon: gpuIcon(gpu),
-          context: gpu.busy ? 'labwatch.gpu.busy' : 'labwatch.gpu.free',
-        }),
-      )
-    }
-
-    nodes.push(
-      new GpuNode('Open Full Dashboard', vscode.TreeItemCollapsibleState.None, {
-        description: 'history, processes, charts',
-        icon: 'link-external',
-        context: 'labwatch.open',
-        command: { command: 'labwatch.openDashboard', title: 'Open Full Dashboard' },
-      }),
-    )
-
-    return nodes
+      ),
+      icon: gpuIcon(gpu),
+      context: gpu.busy ? 'labwatch.gpu.busy' : 'labwatch.gpu.free',
+    })
   }
 
   /** Human-readable summary used by the "Show GPU Summary" command. */
@@ -213,4 +162,79 @@ export class GpuNode extends vscode.TreeItem {
     const lines = status.gpus.map((gpu) => `GPU ${gpu.index}  ${gpuDescription(gpu)}`)
     return [`${status.busy_count} busy / ${status.gpu_count} GPUs`, '', ...lines].join('\n')
   }
+}
+
+/** Headline text per state: short enough to read at a glance. */
+const HEADLINE: Record<Exclude<SetupState, 'ready'>, string> = {
+  provisioning: 'Setting up…',
+  installable: 'Collector not installed',
+  repair: 'Collector needs repair',
+  'no-python': 'Python 3.10+ not found',
+  failed: 'Collector problem',
+}
+
+function buildRows(state: TreeState): vscode.TreeItem[] {
+  const { status, problem, setup } = state
+
+  if (setup !== 'ready') {
+    const icon =
+      setup === 'provisioning'
+        ? 'sync~spin'
+        : setup === 'no-python'
+          ? 'circle-slash'
+          : setup === 'installable'
+            ? 'cloud-download'
+            : 'warning'
+    const built = new StateNode({
+      label: HEADLINE[setup],
+      icon,
+      state: setup,
+      problem,
+      actions: actionsFor(setup),
+    })
+    // A single headline that expands into its actions: with the reason in the
+    // tooltip, the collapsed form is one clean line.
+    if (setup === 'provisioning') built.collapsibleState = vscode.TreeItemCollapsibleState.None
+    return [built]
+  }
+
+  if (status === null || !status.running) {
+    return [
+      new StateNode({
+        label: 'Collector is not running',
+        description: 'click to start',
+        icon: 'debug-start',
+        state: 'stopped',
+        problem: problem === '' ? 'The collector is installed but no instance is running.' : problem,
+        actions: NOT_RUNNING_ACTIONS,
+      }),
+    ]
+  }
+
+  const rows: vscode.TreeItem[] = [GpuNode.host(status)]
+
+  if (!status.gpu_available) {
+    rows.push(
+      new GpuNode('NVIDIA GPU unavailable', vscode.TreeItemCollapsibleState.None, {
+        description: status.gpu_error ?? 'unknown reason',
+        icon: 'circle-slash',
+      }),
+    )
+    return rows
+  }
+
+  for (let index = 0; index < status.gpus.length; index += 1) {
+    rows.push(GpuNode.gpu(status, index))
+  }
+
+  rows.push(
+    new GpuNode('Open Full Dashboard', vscode.TreeItemCollapsibleState.None, {
+      description: 'history, processes, charts',
+      icon: 'link-external',
+      context: 'labwatch.open',
+      command: { command: 'labwatch.openDashboard', title: 'Open Full Dashboard' },
+    }),
+  )
+
+  return rows
 }

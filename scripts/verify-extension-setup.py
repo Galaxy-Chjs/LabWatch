@@ -11,6 +11,7 @@ global is installed.
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import shutil
 import subprocess
@@ -28,7 +29,10 @@ print(f"target venv: {venv_dir}")
 
 driver = f"""
 const {{ setupManagedEnvironment }} = require({json.dumps(str(SCRIPT))});
-setupManagedEnvironment({{ venvDir: {json.dumps(str(venv_dir))} }})
+setupManagedEnvironment({{
+  venvDir: {json.dumps(str(venv_dir))},
+  bundledWheelsDir: {json.dumps(str(EXT / "wheels"))},
+}})
   .then((outcome) => {{
     console.log(JSON.stringify(outcome, null, 2));
     process.exit(outcome.ok ? 0 : 1);
@@ -39,6 +43,17 @@ setupManagedEnvironment({{ venvDir: {json.dumps(str(venv_dir))} }})
 driver_path = venv_dir.parent / "driver.js"
 driver_path.write_text(driver, encoding="utf-8")
 
+# Prove the offline route properly: no proxy, no index reachable.
+offline = {
+    **os.environ,
+    "PIP_NO_INDEX": "1",
+    "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+    "HTTP_PROXY": "",
+    "HTTPS_PROXY": "",
+    "http_proxy": "",
+    "https_proxy": "",
+}
+
 try:
     result = subprocess.run(
         ["node", str(driver_path)],
@@ -47,6 +62,7 @@ try:
         encoding="utf-8",
         errors="replace",
         timeout=900,
+        env=offline,
     )
     print("--- setup outcome ---")
     print(result.stdout.strip() or "(no stdout)")

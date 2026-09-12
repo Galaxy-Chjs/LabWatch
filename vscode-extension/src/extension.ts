@@ -32,7 +32,14 @@ import {
   type Guidance,
   type SetupState,
 } from './guidance'
-import { diagnose, runCliCommand, type CliCache, type CliTrouble } from './labwatchCli'
+import {
+  diagnose,
+  looksUninstalled,
+  runCliCommand,
+  tidyError,
+  type CliCache,
+  type CliTrouble,
+} from './labwatchCli'
 import { setupManagedEnvironment, type SetupOutcome } from './pythonEnv'
 
 const cache: CliCache = { command: null }
@@ -152,28 +159,45 @@ async function refresh(options: RefreshOptions = {}): Promise<void> {
     cache,
   })
 
-  lastProblem = result.command === null ? result.detail : ''
-  setupState = setupInFlight ? 'provisioning' : TROUBLE_TO_STATE[result.trouble]
-
-  if (setupState === 'ready') {
-    const statusResult = await readStatus()
-    lastStatus = statusResult.status
-    if (!statusResult.ok) {
-      lastProblem = statusResult.error ?? 'labwatch status failed'
-      setupState = 'failed'
-    }
-  } else {
+  if (result.command === null) {
+    // No usable collector: the sidebar explains which state it is in and offers
+    // the action that resolves it.
     lastStatus = null
+    lastProblem = result.detail
+    setupState = setupInFlight ? 'provisioning' : TROUBLE_TO_STATE[result.trouble]
+    render()
+    if (setupState === 'failed' && !options.silent && lastProblem !== '') {
+      void vscode.window.showWarningMessage(`LabWatch: ${lastProblem}`)
+    }
+    return
+  }
+
+  // A collector exists, so anything that goes wrong from here concerns the running
+  // instance rather than the installation. Reporting these as "setup needs
+  // attention" was the bug that told a working environment it was broken.
+  const statusResult = await readStatus()
+  lastStatus = statusResult.status
+  setupState = 'ready'
+  lastProblem = statusResult.ok ? '' : (statusResult.error ?? 'labwatch status failed')
+
+  if (lastProblem !== '') {
+    output.appendLine(`[refresh] ${lastProblem}`)
+    if (statusResult.stderr) output.appendLine(statusResult.stderr)
   }
 
   render()
 
-  if (setupState === 'failed' && !options.silent && lastProblem !== '') {
+  if (!statusResult.ok && !options.silent && lastProblem !== '') {
     void vscode.window.showWarningMessage(`LabWatch: ${lastProblem}`)
   }
 }
 
-async function readStatus() {
+async function readStatus(): Promise<{
+  ok: boolean
+  status: LabwatchStatus | null
+  error?: string
+  stderr?: string
+}> {
   const port = config().get<number>('dashboardPort', 8123)
   const result = await runCliCommand({
     preferredPython: config().get<string>('pythonPath', ''),
@@ -187,7 +211,11 @@ async function readStatus() {
   // prints valid JSON, so a non-zero exit is not by itself a problem.
   const parsed = result.stdout.trim() ? parseStatus(result.stdout) : null
   if (parsed !== null) return { ok: true, status: parsed }
-  return { ok: false, status: null, error: result.error ?? result.stderr ?? 'labwatch status failed' }
+  const stderr = result.stderr.trim()
+  const error = looksUninstalled(`${stderr}\n${result.error ?? ''}`)
+    ? 'The collector is installed but not importable; repairing the environment fixes it.'
+    : tidyError(stderr || result.error || 'labwatch status failed')
+  return { ok: false, status: null, error, stderr }
 }
 
 function render(): void {
@@ -197,7 +225,9 @@ function render(): void {
     if (setupState === 'ready') {
       statusBar.text = statusBarText(lastStatus, false)
       statusBar.tooltip = statusBarTooltip(lastStatus)
-      statusBar.command = 'labwatch.openDashboard'
+      // Clicking is the obvious next step: open the dashboard when there is one,
+      // start the collector when there is not.
+      statusBar.command = lastStatus?.running ? 'labwatch.openDashboard' : 'labwatch.start'
     } else {
       statusBar.text = guidance.statusBar
       statusBar.tooltip = guidance.tooltip
@@ -253,6 +283,9 @@ async function setupCollector(): Promise<void> {
       outcome = await setupManagedEnvironment({
         venvDir: venvDir(),
         indexUrl: config().get<string>('pipIndexUrl', '') || undefined,
+        // Wheels shipped inside the VSIX: the route that works on a server with no
+        // outbound access.
+        bundledWheelsDir: path.join(contextRef.extensionUri.fsPath, 'wheels'),
       })
       for (const line of outcome.log) output.appendLine(line)
     },

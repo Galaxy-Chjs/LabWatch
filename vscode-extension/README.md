@@ -41,24 +41,22 @@ and it is used in preference to everything else.
 
 ### A server without PyPI access
 
-Fetch the wheels on a networked machine and bring them over:
-
-```bash
-pip download labwatch-lite -d wheels
-# then, on the server:
-python3 -m venv ~/.labwatch/venv
-~/.labwatch/venv/bin/pip install --no-index --find-links wheels labwatch-lite
-```
-
-Or point the automatic setup at a mirror with `labwatch.pipIndexUrl`. Run
-**LabWatch: How to Connect** for the full guide, in English and 中文.
+**Already covered.** The wheels ship inside the extension — Linux x86_64 for Python
+3.10, 3.11 and 3.12, plus Windows x64 for 3.12 — so the one-click setup installs
+from them with `--no-index` and never touches the network. Only when the
+interpreter is a combination the bundle does not cover does setup fall back to
+PyPI, or to `labwatch.pipIndexUrl` if you set one. Run **LabWatch: How to Connect**
+for the whole picture in English and 中文.
 
 ## When something is wrong
 
-The sidebar never shows a blank pane. It says which of these applies and offers the
-action that fixes it: **needs setup**, **needs repair**, **no Python found**, or
-**setup failed** — the last one with the real error text. `LabWatch: Run Doctor`
-prints the collector's own diagnostics in a tab.
+The sidebar never shows a blank pane, and it never reports a working collector as
+broken. Installation problems — **needs setup**, **needs repair**, **no Python
+found**, **setup failed** — get their own headline and the action that resolves
+them. A collector that is installed but simply not running is *not* an error: it
+offers **Start**, and the underlying command output goes to the **LabWatch** output
+channel rather than into the sidebar. `LabWatch: Run Doctor` prints the collector's
+own diagnostics in a tab.
 
 ## Remote-SSH
 

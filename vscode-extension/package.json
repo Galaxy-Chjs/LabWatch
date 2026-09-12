@@ -2,7 +2,7 @@
   "name": "labwatch-gpu-status",
   "displayName": "LabWatch GPU Monitor",
   "description": "See your NVIDIA GPU state in the status bar and sidebar, and open the LabWatch dashboard. Works locally and over Remote-SSH.",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "publisher": "galaxy-chjs",
   "license": "MIT",
   "repository": {
@@ -12,11 +12,22 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other", "Visualization"],
-  "keywords": ["gpu", "nvidia", "cuda", "monitoring", "remote-ssh"],
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "gpu",
+    "nvidia",
+    "cuda",
+    "monitoring",
+    "remote-ssh"
+  ],
   "icon": "media/icon.png",
   "main": "./out/extension.js",
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
     "configuration": {
       "title": "LabWatch",
@@ -30,7 +41,7 @@
         "labwatch.autoSetup": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Offer to build a private environment on first use when no collector is found. It lives inside this extension's storage folder — nothing global is installed and `PATH` is not modified."
+          "markdownDescription": "Offer to build a private environment on first use when no collector is found. It lives inside this extension's storage folder \u2014 nothing global is installed and `PATH` is not modified."
         },
         "labwatch.pipIndexUrl": {
           "type": "string",

@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.3.1
+
+Fixes found by running 1.3.0 on a real server.
+
+- **A working collector is no longer reported as broken.** When the collector was
+  installed but no instance was running, the sidebar said "Setup needs attention"
+  and printed the whole `python -m labwatch status --port 8123` command line as the
+  reason. Errors from the running instance are now kept apart from installation
+  problems: the sidebar shows a short headline with a **Start** action, and the raw
+  output goes to the LabWatch output channel.
+- **The wheels now ship inside the extension.** A GPU server is often the one
+  machine with no outbound access, and the one-click setup would fail there for a
+  reason the user could do nothing about. The VSIX therefore carries wheels for
+  Linux x86_64 (Python 3.10–3.12) and Windows x64 (3.12); setup installs from the
+  matching directory with `--no-index`, and only falls back to PyPI when there is
+  no match. Regenerate with `scripts/bundle-extension-wheels.py`.
+- Wheel directories are named `<platform>-<abi>` (`manylinux2014_x86_64-cp311`). A
+  bundle keyed only by `cp311` handed Linux wheels to a Windows interpreter, and
+  pip answered "No matching distribution" for a perfectly good bundle.
+- The status bar starts the collector when none is running, and opens the dashboard
+  when one is.
+
+---
+
+## 1.3.1（中文）
+
+在真实服务器上跑 1.3.0 之后发现并修复的问题。
+
+- **不再把可用的采集器报成故障。** 采集器已安装但没有实例在运行时，侧边栏原本显示
+  "Setup needs attention"，并把整条 `python -m labwatch status --port 8123` 命令行当成
+  原因。现在运行期错误与安装问题分开：侧边栏只留一句结论并提供 **Start** 操作，原始输出
+  写进 LabWatch 输出面板。
+- **wheel 现在随扩展一起分发。** GPU 服务器常常是网络上唯一没有外网的机器，一键配置在那里
+  会因用户无法解决的原因失败。因此 VSIX 内置了 Linux x86_64（Python 3.10–3.12）与
+  Windows x64（3.12）的 wheel；配置时用匹配目录以 `--no-index` 安装，只有没有匹配项时才回退
+  到 PyPI。重新生成：`scripts/bundle-extension-wheels.py`。
+- wheel 目录改名为 `<平台>-<ABI>`（如 `manylinux2014_x86_64-cp311`）。此前只按 `cp311`
+  命名，会把 Linux wheel 交给 Windows 解释器，pip 于是对一个完好的包报出
+  "No matching distribution"。
+- 没有实例运行时，点状态栏即启动采集器；有实例时则打开面板。
+
 ## 1.3.0
 
 Nothing to install by hand any more.
