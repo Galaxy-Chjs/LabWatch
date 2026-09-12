@@ -656,7 +656,7 @@ labwatch stop / open / version</code></pre>
           <tr><td>Wheel contents</td><td class="ok">250 KB, includes <code>labwatch/ui</code>; package-data test asserts the dashboard is present and served</td></tr>
           <tr><td><code>uvx</code> equivalent (local wheel and local checkout)</td><td class="ok">starts, serves the bundled UI (HTTP 200 on <code>/</code> and on <code>/assets/*.js</code>)</td></tr>
           <tr><td>Editable install, CLI end to end</td><td class="ok">doctor, start, status, stop, open, version, <code>python -m labwatch</code></td></tr>
-          <tr><td>VS Code extension</td><td class="ok">packaged as .vsix, installed into VS Code as <code>chjs.labwatch-vscode</code> (12 files, 16.5 KB)</td></tr>
+          <tr><td>VS Code extension</td><td class="ok">packaged as .vsix, installed into VS Code as <code>galaxy-chjs.labwatch-vscode</code> (12 files, 16.5 KB)</td></tr>
           <tr><td>Extension against the real server CLI</td><td class="ok">parser and formatters fed the live 8-GPU payload over SSH; every contract check passed</td></tr>
           <tr><td>Lab server, packaged install</td><td class="ok">v1.1.0 installed offline, doctor all green, dashboard served from the package, other users' 8 CUDA processes untouched</td></tr>
           <tr><td>Docker build</td><td class="warn">blocked by this machine's Docker DNS at the time of writing; the Dockerfile was rewritten for the package layout and the CI job verifies it independently</td></tr>
@@ -668,7 +668,7 @@ labwatch stop / open / version</code></pre>
           <tr><td>wheel 内容</td><td class="ok">250 KB，包含 <code>labwatch/ui</code>；有测试断言面板存在且可被托管</td></tr>
           <tr><td><code>uvx</code> 等价路径（本地 wheel 与本地仓库）</td><td class="ok">可启动，托管打包 UI（<code>/</code> 与 <code>/assets/*.js</code> 均 200）</td></tr>
           <tr><td>可编辑安装 + CLI 全流程</td><td class="ok">doctor、start、status、stop、open、version、<code>python -m labwatch</code></td></tr>
-          <tr><td>VS Code 扩展</td><td class="ok">已打包为 .vsix，并以 <code>chjs.labwatch-vscode</code> 成功安装到 VS Code（12 个文件，16.5 KB）</td></tr>
+          <tr><td>VS Code 扩展</td><td class="ok">已打包为 .vsix，并以 <code>galaxy-chjs.labwatch-vscode</code> 成功安装到 VS Code（12 个文件，16.5 KB）</td></tr>
           <tr><td>扩展对接真实服务器 CLI</td><td class="ok">解析器与格式化函数直接消费经 SSH 取回的真实 8 卡数据，全部契约检查通过</td></tr>
           <tr><td>实验服务器上的包化安装</td><td class="ok">v1.1.0 离线安装成功，doctor 全绿，面板由包直接托管，其他用户的 8 个 CUDA 进程未受影响</td></tr>
           <tr><td>Docker 构建</td><td class="warn">撰写时被本机 Docker 的 DNS 故障阻塞；Dockerfile 已按包化结构重写，CI 中有独立 job 验证</td></tr>
@@ -937,6 +937,7 @@ labwatch stop / open / version</code></pre>
           <tr><td>Per-process CPU needs two polls</td><td>CPU usage is a counter delta, so the first sample after startup reports <code>N/A</code> for process CPU. Documented behaviour, not a defect.</td></tr>
           <tr><td>Container disk figures describe the container</td><td>When the root filesystem is an <code>overlay</code> (Docker Desktop), LabWatch falls back to the shallowest real mount, which may be a data volume. Run LabWatch natively for host disk numbers.</td></tr>
           <tr><td>Multiple GPUs verified in demo mode only</td><td>This development machine has one GPU, so multi-device rendering was exercised with three synthetic devices. The collector enumerates NVML devices generically, with no single-device assumption.</td></tr>
+          <tr><td>Not on the VS Code Marketplace yet</td><td>The extension builds, packages and installs from a VSIX, but the Marketplace upload was refused - first by an unhelpful "suspicious content" scanner message with a correct manifest, then by a publisher-ID mismatch introduced while chasing that message. The ID is <code>galaxy-chjs</code>. The one remaining candidate inside the package is the user-supplied <code>media/labwatch.svg</code> Activity Bar icon, which <code>vsce</code> is documented to reject; converting it to PNG is the next step.</td></tr>
         </tbody>
       </table>
 
@@ -952,6 +953,7 @@ labwatch stop / open / version</code></pre>
           <tr><td>逐进程 CPU 需要两次采样</td><td>CPU 使用率是计数器差值，因此启动后的第一次采样中进程 CPU 报 <code>N/A</code>。这是有意的行为，不是缺陷。</td></tr>
           <tr><td>容器内的磁盘数字描述容器本身</td><td>当根文件系统是 <code>overlay</code>（Docker Desktop）时，LabWatch 退回最浅的真实挂载点，可能是数据卷。需要宿主机磁盘数字请直接在宿主机运行。</td></tr>
           <tr><td>多卡仅在演示模式下验证过</td><td>本开发机只有一张 GPU，因此多设备渲染是通过 3 个合成设备验证的。采集器采用通用 NVML 设备枚举，没有任何单卡假设。</td></tr>
+          <tr><td>尚未上架 VS Code Marketplace</td><td>扩展能构建、打包并从 VSIX 安装，但 Marketplace 上传被拒：先是清单正确却被扫描器笼统报为"可疑内容"，随后在追查该报错时又引入了发布者 ID 不一致。ID 是 <code>galaxy-chjs</code>。包内最后一个可疑项是活动栏图标 <code>media/labwatch.svg</code> —— <code>vsce</code> 官方文档说明会拒绝用户自带的 SVG，下一步就是把它转成 PNG。</td></tr>
         </tbody>
       </table>
 

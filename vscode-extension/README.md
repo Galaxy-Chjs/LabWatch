@@ -76,10 +76,11 @@ npm install
 npm run compile
 ```
 
-Then install the folder:
+Then package and install the `.vsix`:
 
 ```bash
-code --install-extension .        # or: npm run package, then install the .vsix
+npx --yes @vscode/vsce package --no-dependencies
+code --install-extension labwatch-vscode-1.1.0.vsix --force
 ```
 
 For development, open the repository in VS Code and press <kbd>F5</kbd> —

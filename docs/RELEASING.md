@@ -212,7 +212,7 @@ Marketplace 发布者账号。
 
 ### Right now: install it for yourself · 现在就能自己安装
 
-Installed on this machine as `chjs.labwatch-vscode@1.1.0`. To reinstall
+Installed on this machine as `galaxy-chjs.labwatch-vscode@1.1.0`. To reinstall
 after a change:
 
 ```powershell
@@ -231,25 +231,28 @@ icon in the Activity Bar.
 
 1. <https://marketplace.visualstudio.com/manage> → sign in with the Microsoft
    account you will also use for the Azure DevOps token.
-2. **Create publisher**. Two different strings are involved, and mixing them up
-   costs a publish attempt:
+2. **Create publisher**. The ID is `galaxy-chjs`; the Manage page may show a
+   shorter display name beside it (`chjs (galaxy-chjs)`). The manifest field
+   `publisher` must carry the **ID**:
 
-   | What | Value here | Where it is used |
-   |---|---|---|
-   | **ID** (identifier) | `chjs` | `publisher` in `package.json`, the extension id, the API |
-   | **Name** (display name) | `galaxy-chjs` | shown on the publisher page only |
+   `vscode-extension/package.json` declares `"publisher": "galaxy-chjs"`.
 
-   `vscode-extension/package.json` declares `"publisher": "chjs"` — the manifest
-   must contain the **ID**, never the display name.
-
-> **What went wrong the first time.** A publish attempt failed with *"Your
-> extension has suspicious content"* while `package.json` said
-> `"publisher": "galaxy-chjs"`. That string is the publisher's *display name*; its
-> ID is `chjs`. The scanner's message pointed at the metadata, and the mismatch
-> was indeed in the metadata — an unhelpful message, not a wrong one. · 第一次失败的
-> 提示是"扩展包含可疑内容"，而当时 `package.json` 里写的是 `"publisher": "galaxy-chjs"`
-> —— 那是发布者的**显示名**，其 ID 是 `chjs`。提示指向元数据，而错误确实在元数据里：
-> 信息不友好，但方向是对的。
+> **How to read that sidebar entry, and the mistake made here.** The header
+> `chjs (galaxy-chjs)` looks like `id (display-name)` and was read that way, so
+> the manifest was changed to `chjs`. The portal then refused the upload with a
+> message that settles it beyond argument:
+>
+> > Publisher ID 'chjs' provided in the extension manifest should match the
+> > publisher ID 'galaxy-chjs' under which you are trying to publish this
+> > extension.
+>
+> So the ID is `galaxy-chjs`, the display name is the short one, and the original
+> manifest was right. The useful lesson: when the portal names the expected
+> publisher ID in an error, believe the error over the sidebar's formatting. ·
+> 那个 `chjs (galaxy-chjs)` 看着像 `ID (显示名)`，我按这个理解把清单改成了 `chjs`，
+> 结果网页上传直接给出决定性报错：清单里的 `chjs` 与发布者 ID `galaxy-chjs` 不一致。
+> 所以 ID 是 `galaxy-chjs`，短名才是显示名，原来的清单本来就是对的。教训：当门户报错里
+> 明确写出期望的 ID 时，以报错为准，不要靠侧边栏的排版去猜。
 
 ### Step 2 · Create an Azure DevOps PAT · 创建 Azure DevOps Token
 
@@ -283,10 +286,26 @@ here. The token page lives inside an organization, so create one first:
    | Name | `vsce-publish` |
    | Organization | **All accessible organizations** (required) |
    | Expiration | 30 days (global PATs retire 2026-12-01, so keep it short) |
-   | Scopes | **Custom defined** → scroll to **Marketplace** → **Manage** |
+   | Scopes | **Custom defined** → **Show all scopes** → **Marketplace** → **Manage**, and also **User profile** → **Read** |
 
    Click **Show all scopes** if the Marketplace group is not visible.
 5. Copy the token — it is shown once.
+
+> **`Access Denied: ... needs the following permission(s) on the resource
+> /<publisher> to perform this action: View user permissions on a resource`**
+> means the token itself is wrong, not the extension. The two causes seen here:
+> the token was created inside a *single* organization instead of **All accessible
+> organizations**, or it was created under a different Microsoft account than the
+> one that owns the publisher. Recreate it with the table above, sign in to the
+> Marketplace with that same account, and check <https://marketplace.visualstudio.com/manage>
+> shows your publisher before retrying. · 这个报错说明**令牌**有问题，与扩展无关：
+> 常见原因是用单个组织而不是"All accessible organizations"，或用与发布者归属不同的微软
+> 账号创建。请按上表重建令牌，并确认门户里能看到你的发布者。
+>
+> Where the PAT error and the web upload disagree, prefer the **web upload**: it
+> reports publisher-ID mismatches explicitly and needs no token at all. · 当命令行与
+> 网页上传给出的信息不一致时，以**网页上传**为准：它会直接指出发布者 ID 不一致，而且
+> 完全不需要令牌。
 
 > Why this is fiddly: Visual Studio Code's Marketplace is hosted on Azure DevOps,
 > so publishing authenticates as an Azure DevOps user. That is also why a GitHub
@@ -295,9 +314,20 @@ here. The token page lives inside an organization, so create one first:
 
 ### Step 3 · Publish · 发布
 
+**Preferred: the web upload.** It gives exact errors and skips the token entirely.
+
 ```powershell
 cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
-npx --yes @vscode/vsce login chjs                      # paste the PAT when asked
+npx --yes @vscode/vsce package --no-dependencies
+```
+
+Then <https://marketplace.visualstudio.com/manage> → your publisher → **New
+extension → Visual Studio Code** → upload `labwatch-vscode-1.1.0.vsix`.
+
+Or by command line, once the token works:
+
+```powershell
+npx --yes @vscode/vsce login galaxy-chjs               # paste the PAT when asked
 npx --yes @vscode/vsce publish --no-dependencies
 ```
 
@@ -309,14 +339,19 @@ should appear within a few minutes.
 That message is the scanner refusing the upload, and the usual cause is something
 in the metadata rather than in the code. Check, in this order:
 
-1. **Publisher ID.** The sidebar of the Manage page shows `id (display name)` —
-   for example `chjs (galaxy-chjs)`. `package.json` must carry the **id**.
-   This is the mistake that was made here.
+1. **Publisher ID.** `package.json` must carry the publisher **ID**
+   (`galaxy-chjs`), which is what the portal names in a mismatch error. Do not
+   infer it from the Manage page formatting.
 2. **Reachable public URLs.** `repository` must be a public repo; any
    `homepage` / `bugs` URL must answer 200.
 3. **Nothing extra in the VSIX.** `.vscodeignore`, no `node_modules`, no
    binaries, no scripts.
-4. **If all of that is clean**, the flag is an account-level false positive, which
+4. **User-provided SVG.** `vsce` refuses to publish extensions containing
+   user-supplied SVG images, and the Activity Bar icon here is
+   `media/labwatch.svg`. If this message appears with otherwise clean metadata,
+   convert it to a PNG. · `vsce` 拒绝包含用户自带 SVG 的扩展，而本扩展的活动栏图标
+   是 `media/labwatch.svg`；元数据干净却仍报错时，把它换成 PNG。
+5. **If all of that is clean**, the flag is an account-level false positive, which
    new publishers hit often. Prove it with the inert probe in
    `D:\IDE\vscode\MyDemo\marketplace-probe\` (see its README): if that 3 KB
    extension is refused too, no edit to LabWatch will help. Escalate to the
@@ -332,7 +367,7 @@ The READMEs currently say the Marketplace listing is not published. Once it is,
 replace that note with:
 
 ```markdown
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/chjs.labwatch-vscode)](https://marketplace.visualstudio.com/items?itemName=chjs.labwatch-vscode)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/galaxy-chjs.labwatch-vscode)](https://marketplace.visualstudio.com/items?itemName=galaxy-chjs.labwatch-vscode)
 ```
 
 …and change "See `vscode-extension/README.md` to build from source" to an install
