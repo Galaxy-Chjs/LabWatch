@@ -220,7 +220,7 @@ cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
 npm install
 npm run compile
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-gpu-status-1.2.0.vsix --force
+code --install-extension labwatch-gpu-status-1.3.0.vsix --force
 ```
 
 Then reload the VS Code window: `Ctrl+Shift+P` → **Developer: Reload Window**.
@@ -327,7 +327,7 @@ npx --yes @vscode/vsce package --no-dependencies
 ```
 
 Then <https://marketplace.visualstudio.com/manage> → your publisher → **New
-extension → Visual Studio Code** → upload `labwatch-gpu-status-1.2.0.vsix`.
+extension → Visual Studio Code** → upload `labwatch-gpu-status-1.3.0.vsix`.
 
 Or by command line, once the token works:
 
@@ -499,13 +499,43 @@ project, even though that mechanism is real and documented.
 首个条目）或扫描器偶发误判。针对本项目，关键词黑名单这一假设也随之排除 —— 尽管该机制
 本身真实存在且已被微软确认。
 
-**Final release: 1.2.0**, built from the repository manifest with the full metadata
-restored - the richest description, all five keywords, complete `contributes`. ·
-**正式发布为 1.2.0**，使用仓库清单、元数据全部保留。
+**Final release: 1.3.0**, built from the repository manifest with the full metadata
+restored - the richest description, all five keywords, complete `contributes` - plus
+the automatic collector setup described just below. · **正式发布为 1.3.0**，使用仓库
+清单、元数据全部保留，并包含下文的采集器自动配置。
+
+### The collector is no longer a manual step · 采集器不再是手动步骤
+
+Since extension 1.3.0 there is no separate install for the user to perform. If no
+collector is found and Python 3.10+ is present, the extension offers to build a
+private environment inside its own storage folder and install `labwatch-lite` into
+it - no global installs, no `PATH` edits. The states it can be in, and what the
+sidebar shows for each:
+
+| State | Sidebar says | Action offered |
+|---|---|---|
+| `installable` | One step left: install the collector | **Set up LabWatch** (one click) |
+| `no-python` | Python 3.10+ not found | How to connect · Open settings |
+| `repair` | The private environment needs repair | **Repair LabWatch** |
+| `failed` | Setup needs attention, with the real error | Run Doctor · How to connect |
+
+A server without PyPI access is covered by `labwatch.pipIndexUrl` (a mirror) or by
+`pip download labwatch-lite -d wheels` plus `pip install --no-index --find-links`.
+`LabWatch: How to Connect` opens both languages of that guide in a tab.
+
+The one thing this cannot fix is a machine with no Python at all; the extension says
+so plainly and points at `labwatch.pythonPath` for an existing collector elsewhere.
+· 唯一无法自动解决的情况是机器上完全没有 Python，此时扩展会明确说明，并提示用
+`labwatch.pythonPath` 指向已有的采集器。
+
+The real end-to-end path is checked by `scripts/verify-extension-setup.py`, which
+builds a temporary environment with a real interpreter and installs into it. ·
+真实链路由 `scripts/verify-extension-setup.py` 验证：用真实解释器建临时环境并安装。
 
 ```powershell
 cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
 npx --yes @vscode/vsce package --no-dependencies
+code --install-extension labwatch-gpu-status-1.3.0.vsix --force
 ```
 
 If the vendor-description variant is refused too, the trigger is not free text at
@@ -675,7 +705,7 @@ uvx labwatch-lite --version && uvx labwatch-lite doctor
 # Rebuild and reinstall the extension locally
 cd vscode-extension && npm run compile \
   && npx --yes @vscode/vsce package --no-dependencies \
-  && code --install-extension labwatch-gpu-status-1.2.0.vsix --force
+  && code --install-extension labwatch-gpu-status-1.3.0.vsix --force
 ```
 
 ## What is already verified, so you do not have to · 已经验证过、你不必再验的部分

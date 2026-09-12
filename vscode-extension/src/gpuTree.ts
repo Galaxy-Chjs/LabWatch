@@ -3,23 +3,33 @@
  *
  * A single flat list of GPUs plus a host row: the sidebar is for glancing, and
  * the full dashboard is one click away for everything else.
+ *
+ * When there is nothing to show, the tree shows why and what to do about it,
+ * rather than an empty pane. That first minute is the whole point of the setup
+ * work: an empty sidebar tells a new user nothing.
  */
 
 import * as vscode from 'vscode'
 
 import { formatUptime, gpuCardLines, gpuDescription, gpuIcon, type LabwatchStatus } from './format'
+import type { SetupState } from './guidance'
+
+export interface TreeState {
+  status: LabwatchStatus | null
+  /** Why there is no data, when there is none. Empty string means no problem. */
+  problem: string
+  setup: SetupState
+}
 
 export class GpuTreeProvider implements vscode.TreeDataProvider<GpuNode> {
   private readonly emitter = new vscode.EventEmitter<GpuNode | undefined>()
   readonly onDidChangeTreeData = this.emitter.event
 
-  private status: LabwatchStatus | null = null
-  private problem: string | null = null
+  private state: TreeState = { status: null, problem: '', setup: 'ready' }
 
   /** Replace the data shown in the tree. */
-  update(status: LabwatchStatus | null, problem: string | null): void {
-    this.status = status
-    this.problem = problem
+  update(state: TreeState): void {
+    this.state = state
     this.emitter.fire(undefined)
   }
 
@@ -29,26 +39,80 @@ export class GpuTreeProvider implements vscode.TreeDataProvider<GpuNode> {
 
   getChildren(element?: GpuNode): GpuNode[] {
     if (element) return []
-    return GpuNode.from(this.status, this.problem)
+    return GpuNode.fromState(this.state)
   }
+}
+
+/** Rows offered when the collector is missing, per state. */
+const SETUP_ACTIONS: Record<Exclude<SetupState, 'ready'>, { label: string; command: string; icon: string }[]> = {
+  provisioning: [],
+  installable: [
+    { label: 'Set up LabWatch (one click)', command: 'labwatch.setup', icon: 'cloud-download' },
+    { label: 'Install it myself', command: 'labwatch.showManualSteps', icon: 'terminal' },
+  ],
+  repair: [
+    { label: 'Repair the private environment', command: 'labwatch.setup', icon: 'tools' },
+    { label: 'Install it myself', command: 'labwatch.showManualSteps', icon: 'terminal' },
+  ],
+  'no-python': [
+    { label: 'How to connect', command: 'labwatch.showGuide', icon: 'book' },
+    { label: 'Open settings', command: 'labwatch.openSettings', icon: 'settings-gear' },
+  ],
+  failed: [
+    { label: 'Run Doctor', command: 'labwatch.doctor', icon: 'heart' },
+    { label: 'How to connect', command: 'labwatch.showGuide', icon: 'book' },
+    { label: 'Install it myself', command: 'labwatch.showManualSteps', icon: 'terminal' },
+  ],
+}
+
+const SETUP_HEADLINE: Record<Exclude<SetupState, 'ready'>, string> = {
+  provisioning: 'Setting up LabWatch…',
+  installable: 'One step left: install the collector',
+  repair: 'The private environment needs repair',
+  'no-python': 'Python 3.10+ not found',
+  failed: 'Setup needs attention',
 }
 
 export class GpuNode extends vscode.TreeItem {
   private constructor(
     label: string,
     collapsible: vscode.TreeItemCollapsibleState,
-    options: { description?: string; tooltip?: vscode.MarkdownString; icon?: string; context?: string } = {},
+    options: { description?: string; tooltip?: vscode.MarkdownString; icon?: string; context?: string; command?: vscode.Command } = {},
   ) {
     super(label, collapsible)
     if (options.description) this.description = options.description
     if (options.tooltip) this.tooltip = options.tooltip
     if (options.icon) this.iconPath = new vscode.ThemeIcon(options.icon)
     if (options.context) this.contextValue = options.context
+    if (options.command) this.command = options.command
   }
 
   /** Build the visible rows for a snapshot. */
-  static from(status: LabwatchStatus | null, problem: string | null): GpuNode[] {
-    if (problem !== null) {
+  static fromState(state: TreeState): GpuNode[] {
+    const { status, problem, setup } = state
+
+    if (setup !== 'ready') {
+      const nodes: GpuNode[] = [
+        new GpuNode(SETUP_HEADLINE[setup], vscode.TreeItemCollapsibleState.None, {
+          description: problem || undefined,
+          tooltip: new vscode.MarkdownString(problem ? `**${SETUP_HEADLINE[setup]}**\n\n${problem}` : undefined),
+          icon: setup === 'no-python' ? 'circle-slash' : setup === 'provisioning' ? 'sync~spin' : 'warning',
+          context: `labwatch.setup.${setup}`,
+        }),
+      ]
+      for (const action of SETUP_ACTIONS[setup]) {
+        nodes.push(
+          new GpuNode(action.label, vscode.TreeItemCollapsibleState.None, {
+            icon: action.icon,
+            context: 'labwatch.setupAction',
+            command: { command: action.command, title: action.label },
+          }),
+        )
+      }
+      return nodes
+    }
+
+    if (problem !== '') {
       return [
         new GpuNode('LabWatch unavailable', vscode.TreeItemCollapsibleState.None, {
           description: 'click for details',
@@ -59,7 +123,14 @@ export class GpuNode extends vscode.TreeItem {
     }
 
     if (status === null || !status.running) {
-      return []
+      return [
+        new GpuNode('LabWatch is not running', vscode.TreeItemCollapsibleState.None, {
+          description: 'click to start',
+          icon: 'debug-start',
+          context: 'labwatch.stopped',
+          command: { command: 'labwatch.start', title: 'Start LabWatch' },
+        }),
+      ]
     }
 
     const nodes: GpuNode[] = []
@@ -128,6 +199,7 @@ export class GpuNode extends vscode.TreeItem {
         description: 'history, processes, charts',
         icon: 'link-external',
         context: 'labwatch.open',
+        command: { command: 'labwatch.openDashboard', title: 'Open Full Dashboard' },
       }),
     )
 

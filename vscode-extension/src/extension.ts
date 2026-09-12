@@ -11,23 +11,48 @@
  *   - `vscode.env.asExternalUri` asks the editor to forward the dashboard port,
  *     which is what makes the browser link work when the server is on the far
  *     side of a tunnel.
+ *
+ * The collector is a Python program, which is the one thing the Marketplace's
+ * usual "install and it runs" expectation does not cover. So the extension
+ * resolves it, and when it is missing it offers to build a private environment
+ * inside its own storage - no global installs, no PATH edits.
  */
+
+import * as path from 'node:path'
 
 import * as vscode from 'vscode'
 
-import { statusBarText, statusBarTooltip, type LabwatchStatus } from './format'
+import { parseStatus, statusBarText, statusBarTooltip, type LabwatchStatus } from './format'
 import { GpuNode, GpuTreeProvider } from './gpuTree'
-import { fetchStatus, runCliCommand, type CliCache } from './labwatchCli'
+import {
+  connectionGuide,
+  connectionGuideZh,
+  guidanceFor,
+  MANUAL_COMMAND_TEXT,
+  type Guidance,
+  type SetupState,
+} from './guidance'
+import { diagnose, runCliCommand, type CliCache, type CliTrouble } from './labwatchCli'
+import { setupManagedEnvironment, type SetupOutcome } from './pythonEnv'
 
 const cache: CliCache = { command: null }
+const ASKED_KEY = 'labwatch.setup.asked'
 
 let statusBar: vscode.StatusBarItem
 let treeProvider: GpuTreeProvider
+let output: vscode.OutputChannel
+let contextRef: vscode.ExtensionContext
 let timer: NodeJS.Timeout | undefined
 let lastStatus: LabwatchStatus | null = null
-let lastProblem: string | null = null
+let lastProblem = ''
+let setupState: SetupState = 'ready'
+let setupInFlight = false
 
 export function activate(context: vscode.ExtensionContext): void {
+  contextRef = context
+  output = vscode.window.createOutputChannel('LabWatch')
+  context.subscriptions.push(output)
+
   statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 90)
   statusBar.command = 'labwatch.openDashboard'
   statusBar.show()
@@ -45,6 +70,12 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('labwatch.stop', () => stopInstance()),
     vscode.commands.registerCommand('labwatch.doctor', () => runDoctor()),
     vscode.commands.registerCommand('labwatch.showStatus', () => showSummary()),
+    vscode.commands.registerCommand('labwatch.setup', () => setupCollector()),
+    vscode.commands.registerCommand('labwatch.showManualSteps', () => showManualSteps()),
+    vscode.commands.registerCommand('labwatch.showGuide', () => showGuide()),
+    vscode.commands.registerCommand('labwatch.openSettings', () =>
+      vscode.commands.executeCommand('workbench.action.openSettings', 'labwatch'),
+    ),
   )
 
   configureRefresh()
@@ -54,15 +85,16 @@ export function activate(context: vscode.ExtensionContext): void {
       if (
         event.affectsConfiguration('labwatch.refreshInterval') ||
         event.affectsConfiguration('labwatch.pythonPath') ||
+        event.affectsConfiguration('labwatch.pipIndexUrl') ||
         event.affectsConfiguration('labwatch.statusBar')
       ) {
-        cache.command = null
+        resetResolution()
         configureRefresh()
       }
     }),
   )
 
-  void refresh({ silent: true })
+  void refresh({ silent: true }).then(() => maybeOfferSetup())
 
   if (config().get<boolean>('autoStart', false)) {
     void maybeAutoStart()
@@ -77,11 +109,26 @@ function config(): vscode.WorkspaceConfiguration {
   return vscode.workspace.getConfiguration('labwatch')
 }
 
+function resetResolution(): void {
+  cache.command = null
+  cache.managedPython = undefined
+}
+
+/** Read the setup state without letting the compiler narrow it across awaits. */
+function stateNow(): SetupState {
+  return setupState
+}
+
+/** The private environment lives inside the extension's own storage folder. */
+function venvDir(): string {
+  return path.join(contextRef.globalStorageUri.fsPath, 'venv')
+}
+
 function configureRefresh(): void {
   if (timer) clearInterval(timer)
   const seconds = Math.max(1, config().get<number>('refreshInterval', 5))
   timer = setInterval(() => void refresh({ silent: true }), seconds * 1000)
-  if (statusBar) {
+  if (statusBar && setupState === 'ready') {
     statusBar.tooltip = `LabWatch — refreshing every ${seconds}s`
   }
 }
@@ -90,35 +137,181 @@ interface RefreshOptions {
   silent?: boolean
 }
 
+const TROUBLE_TO_STATE: Record<CliTrouble, SetupState> = {
+  ok: 'ready',
+  'needs-setup': 'installable',
+  'needs-repair': 'repair',
+  'no-python': 'no-python',
+  unavailable: 'failed',
+}
+
 async function refresh(options: RefreshOptions = {}): Promise<void> {
-  const optionsForCli = {
-    preferredPython: config().get<string>('pythonPath', ''),
-    port: config().get<number>('dashboardPort', 8123),
+  const result = await diagnose({
+    preferred: config().get<string>('pythonPath', ''),
+    venvDir: venvDir(),
     cache,
-    timeoutMs: 15_000,
+  })
+
+  lastProblem = result.command === null ? result.detail : ''
+  setupState = setupInFlight ? 'provisioning' : TROUBLE_TO_STATE[result.trouble]
+
+  if (setupState === 'ready') {
+    const statusResult = await readStatus()
+    lastStatus = statusResult.status
+    if (!statusResult.ok) {
+      lastProblem = statusResult.error ?? 'labwatch status failed'
+      setupState = 'failed'
+    }
+  } else {
+    lastStatus = null
   }
 
-  const result = await fetchStatus(optionsForCli)
-  lastStatus = result.status
-  lastProblem = result.ok ? null : result.error
+  render()
+
+  if (setupState === 'failed' && !options.silent && lastProblem !== '') {
+    void vscode.window.showWarningMessage(`LabWatch: ${lastProblem}`)
+  }
+}
+
+async function readStatus() {
+  const port = config().get<number>('dashboardPort', 8123)
+  const result = await runCliCommand({
+    preferredPython: config().get<string>('pythonPath', ''),
+    port,
+    cache,
+    venvDir: venvDir(),
+    args: ['status'],
+    timeoutMs: 15_000,
+  })
+  // `labwatch status` exits 3 when the collector is simply not running, and still
+  // prints valid JSON, so a non-zero exit is not by itself a problem.
+  const parsed = result.stdout.trim() ? parseStatus(result.stdout) : null
+  if (parsed !== null) return { ok: true, status: parsed }
+  return { ok: false, status: null, error: result.error ?? result.stderr ?? 'labwatch status failed' }
+}
+
+function render(): void {
+  const guidance: Guidance = guidanceFor(setupState, lastProblem)
 
   if (config().get<boolean>('statusBar', true)) {
-    statusBar.text = statusBarText(lastStatus, false)
-    statusBar.tooltip = statusBarTooltip(lastStatus)
-    if (lastProblem !== null) {
-      statusBar.text = '$(warning) LabWatch: CLI not found'
-      statusBar.tooltip = lastProblem
+    if (setupState === 'ready') {
+      statusBar.text = statusBarText(lastStatus, false)
+      statusBar.tooltip = statusBarTooltip(lastStatus)
+      statusBar.command = 'labwatch.openDashboard'
+    } else {
+      statusBar.text = guidance.statusBar
+      statusBar.tooltip = guidance.tooltip
+      statusBar.command =
+        setupState === 'installable' || setupState === 'repair' ? 'labwatch.setup' : 'labwatch.showGuide'
     }
     statusBar.show()
   } else {
     statusBar.hide()
   }
 
-  treeProvider.update(lastStatus, lastProblem)
+  treeProvider.update({ status: lastStatus, problem: lastProblem, setup: setupState })
+}
 
-  if (!result.ok && !options.silent) {
-    void vscode.window.showWarningMessage(`LabWatch: ${result.error}`)
+/**
+ * Offer to build the private environment, at most once per install unless the
+ * user asks again. Installing into someone's home directory without asking would
+ * be rude; asking every activation would be worse.
+ */
+async function maybeOfferSetup(): Promise<void> {
+  if (setupState !== 'installable' && setupState !== 'repair') return
+  if (!config().get<boolean>('autoSetup', true)) return
+  if (contextRef.globalState.get<boolean>(ASKED_KEY, false)) return
+  await contextRef.globalState.update(ASKED_KEY, true)
+  await offerSetup(setupState === 'repair' ? 'repair' : 'setup')
+}
+
+async function offerSetup(kind: 'setup' | 'repair'): Promise<void> {
+  const guidance = guidanceFor(kind === 'repair' ? 'repair' : 'installable')
+  const choice = await vscode.window.showInformationMessage(
+    `${guidance.headline} ${guidance.steps[guidance.steps.length - 1]}`,
+    ...guidance.actions,
+  )
+  if (choice === guidance.actions[0]) await setupCollector()
+  else if (choice === 'Install manually') await showManualSteps()
+}
+
+async function setupCollector(): Promise<void> {
+  if (setupInFlight) return
+  setupInFlight = true
+  setupState = 'provisioning'
+  render()
+
+  let outcome: SetupOutcome | undefined
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: 'LabWatch: setting up the collector',
+      cancellable: false,
+    },
+    async (progress) => {
+      progress.report({ message: 'looking for Python 3.10+…' })
+      outcome = await setupManagedEnvironment({
+        venvDir: venvDir(),
+        indexUrl: config().get<string>('pipIndexUrl', '') || undefined,
+      })
+      for (const line of outcome.log) output.appendLine(line)
+    },
+  )
+
+  setupInFlight = false
+  resetResolution()
+
+  if (outcome === undefined) {
+    setupState = 'failed'
+    lastProblem = 'setup produced no result'
+    render()
+    return
   }
+
+  if (outcome.ok) {
+    output.appendLine(`collector ready at ${outcome.python}`)
+    const settled = await refresh({ silent: true })
+    void settled
+    if (stateNow() === 'ready') {
+      void vscode.window.showInformationMessage(
+        'LabWatch collector installed. Start it with the status bar, or run LabWatch: Start in Background. · 采集器已装好，点状态栏即可启动。',
+      )
+    }
+    return
+  }
+
+  setupState = outcome.reason === 'no-python' || outcome.reason === 'python-too-old' ? 'no-python' : 'failed'
+  lastProblem = outcome.detail
+  render()
+
+  const choice = await vscode.window.showErrorMessage(`LabWatch: ${outcome.detail}`, 'How to connect', 'Copy install command')
+  if (choice === 'How to connect') await showGuide()
+  if (choice === 'Copy install command') {
+    await vscode.env.clipboard.writeText(MANUAL_COMMAND_TEXT)
+    void vscode.window.showInformationMessage('Install commands copied.')
+  }
+}
+
+async function showManualSteps(): Promise<void> {
+  const choice = await vscode.window.showInformationMessage(
+    'Install the collector yourself, then reload the window. · 自行安装采集器后重新加载窗口。',
+    { modal: true, detail: MANUAL_COMMAND_TEXT },
+    'Copy commands',
+    'How to connect',
+  )
+  if (choice === 'Copy commands') {
+    await vscode.env.clipboard.writeText(MANUAL_COMMAND_TEXT)
+    void vscode.window.showInformationMessage('Install commands copied to the clipboard.')
+  }
+  if (choice === 'How to connect') await showGuide()
+}
+
+async function showGuide(): Promise<void> {
+  const document = await vscode.workspace.openTextDocument({
+    content: `${connectionGuide()}\n\n${connectionGuideZh()}`,
+    language: 'markdown',
+  })
+  await vscode.window.showTextDocument(document, { preview: true })
 }
 
 async function openDashboard(): Promise<void> {
@@ -126,7 +319,7 @@ async function openDashboard(): Promise<void> {
 
   if (lastStatus === null || !lastStatus.running) {
     const choice = await vscode.window.showInformationMessage(
-      'LabWatch is not running.',
+      'LabWatch is not running yet. · LabWatch 尚未运行。',
       'Start in background',
       'Open anyway',
     )
@@ -160,16 +353,22 @@ async function startInstance(): Promise<void> {
         preferredPython: config().get<string>('pythonPath', ''),
         port,
         cache,
+        venvDir: venvDir(),
         args: ['start', '--host', '127.0.0.1'],
       })
       if (!result.ok) {
         const detail = result.stderr || result.error || 'unknown error'
-        const action = await vscode.window.showErrorMessage(`LabWatch failed to start: ${detail}`, 'Run Doctor')
+        const action = await vscode.window.showErrorMessage(
+          `LabWatch failed to start: ${detail} · 启动失败`,
+          'Run Doctor',
+          'How to connect',
+        )
         if (action === 'Run Doctor') await runDoctor()
+        if (action === 'How to connect') await showGuide()
         return
       }
       await refresh({ silent: true })
-      void vscode.window.showInformationMessage('LabWatch started.')
+      void vscode.window.showInformationMessage('LabWatch started. · 已启动')
     },
   )
 }
@@ -180,10 +379,11 @@ async function stopInstance(): Promise<void> {
     preferredPython: config().get<string>('pythonPath', ''),
     port,
     cache,
+    venvDir: venvDir(),
     args: ['stop'],
   })
   await refresh({ silent: true })
-  if (result.ok) void vscode.window.showInformationMessage('LabWatch stopped.')
+  if (result.ok) void vscode.window.showInformationMessage('LabWatch stopped. · 已停止')
   else void vscode.window.showWarningMessage(result.stderr || result.error || 'Could not stop LabWatch.')
 }
 
@@ -193,24 +393,29 @@ async function runDoctor(): Promise<void> {
     preferredPython: config().get<string>('pythonPath', ''),
     port,
     cache,
+    venvDir: venvDir(),
     args: ['doctor'],
     timeoutMs: 60_000,
   })
-  const output = result.stdout || result.stderr || result.error || 'no output'
-  const document = await vscode.workspace.openTextDocument({ content: output, language: 'text' })
+  const output_ = result.stdout || result.stderr || result.error || 'no output'
+  const document = await vscode.workspace.openTextDocument({ content: output_, language: 'text' })
   await vscode.window.showTextDocument(document, { preview: true })
 }
 
 async function showSummary(): Promise<void> {
   if (lastStatus === null || !lastStatus.running) {
-    void vscode.window.showInformationMessage('LabWatch is not running.')
+    const guidance = guidanceFor(setupState, lastProblem)
+    void vscode.window.showInformationMessage(
+      `${guidance.headline} ${guidance.steps[0] ?? ''}`.trim(),
+      ...guidance.actions,
+    )
     return
   }
   await vscode.window.showInformationMessage(GpuNode.describe(lastStatus), { modal: true })
 }
 
 async function maybeAutoStart(): Promise<void> {
+  if (setupState !== 'ready') return
   if (lastStatus !== null && lastStatus.running) return
-  if (lastProblem !== null) return
   await startInstance()
 }

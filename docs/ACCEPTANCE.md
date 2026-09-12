@@ -236,8 +236,10 @@ itself.
 | 10.13 | Published to PyPI under a name this project owns | ✅ `labwatch-lite 1.1.0`, wheel + sdist, by the Release workflow over Trusted Publishing |
 | 10.14 | The published artifact actually works for a stranger | ✅ fresh isolated environment: `uv tool run --from labwatch-lite labwatch version` prints `labwatch 1.1.0`, fetched from the real index |
 | 10.15 | The publisher id in the manifest matches the portal | ❌ first attempt: the Manage page header `chjs (galaxy-chjs)` was read as `id (display-name)` and the manifest was changed to `chjs`; the portal answered *Publisher ID 'chjs' … should match the publisher ID 'galaxy-chjs'*. Reverted - the ID is the long string, the short one is the display name. |
-| 10.16 | Extension listed on the Marketplace | ⏳ 1.2.0 (`galaxy-chjs.labwatch-gpu-status`) is packaged and awaiting upload. Getting there cost two burnt extension identities and seven probe uploads - every probe from 1.1.1 to 1.1.7 was accepted, including 1.1.7, whose metadata is identical to the originally refused manifest. |
+| 10.16 | Extension listed on the Marketplace | ⏳ 1.3.0 (`galaxy-chjs.labwatch-gpu-status`) is packaged and awaiting upload. Getting there cost two burnt extension identities and seven probe uploads - every probe from 1.1.1 to 1.1.7 was accepted, including 1.1.7, whose metadata is identical to the originally refused manifest. |
 | 10.17 | Was the refusal about our metadata? | ✅ **no.** 1.1.7 carried exactly the metadata of the refused manifest - vendor word in the description, all five tags, full `contributes` - and was accepted. With nothing else left to differ, the trigger was the first listing's own history (published, unpublished and removed) or a transient scanner false positive. This also retires the keyword-blocklist hypothesis for this project. |
+| 10.18 | The extension sets the collector up by itself | ✅ verified for real, not against fakes: `scripts/verify-extension-setup.py` drove the compiled `setupManagedEnvironment` through a throwaway directory - Python 3.12.6 found, venv created, `labwatch-lite 1.1.0` installed from PyPI, then `venv/bin/python -m labwatch version` answered. Nothing global was installed. 34 extension unit tests cover the resolution order and every state's user-facing text. |
+| 10.19 | A machine with no collector and no PyPI access | ⏳ designed and documented rather than executed: `labwatch.pipIndexUrl` points the setup at a mirror, and RELEASING.md/How-to-Connect document `pip download labwatch-lite -d wheels` followed by `pip install --no-index --find-links wheels`. The failure path (`install-failed`) is unit-tested and names the offline route in its message. |
 
 **What could not be verified here:** the extension's visual behaviour inside a
 running VS Code window (status bar text, sidebar rendering). The extension host
@@ -521,8 +523,10 @@ v1.0 回答的是“我的 GPU 服务器上发生了什么”。v1.1 回答的�
 | 10.13 | 以本项目自己拥有的名字发布到 PyPI | ✅ `labwatch-lite 1.1.0`，wheel + sdist，由 Release 工作流通过可信发布完成 |
 | 10.14 | 已发布的产物对陌生人确实可用 | ✅ 全新隔离环境：`uv tool run --from labwatch-lite labwatch version` 从真实索引拉取并输出 `labwatch 1.1.0` |
 | 10.15 | 清单中的发布者 ID 与门户一致 | ❌ 首次失败：把 Manage 页的 `chjs (galaxy-chjs)` 误读成 `ID (显示名)`，把清单改成 `chjs`，门户随即给出决定性报错：*Publisher ID 'chjs' … should match the publisher ID 'galaxy-chjs'*。已改回 —— 长的是 ID，短的是显示名。 |
-| 10.16 | 扩展上架 Marketplace | ⏳ 1.2.0（`galaxy-chjs.labwatch-gpu-status`）已打包待上传。走到这一步付出了两个被锁死的扩展身份与七次探针上传：1.1.1 至 1.1.7 **全部被接受**，其中 1.1.7 的元数据与当初被拒的那份清单完全一致。 |
+| 10.16 | 扩展上架 Marketplace | ⏳ 1.3.0（`galaxy-chjs.labwatch-gpu-status`）已打包待上传。走到这一步付出了两个被锁死的扩展身份与七次探针上传：1.1.1 至 1.1.7 **全部被接受**，其中 1.1.7 的元数据与当初被拒的那份清单完全一致。 |
 | 10.17 | 当初那次被拒是我们的元数据问题吗？ | ✅ **不是。** 1.1.7 带着与被拒清单完全相同的元数据（描述含厂商词、五个 tags、完整 `contributes`）却被接受。既然已无其他差异，触发原因只能归于首个条目自身的发布历史（发布→下架→删除）或扫描器偶发误判。这也排除了本项目存在关键词黑名单问题的可能。 |
+| 10.18 | 扩展能自行完成采集器配置 | ✅ 真实环境验证，而非模拟：`scripts/verify-extension-setup.py` 驱动编译后的 `setupManagedEnvironment` 在临时目录中完整跑通 —— 找到 Python 3.12.6、创建 venv、从 PyPI 安装 `labwatch-lite 1.1.0`，最后 `venv/bin/python -m labwatch version` 正常应答，且未安装任何全局依赖。34 个扩展单测覆盖解析顺序与每种状态下的用户文案。 |
+| 10.19 | 既无采集器、又无法访问 PyPI 的机器 | ⏳ 已设计并写入文档，未实机执行：`labwatch.pipIndexUrl` 可指向镜像；`pip download labwatch-lite -d wheels` 加 `pip install --no-index --find-links wheels` 的离线路径记录在 RELEASING.md 与 How to Connect 中。失败分支（`install-failed`）有单测覆盖，且其提示文本会指明离线做法。 |
 
 **本次无法验证的部分：** VS Code 窗口内扩展的可视表现（状态栏文字、
 侧边栏渲染）。本环境无法无头驱动扩展宿主，因此已证明的是数据链路

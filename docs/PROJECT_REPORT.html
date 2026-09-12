@@ -937,7 +937,7 @@ labwatch stop / open / version</code></pre>
           <tr><td>Per-process CPU needs two polls</td><td>CPU usage is a counter delta, so the first sample after startup reports <code>N/A</code> for process CPU. Documented behaviour, not a defect.</td></tr>
           <tr><td>Container disk figures describe the container</td><td>When the root filesystem is an <code>overlay</code> (Docker Desktop), LabWatch falls back to the shallowest real mount, which may be a data volume. Run LabWatch natively for host disk numbers.</td></tr>
           <tr><td>Multiple GPUs verified in demo mode only</td><td>This development machine has one GPU, so multi-device rendering was exercised with three synthetic devices. The collector enumerates NVML devices generically, with no single-device assumption.</td></tr>
-          <tr><td>Not on the VS Code Marketplace yet</td><td>The Marketplace refuses the upload as "suspicious content" - from both the CLI and the web. The publisher account is proven fine: an inert 3 KB probe extension uploaded successfully under the same publisher. A comparable public case, where Marketplace Support answered, shows the check is a <b>keyword blocklist matched against metadata</b>, not a scan of file contents - which is why the message says "metadata" while everyone hunts through files. Every attempt so far kept <code>keywords = gpu, nvidia, cuda, …</code>, copied by <code>vsce</code> into the manifest <code>&lt;Tags&gt;</code>, so the vocabulary was never actually varied. Six variants that change only the free text now exist to identify the blocked term.</td></tr>
+          <tr><td>Not on the VS Code Marketplace yet</td><td>1.3.0 is packaged and awaiting upload as <code>galaxy-chjs.labwatch-gpu-status</code>. The original refusal was never reproduced from metadata: seven probe uploads were accepted, the last of them carrying exactly the description, tags and contributes of the refused manifest - so the trigger was the first listing's own publish/unpublish/delete history, or a transient scanner false positive. Two extension identities were burnt before that became clear, because a listing's name and display name are fixed at its first upload and neither unpublishing nor removing releases them.</td></tr>
         </tbody>
       </table>
 
@@ -953,7 +953,7 @@ labwatch stop / open / version</code></pre>
           <tr><td>逐进程 CPU 需要两次采样</td><td>CPU 使用率是计数器差值，因此启动后的第一次采样中进程 CPU 报 <code>N/A</code>。这是有意的行为，不是缺陷。</td></tr>
           <tr><td>容器内的磁盘数字描述容器本身</td><td>当根文件系统是 <code>overlay</code>（Docker Desktop）时，LabWatch 退回最浅的真实挂载点，可能是数据卷。需要宿主机磁盘数字请直接在宿主机运行。</td></tr>
           <tr><td>多卡仅在演示模式下验证过</td><td>本开发机只有一张 GPU，因此多设备渲染是通过 3 个合成设备验证的。采集器采用通用 NVML 设备枚举，没有任何单卡假设。</td></tr>
-          <tr><td>尚未上架 VS Code Marketplace</td><td>Marketplace 以"可疑内容"拒绝上传（命令行与网页皆然）。发布者账号已证明正常：同一发布者下一个 3 KB 空壳探针扩展上传成功。一起有 Marketplace 支持明确答复的公开案例显示：该检查是<strong>针对元数据的关键词黑名单匹配</strong>，并非扫描文件内容 —— 这也解释了为何报错说"metadata"而所有人都在翻文件。迄今为止每次尝试都保留着 <code>keywords = gpu, nvidia, cuda, …</code>，而 <code>vsce</code> 会把它写进 manifest 的 <code>&lt;Tags&gt;</code>，也就是说这套词汇从未被真正变动过。现已生成六个只改自由文本的变体用于定位被屏蔽的词。</td></tr>
+          <tr><td>尚未上架 VS Code Marketplace</td><td>1.3.0 已打包，待以 <code>galaxy-chjs.labwatch-gpu-status</code> 上传。当初那次拦截无法用元数据复现：七次探针上传全部被接受，最后一份的元数据与被拒清单完全一致，因此触发原因只能归于首个条目自身的发布/下架/删除历史，或扫描器偶发误判。查清这一点之前已经废掉两个扩展身份 —— 因为条目的扩展名与显示名在首次上传时即固定，而 Unpublish 与 Remove 都不释放它们。</td></tr>
         </tbody>
       </table>
 

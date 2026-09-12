@@ -2,7 +2,7 @@
   "name": "labwatch-gpu-status",
   "displayName": "LabWatch GPU Monitor",
   "description": "See your NVIDIA GPU state in the status bar and sidebar, and open the LabWatch dashboard. Works locally and over Remote-SSH.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "publisher": "galaxy-chjs",
   "license": "MIT",
   "repository": {
@@ -24,8 +24,18 @@
         "labwatch.pythonPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Command used to run the LabWatch CLI. Leave empty to try `labwatch`, then `python3 -m labwatch`, then `python -m labwatch`.",
+          "markdownDescription": "Command used to run the LabWatch collector. Tried **first**, before anything else. Leave empty to let the extension find it: `labwatch` on `PATH`, then `python3 -m labwatch`, then the private environment it can create for you.",
           "scope": "resource"
+        },
+        "labwatch.autoSetup": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Offer to build a private environment on first use when no collector is found. It lives inside this extension's storage folder — nothing global is installed and `PATH` is not modified."
+        },
+        "labwatch.pipIndexUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Alternative package index used when setting the collector up, for machines that cannot reach PyPI directly (an internal mirror, for example). Example: `https://pypi.tuna.tsinghua.edu.cn/simple`."
         },
         "labwatch.refreshInterval": {
           "type": "number",
@@ -42,12 +52,12 @@
         "labwatch.autoStart": {
           "type": "boolean",
           "default": false,
-          "description": "Start LabWatch automatically in the background when a workspace is opened and no instance is running."
+          "description": "Start the collector in the background when a workspace is opened and nothing is running yet."
         },
         "labwatch.dashboardPort": {
           "type": "number",
           "default": 8123,
-          "description": "Port the dashboard is served on."
+          "description": "Port the dashboard is served on. Over Remote-SSH the editor forwards it for you."
         }
       }
     },
@@ -72,7 +82,7 @@
     "viewsWelcome": [
       {
         "view": "labwatch.gpus",
-        "contents": "LabWatch is not running yet.\n\n[Start LabWatch](command:labwatch.start)\n[Open Full Dashboard](command:labwatch.openDashboard)\n\nInstall it with `uvx labwatch-lite`, `pipx install labwatch-lite` or `pip install labwatch-lite` — the command it installs is `labwatch`."
+        "contents": "**LabWatch is a view onto a collector.** Nothing to show yet.\n\n[Start the collector](command:labwatch.start)\n[Set up the collector](command:labwatch.setup)\n[How to connect](command:labwatch.showGuide)\n\nAlready running it elsewhere? Point `labwatch.pythonPath` at it and run **LabWatch: Refresh**."
       }
     ],
     "commands": [
@@ -106,6 +116,30 @@
         "command": "labwatch.showStatus",
         "title": "LabWatch: Show GPU Summary",
         "category": "LabWatch"
+      },
+      {
+        "command": "labwatch.setup",
+        "title": "LabWatch: Set Up Collector",
+        "category": "LabWatch",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "labwatch.showManualSteps",
+        "title": "LabWatch: Install the Collector Myself",
+        "category": "LabWatch",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "labwatch.showGuide",
+        "title": "LabWatch: How to Connect",
+        "category": "LabWatch",
+        "icon": "$(book)"
+      },
+      {
+        "command": "labwatch.openSettings",
+        "title": "LabWatch: Open Settings",
+        "category": "LabWatch",
+        "icon": "$(settings-gear)"
       }
     ],
     "menus": {
@@ -125,6 +159,18 @@
         {
           "command": "labwatch.showStatus",
           "when": "false"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "labwatch.start",
+          "when": "view == labwatch.gpus && viewItem == labwatch.stopped",
+          "group": "inline"
+        },
+        {
+          "command": "labwatch.setup",
+          "when": "view == labwatch.gpus && viewItem == labwatch.setup.installable",
+          "group": "inline"
         }
       ]
     }

@@ -17,21 +17,48 @@ never disagree.
 
 ## Requirements
 
-LabWatch itself must be installed on the machine the extension talks to:
+The extension is the view; a small Python program — the collector — does the
+reading. **You do not have to install it yourself.** On first use, if no collector
+is found and Python 3.10 or newer is present, the extension offers to build a
+private environment inside its own storage folder and install the collector there.
+Nothing global is installed and `PATH` is not modified.
+
+If you prefer to install it yourself, any of these works:
 
 ```bash
-uvx labwatch-lite          # run once, no install
-# or a permanent command:
-pipx install labwatch-lite
-pip install labwatch-lite
+pipx install labwatch-lite     # a command on PATH: labwatch
+uvx labwatch-lite              # run once, install nothing
+pip install labwatch-lite      # then: python -m labwatch
 ```
 
 The distribution is called `labwatch-lite` because `labwatch` on PyPI belongs to an
 unrelated project; what these commands install is the `labwatch` command used below.
 发行名是 `labwatch-lite`（PyPI 上的 `labwatch` 属于别的项目），装出来的命令仍是 `labwatch`。
 
-If `labwatch` is not on `PATH`, set `labwatch.pythonPath` to an explicit command
-(for example `/home/you/.conda/envs/mlenv/bin/python -m labwatch`).
+Already running the collector somewhere specific — a conda environment, say? Point
+`labwatch.pythonPath` at it (`/home/you/.conda/envs/mlenv/bin/python -m labwatch`)
+and it is used in preference to everything else.
+
+### A server without PyPI access
+
+Fetch the wheels on a networked machine and bring them over:
+
+```bash
+pip download labwatch-lite -d wheels
+# then, on the server:
+python3 -m venv ~/.labwatch/venv
+~/.labwatch/venv/bin/pip install --no-index --find-links wheels labwatch-lite
+```
+
+Or point the automatic setup at a mirror with `labwatch.pipIndexUrl`. Run
+**LabWatch: How to Connect** for the full guide, in English and 中文.
+
+## When something is wrong
+
+The sidebar never shows a blank pane. It says which of these applies and offers the
+action that fixes it: **needs setup**, **needs repair**, **no Python found**, or
+**setup failed** — the last one with the real error text. `LabWatch: Run Doctor`
+prints the collector's own diagnostics in a tab.
 
 ## Remote-SSH
 
@@ -53,34 +80,29 @@ Two things make it work without extra configuration:
    browser a reachable `localhost` URL. No manual tunnel, and nothing is exposed
    on the server's network.
 
-If the CLI is missing on the remote, the extension says so and names the install
-commands instead of failing silently.
+If the collector is missing on the remote, the extension offers to set it up there —
+the private environment is created on the server, which is where it belongs.
 
 ## Settings
 
 | Setting | Default | Purpose |
 |---|---|---|
-| `labwatch.pythonPath` | *(auto)* | Command used to run the CLI. Empty tries `labwatch`, then `python3 -m labwatch`, then `python -m labwatch`. |
+| `labwatch.pythonPath` | *(auto)* | Command used to run the collector. Tried **first**. Empty lets the extension find it: `labwatch` on `PATH`, then `python3 -m labwatch`, then its own private environment. |
+| `labwatch.autoSetup` | `true` | Offer to build the private environment on first use when no collector is found. |
+| `labwatch.pipIndexUrl` | *(PyPI)* | Alternative package index for the automatic setup — an internal mirror, for example. |
 | `labwatch.refreshInterval` | `5` | Seconds between refreshes. |
 | `labwatch.statusBar` | `true` | Show state in the status bar. |
-| `labwatch.autoStart` | `false` | Start LabWatch in the background when a workspace opens and nothing is running. |
-| `labwatch.dashboardPort` | `8123` | Port the dashboard is served on. |
+| `labwatch.autoStart` | `false` | Start the collector in the background when a workspace opens and nothing is running. |
+| `labwatch.dashboardPort` | `8123` | Port the dashboard is served on; forwarded automatically over Remote-SSH. |
 
 ## Build and install from source
-
-The Marketplace listing is not published yet, so build it locally:
 
 ```bash
 cd vscode-extension
 npm install
 npm run compile
-```
-
-Then package and install the `.vsix`:
-
-```bash
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-gpu-status-1.2.0.vsix --force
+code --install-extension labwatch-gpu-status-1.3.0.vsix --force
 ```
 
 For development, open the repository in VS Code and press <kbd>F5</kbd> —
@@ -92,15 +114,26 @@ For development, open the repository in VS Code and press <kbd>F5</kbd> —
 npm run compile && npm test
 ```
 
-The formatting and status-bar logic is deliberately kept free of `vscode`
-imports so it runs under plain Node, including the parsing of a partially
-populated CLI payload.
+The formatting, guidance text and Python-environment logic are deliberately kept
+free of `vscode` imports, so they run under plain Node: 34 tests cover the payload
+parsing, every setup state's user-facing text, and the resolution order between
+`pythonPath`, `PATH`, and the private environment. Nothing in the suite spawns
+Python or touches the network — processes are injected.
+
+The real end-to-end path has its own check, which does build a temporary
+environment and install into it:
+
+```bash
+python scripts/verify-extension-setup.py     # from the repository root
+```
 
 ## Files
 
 | File | Purpose |
 |---|---|
 | `src/format.ts` | Pure formatting and status-bar text; no VS Code imports, fully unit tested. |
-| `src/labwatchCli.ts` | Runs the CLI, resolves how to invoke it, tolerates a missing binary. |
-| `src/gpuTree.ts` | The sidebar tree. |
-| `src/extension.ts` | Activation, commands, refresh timer, port forwarding. |
+| `src/guidance.ts` | Every user-facing message and the connection guide, bilingual; no VS Code imports, unit tested. |
+| `src/pythonEnv.ts` | Finds a Python 3.10+ interpreter and builds the private environment; process execution is injected so it is testable. |
+| `src/labwatchCli.ts` | Resolves how to invoke the collector, runs it, and explains what is missing when it cannot. |
+| `src/gpuTree.ts` | The sidebar tree, including the setup states it shows when there is no data. |
+| `src/extension.ts` | Activation, commands, refresh timer, port forwarding, setup prompt. |
