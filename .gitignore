@@ -94,3 +94,6 @@ yarn-error.log*
 # Internal host address, login name, cluster paths, and captured command lines
 # of other users' processes. Kept only on the machine that needs them.
 .lab/
+
+# Staged VSIX variants built to bisect a Marketplace refusal
+dist-vsix/

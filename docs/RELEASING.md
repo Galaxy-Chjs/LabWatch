@@ -336,9 +336,9 @@ should appear within a few minutes.
 
 ### If the Marketplace says "suspicious content" · 如果提示"可疑内容"
 
-**Where this stands.** The refusal now comes from both the CLI and the web
-upload, with a correct publisher ID and no SVG in the package. A full audit of the
-VSIX found nothing that matches a documented trigger:
+**Where this stands.** The refusal comes from both the CLI and the web upload,
+with a correct publisher ID and no SVG in the package. A full audit of the VSIX
+found nothing that matches a documented trigger:
 
 | Checked | Result |
 |---|---|
@@ -351,11 +351,33 @@ VSIX found nothing that matches a documented trigger:
 | Metadata URLs | repository answers 200; license MIT, icon, activationEvents all present |
 | Publisher ID | `galaxy-chjs`, matching the ID the portal itself named |
 
-So there is nothing left inside the package to fix. **Stop editing the package**
-and ask the Marketplace team to name the rule, using the template below. · 命令行
-与网页上传都以正确的发布者 ID、且包内已无 SVG 的情况下被拒。对 VSIX 逐文件审计后，没有
-发现任何与官方文档所列触发条件相符的内容（上表）。因此包内已无可改之处，**不要再改打包**，
-按下方向 Marketplace 团队索要具体规则。
+**The publisher account is not the problem.** An inert 3 KB probe extension
+(`marketplace-probe/`, one command, no network, no subprocess, no startup
+activation) **uploaded successfully** through the same web path. That single
+result eliminates the "new publisher false positive" explanation and proves the
+trigger is inside this package. · 账号不是问题：一个 3 KB 的空壳探针扩展通过同样的
+网页路径**上传成功**，因此"新账号误报"这一解释被排除，触发点就在本项目的包里。
+
+**Bisect it rather than guess.** `scripts/make-marketplace-stages.py` writes five
+VSIX files into `dist-vsix/`, each adding back one suspect on top of the previous
+one (it patches the manifest inside the VSIX only; the repository is untouched):
+
+| Stage | Adds | Suspect it isolates |
+|---|---|---|
+| `stage1-minimal-metadata` | - | baseline: no "monitor" wording, one category, no `viewsWelcome`, no `configuration` |
+| `stage2-monitor-wording` | monitoring description + keywords | the words *monitoring / monitor / Remote-SSH* |
+| `stage3-views-welcome` | `viewsWelcome` markdown, the `Other` category | markdown command links in the welcome view |
+| `stage4-no-startup-activation` | empty `activationEvents` | `onStartupFinished`, i.e. code that runs at editor startup |
+| `stage5-full-manifest` | `configuration` schema | the settings schema; identical to the shipping package |
+
+Upload them in order and stop at the first refusal - that stage names the trigger.
+Unpublish any that succeed. · 按顺序上传，遇到第一个被拒的就停下，那一级就是触发点；
+上传成功的记得 Unpublish。
+
+If stage 1 is refused too, the only remaining differences from the successful
+probe are the extension's own code (it runs `labwatch status --json` through
+`child_process`) and the status bar / sidebar contributions; at that point the
+case belongs with the Marketplace team, using the template below.
 
 Attach the VSIX and this information:
 
@@ -363,10 +385,14 @@ Attach the VSIX and this information:
 - VSIX SHA256 `79919EFC0F6FC928B66BE2E141110CF0B2A985F88CA0B738A4B999C5B4F091B7`, 17468 bytes
 - Public repository <https://github.com/Galaxy-Chjs/LabWatch> (all sources, MIT)
 - The command-line log and the web-upload screenshot
-- The inert probe `labwatch-probe-0.0.1.vsix` (SHA256
-  `2C7C180D752FDBE5F53F626377682F41F2197E1713FF3BDBAF8B937C77C077A2`, 3390 bytes,
-  one command, no network, no subprocess, no startup activation): if the same
-  message appears for it, the flag cannot be about this project's content.
+- **The control that matters:** the inert probe `labwatch-probe-0.0.1.vsix`
+  (SHA256 `2C7C180D752FDBE5F53F626377682F41F2197E1713FF3BDBAF8B937C77C077A2`,
+  3,390 bytes, one command, no network, no subprocess, no startup activation)
+  **uploaded successfully under the same publisher minutes earlier**. So this is
+  not an account-level flag, and the difference between the two packages is what
+  is being objected to. · 关键对照：空壳探针（3,390 字节，无网络、无子进程、无启动
+  激活）在同一发布者下**几分钟前上传成功**。因此这不是账号级拦截，被拦的是两个包之间的
+  差别，请指明是哪一处。
 
 <https://aka.ms/marketplacepublishersupport> (lands on
 <https://partner.microsoft.com/en-us/support/v2>) or `vsmarketplace@microsoft.com`.
