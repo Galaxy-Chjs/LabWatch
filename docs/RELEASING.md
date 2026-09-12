@@ -336,8 +336,47 @@ should appear within a few minutes.
 
 ### If the Marketplace says "suspicious content" · 如果提示"可疑内容"
 
-That message is the scanner refusing the upload, and the usual cause is something
-in the metadata rather than in the code. Check, in this order:
+**Where this stands.** The refusal now comes from both the CLI and the web
+upload, with a correct publisher ID and no SVG in the package. A full audit of the
+VSIX found nothing that matches a documented trigger:
+
+| Checked | Result |
+|---|---|
+| Files shipped | 12 - 4 JS, 3 JSON/XML, 2 PNG, 3 text, 17 KB total |
+| External URLs | none; the only URL is `http://127.0.0.1:<port>` |
+| Network calls | none in the extension; it shells out to the local `labwatch` CLI |
+| Bundled dependencies / binaries / install scripts | none |
+| Obfuscation, `eval`, base64 payloads, secrets | none |
+| SVG images | none (the Activity Bar icon is a PNG) |
+| Metadata URLs | repository answers 200; license MIT, icon, activationEvents all present |
+| Publisher ID | `galaxy-chjs`, matching the ID the portal itself named |
+
+So there is nothing left inside the package to fix. **Stop editing the package**
+and ask the Marketplace team to name the rule, using the template below. · 命令行
+与网页上传都以正确的发布者 ID、且包内已无 SVG 的情况下被拒。对 VSIX 逐文件审计后，没有
+发现任何与官方文档所列触发条件相符的内容（上表）。因此包内已无可改之处，**不要再改打包**，
+按下方向 Marketplace 团队索要具体规则。
+
+Attach the VSIX and this information:
+
+- Extension ID `galaxy-chjs.labwatch-vscode`, publisher `galaxy-chjs`
+- VSIX SHA256 `79919EFC0F6FC928B66BE2E141110CF0B2A985F88CA0B738A4B999C5B4F091B7`, 17468 bytes
+- Public repository <https://github.com/Galaxy-Chjs/LabWatch> (all sources, MIT)
+- The command-line log and the web-upload screenshot
+- The inert probe `labwatch-probe-0.0.1.vsix` (SHA256
+  `2C7C180D752FDBE5F53F626377682F41F2197E1713FF3BDBAF8B937C77C077A2`, 3390 bytes,
+  one command, no network, no subprocess, no startup activation): if the same
+  message appears for it, the flag cannot be about this project's content.
+
+<https://aka.ms/marketplacepublishersupport> (lands on
+<https://partner.microsoft.com/en-us/support/v2>) or `vsmarketplace@microsoft.com`.
+
+**Meanwhile, ship the VSIX yourself.** The extension is fully usable without the
+Marketplace: attach the `.vsix` to a GitHub Release and readers install it with
+`code --install-extension`. That needs no Microsoft review. · 同时可以先自行分发：
+把 `.vsix` 挂到 GitHub Release，读者用 `code --install-extension` 安装，完全不经过审核。
+
+### Checklist if a future upload is refused · 后续排查清单
 
 1. **Publisher ID.** `package.json` must carry the publisher **ID**
    (`galaxy-chjs`), which is what the portal names in a mismatch error. Do not
@@ -353,15 +392,13 @@ in the metadata rather than in the code. Check, in this order:
    `vsce` 拒绝包含用户自带 SVG 的扩展。这是包内最后一个可疑项：活动栏图标原为
    `media/labwatch.svg`，现已改为 `media/labwatch.png`，由
    `scripts/make-viewcontainer-icon.ps1` 按同样的几何形状生成。
-5. **If all of that is clean**, the flag is an account-level false positive, which
-   new publishers hit often. Prove it with the inert probe in
-   `D:\IDE\vscode\MyDemo\marketplace-probe\` (see its README): if that 3 KB
-   extension is refused too, no edit to LabWatch will help. Escalate to the
-   Marketplace team — <https://aka.ms/marketplacepublishersupport> (which lands on
-   <https://partner.microsoft.com/en-us/support/v2>) or `vsmarketplace@microsoft.com` —
-   with the extension id, the repository, the exact error text and the `vsce`
-   output. · 若元数据全都正确，那就是新账号常见的账号级误报。用 marketplace-probe
-   里那个 3 KB 的空壳扩展证明这一点，然后按上面的地址提工单。
+5. **If all of that is clean**, the flag is not about this project's content — new
+   publishers hit this as a false positive. Prove it with the inert probe in
+   `D:\IDE\vscode\MyDemo\marketplace-probe\`: if that 3 KB extension is refused
+   too, no edit to LabWatch can help, and the case is a support ticket rather than
+   a code change. · 若以上都干净，就说明拦截与本项目内容无关（新发布者常被误判）。
+   用 marketplace-probe 里那个 3 KB 空壳扩展证明：连它也被拒，就说明任何代码改动都
+   没用，该走工单而不是继续改包。
 
 ### Step 4 · Update the README · 更新 README
 
