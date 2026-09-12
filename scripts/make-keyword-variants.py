@@ -1,24 +1,24 @@
-"""Build the metadata bisection variants for one fixed, still-free identity.
+"""Bisect the last three differences from the version that passes.
 
-Rules this script now enforces, each learned from a refused upload:
+Established by upload, in order:
 
-  1. An extension listing's **identity is fixed at its first upload**. Changing
-     either half afterwards is refused - a different `name` gives "extension
-     already exists", the same `name` with a different `displayName` gives "display
-     name is taken" - and unpublishing or removing the listing releases neither.
-     So the identity is declared exactly once, here, and only the version varies.
-  2. **The version only goes up.** 1.1.0 is the version that was refused with the
-     full manifest, so the bisection uses 1.1.1+ and the real release is cut later
-     as 1.2.0. That leaves room: a successful listing can never accept a lower
-     version again.
-  3. **A variant must be produced by a real `vsce package`.** Editing `keywords`
-     inside an already-built VSIX does nothing, because `vsce` had already copied
-     them into `extension.vsixmanifest` as `<Tags>`, which is what the Marketplace
-     reads.
+  * no tags + a description that never says GPU            -> PASSED
+  * description says GPU + tags `gpu`                      -> PASSED  (1.1.1)
+  * description says GPU + tags `gpu,nvidia`                -> PASSED  (1.1.2)
+  * description says GPU + tags `gpu,nvidia,cuda`           -> PASSED  (1.1.3)
+  * the original manifest: tags `gpu,nvidia,cuda,monitoring,remote-ssh`,
+    description "See your NVIDIA GPU state ...", full contributes -> REFUSED
 
-Burnt identities, in order: `labwatch-vscode`/"LabWatch", then
-`labwatch-gpu`/"LabWatch GPU". The one below is the third attempt and is chosen to
-be a name worth keeping if it works.
+Only three things separate the refused manifest from the passing one:
+
+  A. the vendor word in the description  ("NVIDIA")
+  B. the extra tags                      (`monitoring`, `remote-ssh`)
+  C. the rest of `contributes`           (`viewsWelcome`, `configuration`)
+
+Each variant below adds exactly one of them onto the passing 1.1.3 shape, so the
+first refusal names the culprit. The identity stays `labwatch-gpu-status` /
+"LabWatch GPU Status" - it is already established on the listing and must never
+change; only the version rises.
 
 Usage:
     python scripts/make-keyword-variants.py
@@ -37,42 +37,53 @@ EXT = REPO / "vscode-extension"
 PKG = EXT / "package.json"
 OUT_DIR = REPO / "dist-vsix"
 
-# Declared once. Do not change these between uploads.
+# Already published on the listing. Never change either of these.
 EXTENSION_NAME = "labwatch-gpu-status"
 DISPLAY_NAME = "LabWatch GPU Status"
 
 NEUTRAL_DESCRIPTION = "Show GPU utilisation, memory and temperature in the VS Code status bar and sidebar."
+VENDOR_DESCRIPTION = (
+    "Show NVIDIA GPU utilisation, memory and temperature in the VS Code status bar and sidebar."
+)
 
-# Version, label, changes, and what a refusal would mean.
-VARIANTS: list[tuple[str, str, dict, str]] = [
+PASSING_KEYWORDS = ["gpu", "nvidia", "cuda"]
+FULL_KEYWORDS = ["gpu", "nvidia", "cuda", "monitoring", "remote-ssh"]
+
+# (version, label, description, keywords, restore full contributes, meaning)
+VARIANTS: list[tuple[str, str, str, list[str], bool, str]] = [
     (
-        "1.1.1",
-        "tags-gpu",
-        {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu"]},
-        "the description says GPU and the tag list is just `gpu`",
+        "1.1.4",
+        "vendor-description",
+        VENDOR_DESCRIPTION,
+        PASSING_KEYWORDS,
+        False,
+        "A: the word NVIDIA in the description -> if refused, edit the description",
     ),
     (
-        "1.1.2",
-        "tags-gpu-nvidia",
-        {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu", "nvidia"]},
-        "adds the tag `nvidia` -> if refused, that tag is the trigger",
+        "1.1.5",
+        "extra-keywords",
+        NEUTRAL_DESCRIPTION,
+        FULL_KEYWORDS,
+        False,
+        "B: the tags monitoring, remote-ssh -> if refused, drop those tags",
     ),
     (
-        "1.1.3",
-        "tags-gpu-nvidia-cuda",
-        {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu", "nvidia", "cuda"]},
-        "adds the tag `cuda` -> if refused, that tag is the trigger",
+        "1.1.6",
+        "full-contributes",
+        NEUTRAL_DESCRIPTION,
+        PASSING_KEYWORDS,
+        True,
+        "C: viewsWelcome and the configuration schema -> if refused, trim those",
+    ),
+    (
+        "1.1.7",
+        "all-three",
+        VENDOR_DESCRIPTION,
+        FULL_KEYWORDS,
+        True,
+        "A+B+C together: should reproduce the refusal and confirm the bisection",
     ),
 ]
-
-# The pass/fail history that makes this ordering informative:
-#   1.1.0 equivalent, no keywords, "graphics accelerator" description -> PASSED
-#   1.1.0 equivalent, full keywords, "NVIDIA GPU" description         -> REFUSED
-PRIOR = """prior results (different identities, same metadata shapes):
-   no tags  + "graphics accelerator"  -> PASSED
-   gpu,nvidia,cuda,monitoring + "NVIDIA GPU" -> REFUSED
-so 1.1.1 here tests the middle of that range: the word GPU, and the tag `gpu`.
-"""
 
 
 def vsce(*args: str) -> None:
@@ -94,17 +105,18 @@ def main() -> None:
     OUT_DIR.mkdir(exist_ok=True)
 
     try:
-        print(f"identity, declared once and never varied: {EXTENSION_NAME} / {DISPLAY_NAME}")
-        print(PRIOR)
-        for version, label, changes, meaning in VARIANTS:
+        print(f"identity (published, never varied): {EXTENSION_NAME} / {DISPLAY_NAME}\n")
+        for version, label, description, keywords, full_contributes, meaning in VARIANTS:
             candidate = json.loads(original)
-            candidate.update(changes)
             candidate["name"] = EXTENSION_NAME
             candidate["version"] = version
             candidate["displayName"] = DISPLAY_NAME
+            candidate["description"] = description
+            candidate["keywords"] = keywords
             candidate["categories"] = ["Visualization"]
-            candidate["contributes"].pop("viewsWelcome", None)
-            candidate["contributes"].pop("configuration", None)
+            if not full_contributes:
+                candidate["contributes"].pop("viewsWelcome", None)
+                candidate["contributes"].pop("configuration", None)
             candidate.pop("scripts", None)
             candidate.pop("devDependencies", None)
             candidate["contributes"]["viewsContainers"]["activitybar"][0]["title"] = DISPLAY_NAME
@@ -120,13 +132,10 @@ def main() -> None:
                 (line.strip() for line in vsixmanifest.splitlines() if "<Tags>" in line),
                 "(no Tags element)",
             )
-            shown = next(
-                (line.strip() for line in vsixmanifest.splitlines() if "<DisplayName>" in line),
-                "(no DisplayName)",
-            )
 
-            expected = ",".join(changes["keywords"])
+            expected = ",".join(keywords)
             actual = tags.replace("<Tags>", "").replace("</Tags>", "").strip()
+            contributes = sorted(inner["contributes"])
             problems = []
             if actual != expected:
                 problems.append(f"tags {actual!r} != {expected!r}")
@@ -138,16 +147,16 @@ def main() -> None:
                 raise SystemExit(f"{label}: " + "; ".join(problems))
 
             print(f"{version}  {target.name}  ({target.stat().st_size} bytes)")
-            print(f"   {shown}")
-            print(f"   {tags}")
+            print(f"   tags       : {actual}")
+            print(f"   description: {description[:60]}...")
+            print(f"   contributes: {contributes}")
             print(f"   {meaning}")
     finally:
         PKG.write_text(original, encoding="utf-8")
 
     print(
         f"\nwrote {len(VARIANTS)} packages to {OUT_DIR}\n"
-        "upload 1.1.1 first; every later upload is the same identity with a higher\n"
-        "version, so no rename and no delete is ever needed"
+        "upload in version order against the existing listing; no renaming"
     )
 
 

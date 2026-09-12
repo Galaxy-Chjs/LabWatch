@@ -453,15 +453,30 @@ is in the vocabulary the later variants add back: *NVIDIA*, *GPU*, *CUDA*,
 
 | Order | Version | File | `<Tags>` | A refusal would mean |
 |---|---|---|---|---|
-| - | 1.1.0 | *(the refused original)* | `gpu,nvidia,cuda,…` | ✅ refused - that is why we are here |
-| 1 | 1.1.1 | `tags-gpu` | `gpu` | the tag `gpu` (the description also says GPU) |
-| 2 | 1.1.2 | `tags-gpu-nvidia` | `gpu,nvidia` | the tag `nvidia` |
-| 3 | 1.1.3 | `tags-gpu-nvidia-cuda` | `gpu,nvidia,cuda` | the tag `cuda` |
+| 1 | 1.1.1 | `tags-gpu` | `gpu` | ✅ **passed** |
+| 2 | 1.1.2 | `tags-gpu-nvidia` | `gpu,nvidia` | ✅ **passed** |
+| 3 | 1.1.3 | `tags-gpu-nvidia-cuda` | `gpu,nvidia,cuda` | ✅ **passed** |
 
-The two shapes already tested bracket this range: *no tags and a description that
-never says GPU* passed, while *five tags and "NVIDIA GPU"* was refused - so these
-three narrow it from below. · 已验证的两端是"无 tags 且描述不提 GPU → 通过"与
-"五个 tags 且描述写 NVIDIA GPU → 被拒"，因此这三版从下往上逐词逼近。
+That bracket leaves exactly three differences between the refused original
+manifest and the passing one:
+
+| | Difference | Variant that adds it back |
+|---|---|---|
+| A | the vendor word **NVIDIA** in the description | 1.1.4 |
+| B | the extra tags `monitoring`, `remote-ssh` | 1.1.5 |
+| C | the rest of `contributes` (`viewsWelcome`, `configuration`) | 1.1.6 |
+| A+B+C | all of it | 1.1.7 |
+
+| Order | Version | File | Adds | A refusal would mean |
+|---|---|---|---|---|
+| 4 | 1.1.4 | `vendor-description` | A | edit the description |
+| 5 | 1.1.5 | `extra-keywords` | B | drop those two tags |
+| 6 | 1.1.6 | `full-contributes` | C | trim `viewsWelcome` / `configuration` |
+| 7 | 1.1.7 | `all-three` | A+B+C | should reproduce the original refusal, confirming the bisection |
+
+Whichever version is refused first names the culprit, and the release is then cut
+as **1.2.0** with that one element fixed. · 第一个被拒的版本就指出了元凶；随后以
+**1.2.0** 修正该处并正式发布。
 
 If the vendor-description variant is refused too, the trigger is not free text at
 all, and the ask to Microsoft becomes a single line: *which term or field is
