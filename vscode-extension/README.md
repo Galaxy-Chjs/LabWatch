@@ -3,6 +3,12 @@
 See your GPU state where you are already looking, and open the full dashboard
 when you need detail.
 
+**Install without the Marketplace**, while the listing is in review:
+
+```bash
+code --install-extension https://github.com/Galaxy-Chjs/LabWatch/releases/latest/download/labwatch-gpu-status-1.3.1.vsix
+```
+
 - **Status bar** — `GPU 3 busy / 8`, or `GPU 0 98% · 33GB/48GB` on a single-GPU
   machine. Refreshes on an interval.
 - **LabWatch sidebar** — one compact row per GPU: utilisation, VRAM,
