@@ -1,23 +1,15 @@
-"""Build keyword variants of the extension to test the Marketplace blocklist.
+"""Build keyword variants correctly, by repackaging rather than patching.
 
-Context. Another project (`veralang.vera-language`) was refused with the same
-"Your extension has suspicious content" message, twice, with materially different
-package *contents*. Marketplace Support answered on 20 July 2026:
+Why this exists twice. The first attempt (`make-keyword-variants.py`) edited
+`keywords` in the package.json *inside* an already-built VSIX. That does not work:
+`vsce` had already copied the keywords into `extension.vsixmanifest` as `<Tags>`,
+and the Marketplace reads that file. Every variant therefore uploaded the same
+`<Tags>gpu,nvidia,cuda,monitoring,remote-ssh</Tags>` and the experiment tested
+nothing - which is why variant 1 was refused exactly like the full manifest.
 
-    "Due to the widespread use of certain keywords in spam or malicious content,
-     we have blocked a few words from the Marketplace."
-
-So the check is a string match against the metadata, not a scan of the files. In
-that project the suspects were `llm` and `contracts`. Here they are the GPU terms.
-
-This matters because our earlier stages never tested it: every stage kept
-`keywords = ["gpu", "nvidia", "cuda", ...]`, which `vsce` copies into the VSIX
-manifest as `<Tags>gpu,nvidia,cuda,monitoring,remote-ssh</Tags>`. When stage 1
-was refused, that did not exonerate the keywords - it never varied them.
-
-Each variant starts from the stage-1 manifest (minimal metadata) and changes only
-the keyword list, so a single upload identifies the blocked term. The manifest is
-patched inside the VSIX copy only; the repository is untouched.
+This version writes a candidate `package.json`, runs a real `vsce package` so the
+whole manifest is regenerated coherently, and restores the repository copy
+afterwards. It refuses to leave the repository modified.
 
 Usage:
     python scripts/make-keyword-variants.py
@@ -28,68 +20,106 @@ from __future__ import annotations
 import json
 import pathlib
 import shutil
+import subprocess
+import sys
 import zipfile
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 EXT = REPO / "vscode-extension"
-BASE_VSIX = EXT / "labwatch-vscode-1.1.0.vsix"
+PKG = EXT / "package.json"
 OUT_DIR = REPO / "dist-vsix"
 
-STAGE1_DESCRIPTION = (
-    "Show NVIDIA GPU utilisation, memory and temperature in the VS Code status bar and sidebar."
-)
-# Same thing said without naming the vendor or the hardware, in case the check
-# reads the description and not only the tags.
-NEUTRAL_DESCRIPTION = (
+# Every variant is the minimal metadata set plus one difference, so the only
+# thing that changes between uploads is the variable under test.
+BASE_DESCRIPTION = (
     "Show graphics accelerator utilisation, memory and temperature in the VS Code status bar and sidebar."
 )
+VENDOR_DESCRIPTION = (
+    "Show NVIDIA GPU utilisation, memory and temperature in the VS Code status bar and sidebar."
+)
 
-VARIANTS = [
-    ("kw0-neutral", [], "no keywords and a description that names no vendor or hardware", NEUTRAL_DESCRIPTION),
-    ("kw0-none", [], "no keywords, but the description still says NVIDIA GPU", STAGE1_DESCRIPTION),
-    ("kw1-gpu", ["gpu"], "the single most generic term", STAGE1_DESCRIPTION),
-    ("kw2-gpu-nvidia", ["gpu", "nvidia"], "adds the vendor name", STAGE1_DESCRIPTION),
-    ("kw3-gpu-nvidia-cuda", ["gpu", "nvidia", "cuda"], "adds the compute platform", STAGE1_DESCRIPTION),
-    ("kw4-all", ["gpu", "nvidia", "cuda", "monitoring", "remote-ssh"], "the current shipping set", STAGE1_DESCRIPTION),
+VARIANTS: list[tuple[str, dict]] = [
+    (
+        "kw0-neutral",
+        {"description": BASE_DESCRIPTION, "keywords": []},
+    ),
+    (
+        "kw1-gpu",
+        {"description": BASE_DESCRIPTION, "keywords": ["gpu"]},
+    ),
+    (
+        "kw2-gpu-nvidia",
+        {"description": BASE_DESCRIPTION, "keywords": ["gpu", "nvidia"]},
+    ),
+    (
+        "kw3-gpu-nvidia-cuda",
+        {"description": BASE_DESCRIPTION, "keywords": ["gpu", "nvidia", "cuda"]},
+    ),
+    (
+        "kw4-monitoring",
+        {"description": BASE_DESCRIPTION, "keywords": ["gpu", "monitoring"]},
+    ),
+    (
+        "kw5-vendor-description",
+        {"description": VENDOR_DESCRIPTION, "keywords": []},
+    ),
 ]
 
 
-def build(name: str, keywords: list[str], description: str) -> pathlib.Path:
-    OUT_DIR.mkdir(exist_ok=True)
-    target = OUT_DIR / f"labwatch-vscode-1.1.0-{name}.vsix"
-
-    with zipfile.ZipFile(BASE_VSIX) as source:
-        items = {info.filename: source.read(info.filename) for info in source.infolist()}
-
-    manifest = json.loads(items["extension/package.json"])
-    manifest["description"] = description
-    manifest["categories"] = ["Visualization"]
-    manifest["keywords"] = keywords
-    manifest["contributes"].pop("viewsWelcome", None)
-    manifest["contributes"].pop("configuration", None)
-    items["extension/package.json"] = json.dumps(manifest, indent=2).encode()
-
-    with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as out:
-        for entry, payload in items.items():
-            out.writestr(entry, payload)
-
-    return target
+def vsce(*args: str) -> None:
+    result = subprocess.run(
+        ["npx", "--yes", "@vscode/vsce", *args],
+        cwd=EXT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        shell=sys.platform == "win32",
+    )
+    if result.returncode != 0:
+        raise SystemExit(f"vsce {' '.join(args)} failed:\n{result.stdout}\n{result.stderr}")
 
 
 def main() -> None:
-    if not BASE_VSIX.is_file():
-        raise SystemExit(f"build the base package first: {BASE_VSIX}")
-    if OUT_DIR.exists():
-        shutil.rmtree(OUT_DIR)
+    original = PKG.read_text(encoding="utf-8")
+    manifest = json.loads(original)
+    OUT_DIR.mkdir(exist_ok=True)
 
-    print("upload order: stop at the first refusal\n")
-    for name, keywords, note, description in VARIANTS:
-        path = build(name, keywords, description)
-        tags = ",".join(keywords) if keywords else "(none)"
-        print(f"{path.name}  ({path.stat().st_size} bytes)")
-        print(f"   tags: {tags}")
-        print(f"   description: {description}")
-        print(f"   {note}")
+    try:
+        for name, changes in VARIANTS:
+            candidate = json.loads(original)
+            candidate.update(changes)
+            # Minimal contributions, same as the successful probe's shape.
+            candidate["categories"] = ["Visualization"]
+            candidate["contributes"].pop("viewsWelcome", None)
+            candidate["contributes"].pop("configuration", None)
+            candidate.pop("scripts", None)
+            candidate.pop("devDependencies", None)
+
+            PKG.write_text(json.dumps(candidate, indent=2) + "\n", encoding="utf-8")
+            vsce("package", "--no-dependencies", "--out", str(OUT_DIR / f"labwatch-vscode-1.1.0-{name}.vsix"))
+
+            # Confirm the regenerated manifest really says what we intended.
+            with zipfile.ZipFile(OUT_DIR / f"labwatch-vscode-1.1.0-{name}.vsix") as archive:
+                vsixmanifest = archive.read("extension.vsixmanifest").decode("utf-8")
+            tags = next(
+                (line.strip() for line in vsixmanifest.splitlines() if "<Tags>" in line),
+                "(no Tags element)",
+            )
+            print(f"{name}")
+            print(f"   keywords : {changes['keywords']}")
+            print(f"   {tags}")
+            if changes["keywords"]:
+                expected = ",".join(changes["keywords"])
+                if expected not in tags:
+                    raise SystemExit(f"manifest tags do not match: expected {expected!r} in {tags!r}")
+            elif "<Tags>" in tags and tags.replace("<Tags>", "").replace("</Tags>", "").strip():
+                raise SystemExit(f"expected no tags, got {tags!r}")
+    finally:
+        PKG.write_text(original, encoding="utf-8")
+
+    print(f"\nwrote {len(VARIANTS)} packages to {OUT_DIR}")
+    print("repository package.json restored; upload in order and stop at the first refusal")
 
 
 if __name__ == "__main__":

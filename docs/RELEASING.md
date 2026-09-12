@@ -387,33 +387,49 @@ Marketplace 屏蔽了部分词**，与文件内容无关。判定是对**元数�
 ```
 
 So when stage 1 was refused, that did *not* exonerate the keywords - it never
-varied them. `vscode-nvidia-gpu-monitor`-class extensions do publish, but the
-blocklist is plausibly aimed at crypto-mining extensions, which use exactly this
-vocabulary. · 之前的分级包之所以没能证明什么，是因为每一级的 `<Tags>` 都保留了
-`gpu,nvidia,cuda` —— 被拒只说明这一级也被拦，并不说明关键词无辜。
+varied them. Comparable extensions do publish without keywords at all (for
+example `yohan-pg/nvidia-smi-memory` declares none), but a blocklist aimed at
+crypto-mining extensions would plausibly carry exactly this vocabulary. · 因此
+第 1 级被拒并不能证明关键词无辜 —— 它从未被改动。同类扩展确实有完全不写 keywords 也能
+上架的（如 `yohan-pg/nvidia-smi-memory`），但若黑名单是为挖矿类扩展设的，这套词很可能是
+目标。
 
-**Test it.** `scripts/make-keyword-variants.py` writes six VSIX files into
-`dist-vsix/`, each starting from the minimal stage-1 manifest and changing only
-the free text:
+**A mistake to avoid, made here once.** The first attempt at these variants edited
+`keywords` in the `package.json` **inside an already-built VSIX**. That tests
+nothing: `vsce` had already written the keywords into `extension.vsixmanifest` as
+`<Tags>`, and the Marketplace reads *that* file, so all six variants uploaded
+identical tags - which is exactly why the "no keywords at all" variant was refused
+like the full manifest. `scripts/make-keyword-variants.py` now writes a candidate
+`package.json`, runs a real `vsce package` so the whole manifest is regenerated,
+verifies the resulting `<Tags>`, and restores the repository copy afterwards. ·
+**这里踩过一次坑**：第一版变体是在**已打好的 VSIX 内部**改 `keywords`，而 `vsce` 早已把
+关键词写进 `extension.vsixmanifest` 的 `<Tags>`，Marketplace 读的是那个文件 —— 于是六个
+变体上传的 tags 完全相同，"一个关键词都不留"的那一版当然也被同样拒绝。现在的脚本会写
+候选 `package.json`、真正跑一次 `vsce package` 重新生成整份 manifest、校验 `<Tags>`，
+最后把仓库里的文件还原。
+
+**Test it.** Six VSIX files land in `dist-vsix/`, identical in content and differing
+only in free text:
 
 | Upload order | File | `<Tags>` | Description |
 |---|---|---|---|
-| 1 | `kw0-neutral` | none | names no vendor or hardware |
-| 2 | `kw0-none` | none | still says "NVIDIA GPU" |
+| 1 | `kw0-neutral` | *(empty)* | no vendor, no hardware name |
+| 2 | `kw5-vendor-description` | *(empty)* | says "NVIDIA GPU" |
 | 3 | `kw1-gpu` | `gpu` | |
 | 4 | `kw2-gpu-nvidia` | `gpu,nvidia` | |
 | 5 | `kw3-gpu-nvidia-cuda` | `gpu,nvidia,cuda` | |
-| 6 | `kw4-all` | the current shipping set | |
+| 6 | `kw4-monitoring` | `gpu,monitoring` | |
 
-Stop at the first refusal. Variant 1 succeeding while 2 fails would mean the
-description is matched too; 2 succeeding names the tags as the trigger. · 按顺序
-上传，遇到第一个被拒的停下。第 1 个成功而第 2 个失败，说明描述文本也参与匹配；第 2 个
-成功则说明问题在 tags。
+Stop at the first refusal, and read it pairwise: 1 vs 2 tests whether the
+description is matched at all; 2 vs 3 tests `gpu` alone; 3 vs 4 tests `nvidia`;
+4 vs 5 tests `cuda`; 4 vs 6 tests `monitoring`. · 遇到第一个被拒就停下，按"相邻两两比较"
+读结果：1 与 2 比 → 描述是否参与匹配；2 与 3 比 → `gpu`；3 与 4 比 → `nvidia`；
+4 与 5 比 → `cuda`；4 与 6 比 → `monitoring`。
 
-If even the first variant is refused, the trigger is not free text, and the ask to
-Microsoft is a one-line request: *which term or field is blocked* - their own
-support phrasing, so it is answerable. · 若连第一个变体都被拒，说明不是文本匹配，
-此时向 Microsoft 只问一句："被屏蔽的是哪个词或哪个字段"。
+If variant 1 is refused as well, the trigger is not free text at all, and the ask
+to Microsoft becomes a single line: *which term or field is blocked* - their own
+support vocabulary from the comparable case, so it is answerable. · 若连第 1 个变体也被
+拒，说明触发点不是自由文本，此时只需向 Microsoft 问一句："被屏蔽的是哪个词或哪个字段"。
 
 Attach the VSIX and this information:
 
