@@ -416,31 +416,44 @@ is in the vocabulary the later variants add back: *NVIDIA*, *GPU*, *CUDA*,
 
 **Two hard constraints, both learned the hard way.**
 
-1. **The extension name is reserved permanently.** That first successful upload
-   used the name `labwatch-vscode`; deleting it in the portal reserved the name for
-   good, and the next upload was refused with *"The extension 'labwatch-vscode'
-   already exists in the Marketplace"*. The bisection therefore continues under a
-   new name, **`labwatch-gpu`**, as a single entry whose version increases with
-   every attempt. **Unpublish successful attempts; never Remove or Delete them.** ·
-   **扩展名一旦删除即被永久保留**，所以后续改用新名字 `labwatch-gpu`，并且整轮排查只用
-   一个条目、逐次提高版本号。**成功的那次请用 Unpublish，不要用 Remove/Delete。**
+1. **Both names are reserved permanently, and they are reserved separately.** The
+   first successful upload used the extension name `labwatch-vscode` **and** the
+   display name `LabWatch`. Deleting it in the portal locked *both*: the next
+   upload was refused with *"The extension 'labwatch-vscode' already exists"*, and
+   after renaming the package to `labwatch-gpu`, the following attempt was refused
+   with *"This extension display name is taken"* - it was still sending
+   `displayName: "LabWatch"`.
+
+   Consequences for the bisection:
+
+   - the extension name is now `labwatch-gpu`;
+   - **every variant carries its own display name**, so a refused variant cannot
+     burn the name the next one needs;
+   - **Unpublish successful attempts; never Remove or Delete them.**
+
+   · **两个名字都会被永久保留，而且是分别保留的。** 第一次成功上传占用的是扩展名
+   `labwatch-vscode` 加显示名 `LabWatch`；在门户里删除后两者都被锁死，于是后续先报
+   "扩展名已存在"、改名 `labwatch-gpu` 后又报"显示名已被占用"。因此：扩展名改为
+   `labwatch-gpu`；**每个变体各带一个独立显示名**，避免失败的那次把下一个要用的名字
+   烧掉；成功的那次务必用 **Unpublish**。
 2. **A variant must be produced by a real `vsce package`.** Editing `keywords` in
    the `package.json` inside an already-built VSIX changes nothing, because `vsce`
    had already copied them into `extension.vsixmanifest` as `<Tags>` - the file the
    Marketplace actually reads.
 
-| Order | Version | File | `<Tags>` | Description | A refusal would mean |
+| Order | Version | File | Display name | `<Tags>` | A refusal would mean |
 |---|---|---|---|---|---|
-| 1 | 1.1.0 | `kw0-neutral` | *(empty)* | no vendor, no hardware | ✅ **passed** |
-| 2 | 1.1.1 | `kw5-vendor-description` | *(empty)* | says "NVIDIA GPU" | the description vocabulary |
-| 3 | 1.1.2 | `kw1-gpu` | `gpu` | | the tag `gpu` |
-| 4 | 1.1.3 | `kw2-gpu-nvidia` | `gpu,nvidia` | | the tag `nvidia` |
-| 5 | 1.1.4 | `kw3-gpu-nvidia-cuda` | `gpu,nvidia,cuda` | | the tag `cuda` |
-| 6 | 1.1.5 | `kw4-monitoring` | `gpu,monitoring` | | the tag `monitoring` |
+| 1 | 1.1.0 | `kw0-neutral` | LabWatch GPU | *(empty)* | ✅ this shape **passed** under the old names |
+| 2 | 1.1.1 | `kw5-vendor-description` | LabWatch GPU Status | *(empty)* | the description vocabulary |
+| 3 | 1.1.2 | `kw1-gpu` | LabWatch GPU Helper | `gpu` | the tag `gpu` |
+| 4 | 1.1.3 | `kw2-gpu-nvidia` | LabWatch Accelerator | `gpu,nvidia` | the tag `nvidia` |
+| 5 | 1.1.4 | `kw3-gpu-nvidia-cuda` | LabWatch Accelerator View | `gpu,nvidia,cuda` | the tag `cuda` |
+| 6 | 1.1.5 | `kw4-monitoring` | LabWatch Status View | `gpu,monitoring` | the tag `monitoring` |
 
-Read it pairwise: 1 vs 2 asks whether the description is matched at all; 2 vs 3
-isolates `gpu`; 3 vs 4 `nvidia`; 4 vs 5 `cuda`; 4 vs 6 `monitoring`. · 按相邻两两比较
-读结果即可定位到具体那个词。
+All six use the same description as variant 1 except variant 2, which names the
+vendor. Read it pairwise: 1 vs 2 asks whether the description is matched at all;
+2 vs 3 isolates `gpu`; 3 vs 4 `nvidia`; 4 vs 5 `cuda`; 4 vs 6 `monitoring`. · 除第 2
+版外，各版描述与第 1 版相同，第 2 版写出厂商名。按相邻两两比较即可定位到具体那个词。
 
 If the vendor-description variant is refused too, the trigger is not free text at
 all, and the ask to Microsoft becomes a single line: *which term or field is

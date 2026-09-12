@@ -1,24 +1,20 @@
-"""Build keyword variants to find which metadata term the Marketplace blocks.
+"""Build the bisection variants under names that are still free.
 
-Background. Marketplace Support told a comparable project that certain *keywords*
-are blocked because they are used heavily in spam and malicious content. Two facts
-are now established by experiment:
+Two naming facts, both learned from refusals:
 
-  * An inert 3 KB extension uploads fine under this publisher, so the account is
-    not the problem.
-  * The first variant below - no keywords, and a description that names no vendor
-    or hardware - **uploads successfully**. So a vendor-free description and an
-    empty tag list pass, and the blocked term is in the vocabulary that the later
-    variants add back.
+  * The Marketplace reserves an **extension name** permanently. Deleting
+    `labwatch-vscode` locked that name, so the new name is `labwatch-gpu`.
+  * It reserves the **display name** separately and just as permanently:
+    `labwatch-gpu` was refused with *"This extension display name is taken"* while
+    it still said `displayName: "LabWatch"`. So every variant below carries its own
+    display name, and a failure cannot burn the name the next variant needs.
 
-Two practical constraints shape this script:
+What is already established: a vendor-free description with an empty tag list
+*passes*. The remaining question is which added term is blocked, so the variants
+differ only in description and keywords.
 
-1. `vsce` copies `keywords` into `extension.vsixmanifest` as `<Tags>` when it
-   packages, so a variant must be produced by a real `vsce package` - patching the
-   file inside an already-built VSIX tests nothing. (That mistake was made once.)
-2. The Marketplace reserves an extension name permanently, so the bisection must
-   run against a *single* extension entry, with each attempt at a higher version
-   than the last. Versions are therefore assigned in upload order.
+Versions increase with upload order because each attempt must outrank the last for
+the same extension entry.
 
 Usage:
     python scripts/make-keyword-variants.py
@@ -37,57 +33,58 @@ EXT = REPO / "vscode-extension"
 PKG = EXT / "package.json"
 OUT_DIR = REPO / "dist-vsix"
 
-# The extension name used by every variant, so the whole bisection happens on one
-# Marketplace entry. Renamed from `labwatch-vscode`: the first variant published
-# under that name and was then deleted in the portal, which permanently reserves
-# the name, so it can never be reused - not even by us.
 EXTENSION_NAME = "labwatch-gpu"
 
-BASE_VERSION = "1.1.0"
-BASE_DESCRIPTION = (
+NEUTRAL_DESCRIPTION = (
     "Show graphics accelerator utilisation, memory and temperature in the VS Code status bar and sidebar."
 )
 VENDOR_DESCRIPTION = (
     "Show NVIDIA GPU utilisation, memory and temperature in the VS Code status bar and sidebar."
 )
 
-# (label, version, changes, what a refusal here tells us)
-VARIANTS: list[tuple[str, str, dict, str]] = [
+# (label, version, display name, changes, what a refusal here means)
+VARIANTS: list[tuple[str, str, str, dict, str]] = [
     (
         "kw0-neutral",
         "1.1.0",
-        {"description": BASE_DESCRIPTION, "keywords": []},
-        "baseline - PASSED: a vendor-free description with no tags is accepted",
+        "LabWatch GPU",
+        {"description": NEUTRAL_DESCRIPTION, "keywords": []},
+        "baseline under the new names - PASSED before (under the old name)",
     ),
     (
         "kw5-vendor-description",
         "1.1.1",
+        "LabWatch GPU Status",
         {"description": VENDOR_DESCRIPTION, "keywords": []},
-        "if this is refused, the *description* vocabulary is the trigger",
+        "the *description* vocabulary (NVIDIA / GPU) is the trigger",
     ),
     (
         "kw1-gpu",
         "1.1.2",
-        {"description": BASE_DESCRIPTION, "keywords": ["gpu"]},
-        "if this is refused, the tag `gpu` is the trigger",
+        "LabWatch GPU Helper",
+        {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu"]},
+        "the tag `gpu` is the trigger",
     ),
     (
         "kw2-gpu-nvidia",
         "1.1.3",
-        {"description": BASE_DESCRIPTION, "keywords": ["gpu", "nvidia"]},
-        "if this is refused, the tag `nvidia` is the trigger",
+        "LabWatch Accelerator",
+        {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu", "nvidia"]},
+        "the tag `nvidia` is the trigger",
     ),
     (
         "kw3-gpu-nvidia-cuda",
         "1.1.4",
-        {"description": BASE_DESCRIPTION, "keywords": ["gpu", "nvidia", "cuda"]},
-        "if this is refused, the tag `cuda` is the trigger",
+        "LabWatch Accelerator View",
+        {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu", "nvidia", "cuda"]},
+        "the tag `cuda` is the trigger",
     ),
     (
         "kw4-monitoring",
         "1.1.5",
-        {"description": BASE_DESCRIPTION, "keywords": ["gpu", "monitoring"]},
-        "if this is refused, the tag `monitoring` is the trigger",
+        "LabWatch Status View",
+        {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu", "monitoring"]},
+        "the tag `monitoring` is the trigger",
     ),
 ]
 
@@ -109,20 +106,28 @@ def vsce(*args: str) -> None:
 def main() -> None:
     original = PKG.read_text(encoding="utf-8")
     OUT_DIR.mkdir(exist_ok=True)
+    used_names: set[str] = set()
 
     try:
-        print(f"extension name for every variant: {EXTENSION_NAME}\n")
-        for label, version, changes, meaning in VARIANTS:
+        print(f"extension name: {EXTENSION_NAME}\n")
+        for label, version, display, changes, meaning in VARIANTS:
+            if display.lower() in used_names:
+                raise SystemExit(f"display name {display!r} reused within one run")
+            used_names.add(display.lower())
+
             candidate = json.loads(original)
             candidate.update(changes)
             candidate["name"] = EXTENSION_NAME
             candidate["version"] = version
-            # Minimal contributions, matching the shape that passed.
+            candidate["displayName"] = display
             candidate["categories"] = ["Visualization"]
             candidate["contributes"].pop("viewsWelcome", None)
             candidate["contributes"].pop("configuration", None)
             candidate.pop("scripts", None)
             candidate.pop("devDependencies", None)
+            # The container title is shown in the Activity Bar; keep it distinct
+            # from the reserved "LabWatch" string as well.
+            candidate["contributes"]["viewsContainers"]["activitybar"][0]["title"] = display
 
             target = OUT_DIR / f"{EXTENSION_NAME}-{version}-{label}.vsix"
             PKG.write_text(json.dumps(candidate, indent=2) + "\n", encoding="utf-8")
@@ -135,9 +140,9 @@ def main() -> None:
                 (line.strip() for line in vsixmanifest.splitlines() if "<Tags>" in line),
                 "(no Tags element)",
             )
-            identity = next(
-                (line.strip() for line in vsixmanifest.splitlines() if "<Identity" in line),
-                "(no Identity)",
+            shown = next(
+                (line.strip() for line in vsixmanifest.splitlines() if "<DisplayName>" in line),
+                "(no DisplayName)",
             )
 
             expected = ",".join(changes["keywords"])
@@ -146,18 +151,20 @@ def main() -> None:
                 raise SystemExit(f"{label}: tags mismatch, expected {expected!r} got {actual!r}")
             if inner["name"] != EXTENSION_NAME or inner["version"] != version:
                 raise SystemExit(f"{label}: identity mismatch in the built package")
+            if inner["displayName"] != display:
+                raise SystemExit(f"{label}: display name mismatch in the built package")
 
             print(f"{version}  {target.name}  ({target.stat().st_size} bytes)")
+            print(f"   {shown}")
             print(f"   tags: {actual or '(none)'}")
-            print(f"   {identity}")
             print(f"   {meaning}")
     finally:
         PKG.write_text(original, encoding="utf-8")
 
     print(
         f"\nwrote {len(VARIANTS)} packages to {OUT_DIR}\n"
-        "upload in version order, because each attempt must be a higher version than\n"
-        "the last; UNPUBLISH a successful one (never Remove/Delete) and continue"
+        "upload in version order; UNPUBLISH a successful one (never Remove/Delete)\n"
+        "and never reuse a display name from a refused variant"
     )
 
 
