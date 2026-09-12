@@ -408,28 +408,45 @@ verifies the resulting `<Tags>`, and restores the repository copy afterwards. ·
 候选 `package.json`、真正跑一次 `vsce package` 重新生成整份 manifest、校验 `<Tags>`，
 最后把仓库里的文件还原。
 
-**Test it.** Six VSIX files land in `dist-vsix/`, identical in content and differing
-only in free text:
+**Result so far.** Variant `kw0-neutral` - **no keywords at all**, and a
+description that names no vendor or hardware - **uploaded successfully**. So an
+empty tag list is accepted, a vendor-free description is accepted, and the trigger
+is in the vocabulary the later variants add back: *NVIDIA*, *GPU*, *CUDA*,
+*monitoring*.
 
-| Upload order | File | `<Tags>` | Description |
-|---|---|---|---|
-| 1 | `kw0-neutral` | *(empty)* | no vendor, no hardware name |
-| 2 | `kw5-vendor-description` | *(empty)* | says "NVIDIA GPU" |
-| 3 | `kw1-gpu` | `gpu` | |
-| 4 | `kw2-gpu-nvidia` | `gpu,nvidia` | |
-| 5 | `kw3-gpu-nvidia-cuda` | `gpu,nvidia,cuda` | |
-| 6 | `kw4-monitoring` | `gpu,monitoring` | |
+**Two hard constraints, both learned the hard way.**
 
-Stop at the first refusal, and read it pairwise: 1 vs 2 tests whether the
-description is matched at all; 2 vs 3 tests `gpu` alone; 3 vs 4 tests `nvidia`;
-4 vs 5 tests `cuda`; 4 vs 6 tests `monitoring`. · 遇到第一个被拒就停下，按"相邻两两比较"
-读结果：1 与 2 比 → 描述是否参与匹配；2 与 3 比 → `gpu`；3 与 4 比 → `nvidia`；
-4 与 5 比 → `cuda`；4 与 6 比 → `monitoring`。
+1. **The extension name is reserved permanently.** That first successful upload
+   used the name `labwatch-vscode`; deleting it in the portal reserved the name for
+   good, and the next upload was refused with *"The extension 'labwatch-vscode'
+   already exists in the Marketplace"*. The bisection therefore continues under a
+   new name, **`labwatch-gpu`**, as a single entry whose version increases with
+   every attempt. **Unpublish successful attempts; never Remove or Delete them.** ·
+   **扩展名一旦删除即被永久保留**，所以后续改用新名字 `labwatch-gpu`，并且整轮排查只用
+   一个条目、逐次提高版本号。**成功的那次请用 Unpublish，不要用 Remove/Delete。**
+2. **A variant must be produced by a real `vsce package`.** Editing `keywords` in
+   the `package.json` inside an already-built VSIX changes nothing, because `vsce`
+   had already copied them into `extension.vsixmanifest` as `<Tags>` - the file the
+   Marketplace actually reads.
 
-If variant 1 is refused as well, the trigger is not free text at all, and the ask
-to Microsoft becomes a single line: *which term or field is blocked* - their own
-support vocabulary from the comparable case, so it is answerable. · 若连第 1 个变体也被
-拒，说明触发点不是自由文本，此时只需向 Microsoft 问一句："被屏蔽的是哪个词或哪个字段"。
+| Order | Version | File | `<Tags>` | Description | A refusal would mean |
+|---|---|---|---|---|---|
+| 1 | 1.1.0 | `kw0-neutral` | *(empty)* | no vendor, no hardware | ✅ **passed** |
+| 2 | 1.1.1 | `kw5-vendor-description` | *(empty)* | says "NVIDIA GPU" | the description vocabulary |
+| 3 | 1.1.2 | `kw1-gpu` | `gpu` | | the tag `gpu` |
+| 4 | 1.1.3 | `kw2-gpu-nvidia` | `gpu,nvidia` | | the tag `nvidia` |
+| 5 | 1.1.4 | `kw3-gpu-nvidia-cuda` | `gpu,nvidia,cuda` | | the tag `cuda` |
+| 6 | 1.1.5 | `kw4-monitoring` | `gpu,monitoring` | | the tag `monitoring` |
+
+Read it pairwise: 1 vs 2 asks whether the description is matched at all; 2 vs 3
+isolates `gpu`; 3 vs 4 `nvidia`; 4 vs 5 `cuda`; 4 vs 6 `monitoring`. · 按相邻两两比较
+读结果即可定位到具体那个词。
+
+If the vendor-description variant is refused too, the trigger is not free text at
+all, and the ask to Microsoft becomes a single line: *which term or field is
+blocked* - their own support vocabulary from the comparable case. · 若连"描述里写
+NVIDIA"这一版也被拒，说明触发点不是 tags，只需向 Microsoft 问一句："被屏蔽的是哪个词或
+哪个字段"。
 
 Attach the VSIX and this information:
 
