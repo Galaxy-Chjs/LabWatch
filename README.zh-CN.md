@@ -118,7 +118,7 @@ VS Code 会自动把面板端口转发到你的浏览器。LabWatch 不会在编
 扩展只是同一个采集器的一个视图。
 
 构建方式见 [`vscode-extension/README.md`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/vscode-extension/README.md)；
-也可以直接安装打包好的 `labwatch-gpu-status-1.3.3.vsix`（`code --install-extension`）。
+也可以直接安装打包好的 `labwatch-gpu-status-1.4.0.vsix`（`code --install-extension`）。
 Marketplace 上架正在审核中。
 
 **无需单独安装采集器**：它是个小型 Python 程序。若机器上已有（`PATH` 上的 `labwatch`，

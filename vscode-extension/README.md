@@ -1,25 +1,34 @@
 # LabWatch for VS Code
 
-See your GPU state where you are already looking, and open the full dashboard
-when you need detail.
+See your GPU state where you are already looking, and open the dashboard **inside
+the editor** when you need detail.
 
 **Install without the Marketplace**, while the listing is in review:
 
 ```bash
-code --install-extension https://github.com/Galaxy-Chjs/LabWatch/releases/latest/download/labwatch-gpu-status-1.3.3.vsix
+code --install-extension https://github.com/Galaxy-Chjs/LabWatch/releases/latest/download/labwatch-gpu-status-1.4.0.vsix
 ```
 
 - **Status bar** — `GPU 3 busy / 8`, or `GPU 0 98% · 33GB/48GB` on a single-GPU
-  machine. Refreshes on an interval.
-- **LabWatch sidebar** — one compact row per GPU: utilisation, VRAM,
-  temperature. A hover tooltip adds power, process count and whether the card
-  looks busy or free.
-- **Commands** — Open Full Dashboard, Start in Background, Stop, Refresh, Run
-  Doctor, Show GPU Summary.
+  machine. Refreshes on an interval. Clicking starts the collector when nothing is
+  running, and opens the dashboard when something is.
+- **LabWatch sidebar** — one compact row per GPU: utilisation, VRAM, temperature. A
+  hover tooltip adds power, process count and whether the card looks busy or free.
+- **Dashboard panel** — the full dashboard (cards, history, filesystems, processes)
+  opens as a webview panel in the editor area, sized like any editor. **LabWatch:
+  Open Dashboard in Browser** opens the same page in a browser for a second screen.
+- **Commands** — Open Dashboard, Open Dashboard in Browser, Close Dashboard Panel,
+  Start in Background, Stop, Refresh, Run Doctor, Show GPU Summary, Set Up Collector,
+  How to Connect.
 
-The extension is a *view*: it runs `labwatch status --json` and renders the
-result. The GPU collector lives in LabWatch, never in the editor, so the two can
-never disagree.
+The extension is a *view*: it runs `labwatch status --json` for the sidebar and
+status bar, and the panel renders the same dashboard the collector serves. The GPU
+collector lives in LabWatch, never in the editor, so the three can never disagree.
+
+Why the panel rather than a browser tab: over Remote-SSH a browser needs the
+dashboard port forwarded, so the page only exists on the far side of a tunnel. The
+panel loads it from the extension and forwards its API calls to the collector over
+loopback, so there is nothing to forward and no context switch.
 
 ## Requirements
 
@@ -86,10 +95,11 @@ Two things make it work without extra configuration:
 
 1. In a remote window the extension host runs on the **server**, so
    `labwatch status` reports the server's GPUs and processes, not the laptop's.
-2. **Open Full Dashboard** uses `vscode.env.asExternalUri`, which asks VS Code to
-   forward the dashboard port over the existing SSH connection and hands your
-   browser a reachable `localhost` URL. No manual tunnel, and nothing is exposed
-   on the server's network.
+2. The **dashboard panel** needs no port forwarding at all: the page comes from the
+   extension and its API calls are made by the extension host, over loopback. If you
+   would rather use a browser, **LabWatch: Open Dashboard in Browser** still asks
+   `vscode.env.asExternalUri` to forward the port for you. Nothing is exposed on the
+   server's network either way.
 
 If the collector is missing on the remote, the extension offers to set it up there —
 the private environment is created on the server, which is where it belongs.
@@ -108,12 +118,15 @@ the private environment is created on the server, which is where it belongs.
 
 ## Build and install from source
 
+The panel shows the built dashboard, so sync it in before packaging:
+
 ```bash
+python scripts/sync-extension-dashboard.py    # from the repository root
 cd vscode-extension
 npm install
 npm run compile
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-gpu-status-1.3.3.vsix --force
+code --install-extension labwatch-gpu-status-1.4.0.vsix --force
 ```
 
 For development, open the repository in VS Code and press <kbd>F5</kbd> —

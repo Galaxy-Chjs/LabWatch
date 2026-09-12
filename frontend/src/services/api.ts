@@ -31,6 +31,18 @@ export class ApiError extends Error {
 /** Base URL for API calls. Empty means same-origin (the production setup). */
 export const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
 
+/**
+ * True when the dashboard is running inside the VS Code webview panel.
+ *
+ * There the page's own origin is the webview, so `/api/...` cannot reach the
+ * collector: no CORS permission, and over Remote-SSH no forwarded port either. The
+ * extension injects a `fetch` shim, so the request is made by the extension host
+ * instead and the call below looks exactly the same as it always did.
+ */
+function inWebview(): boolean {
+  return typeof window !== 'undefined' && window.__LABWATCH_WEBVIEW__ === true
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${API_BASE}${path}`
   let response: Response
@@ -39,7 +51,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: { Accept: 'application/json' },
       ...init,
     })
-  } catch {
+  } catch (error) {
+    if (inWebview()) {
+      const detail = error instanceof Error ? error.message : 'unknown error'
+      throw new ApiError(`Cannot reach the LabWatch collector from the panel: ${detail}`, 0, url)
+    }
     throw new ApiError('Cannot reach the LabWatch backend. Is it running?', 0, url)
   }
 

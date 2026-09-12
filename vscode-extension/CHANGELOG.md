@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.4.0
+
+The dashboard now opens **inside the editor**, as it should have from the start.
+
+- **The default action opens a webview panel.** Previously it always launched a
+  browser tab, which over Remote-SSH meant a forwarded port and a context switch
+  away from the code. The panel docks and resizes like any editor and needs no
+  forwarding; the browser is still there as **LabWatch: Open Dashboard in Browser**
+  for a second screen.
+- **One dashboard, one implementation.** The panel renders the same built bundle the
+  collector serves, so the panel, the browser page and the status bar cannot
+  disagree. A small bridge forwards the page's `/api/*` calls to the extension host,
+  which reaches the collector over loopback - no CORS, no forwarded port - and it
+  only permits `/api/` paths, so a bug there cannot become a tunnel.
+- The panel title carries the hostname; **LabWatch: Close Dashboard Panel** closes it.
+
+## 1.4.0（中文）
+
+面板现在**在编辑器内**打开 —— 本该一开始就这样。
+
+- **默认在 Webview 面板中打开。** 此前一律打开浏览器标签页，在 Remote-SSH 下意味着要转发
+  端口、还要从代码里切走。面板可以像编辑器一样停靠与缩放，且不需要任何转发；需要第二块屏幕时
+  仍可用 **LabWatch: Open Dashboard in Browser** 打开浏览器。
+- **一份面板，一套实现。** 面板渲染的就是采集器提供给浏览器的同一份构建产物，因此面板、
+  浏览器页面与状态栏不可能给出不一致的数据。一小段桥接把页面的 `/api/*` 请求转交扩展宿主，
+  由宿主经回环地址访问采集器 —— 没有 CORS，也不需要转发端口；并且只放行 `/api/` 路径，
+  桥接中的 bug 不会变成隧道。
+- 面板标题带上主机名；**LabWatch: Close Dashboard Panel** 可关闭面板。
+
 ## 1.3.3
 
 Size and correctness.

@@ -220,7 +220,7 @@ cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
 npm install
 npm run compile
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-gpu-status-1.3.3.vsix --force
+code --install-extension labwatch-gpu-status-1.4.0.vsix --force
 ```
 
 Then reload the VS Code window: `Ctrl+Shift+P` → **Developer: Reload Window**.
@@ -327,7 +327,7 @@ npx --yes @vscode/vsce package --no-dependencies
 ```
 
 Then <https://marketplace.visualstudio.com/manage> → your publisher → **New
-extension → Visual Studio Code** → upload `labwatch-gpu-status-1.3.3.vsix`.
+extension → Visual Studio Code** → upload `labwatch-gpu-status-1.4.0.vsix`.
 
 Or by command line, once the token works:
 
@@ -528,12 +528,66 @@ so plainly and points at `labwatch.pythonPath` for an existing collector elsewhe
 · 唯一无法自动解决的情况是机器上完全没有 Python，此时扩展会明确说明，并提示用
 `labwatch.pythonPath` 指向已有的采集器。
 
-The real end-to-end path is checked by `scripts/verify-extension-setup.py`, which
-builds a temporary environment with a real interpreter, installs from the bundled
+### Where the collector is looked for · 采集器的查找顺序
+
+Since 1.3.0 no separate install is needed, and since 1.3.3 an existing collector is
+preferred over building one:
+
+1. `labwatch.pythonPath`, if set;
+2. `labwatch` on `PATH`;
+3. `python3 -m labwatch`;
+4. interpreters from `conda info --envs` - where a deliberately managed environment
+   usually lives, and where `PATH` frequently does not point;
+5. the private environment, built inside the extension's storage folder only when
+   none of the above exists and the user agrees.
+
+That order matters: a machine which can already run `labwatch` must never get a
+second copy, and an environment the user configured carries whatever mirror or proxy
+settings they use. · 顺序很重要：已经能运行 `labwatch` 的机器不该再被装第二份，而用户
+自己配置的环境里带有他使用的镜像/代理设置。
+
+The states the sidebar can show, and the action each offers:
+
+| State | Sidebar says | Action offered |
+|---|---|---|
+| `installable` | Collector not installed | **Set up LabWatch** (one click) |
+| `no-python` | Python 3.10+ not found | How to connect · Open settings |
+| `repair` | Collector needs repair | **Repair the environment** |
+| `failed` | Collector problem, with the interpreter's own error | Run Doctor · How to connect |
+
+`LabWatch: How to Connect` opens both languages of the full guide in a tab, and the
+whole setup log - including pip's own error lines - goes to the **LabWatch** output
+channel. · 完整指南见 `LabWatch: How to Connect`；配置日志（含 pip 原始报错）写入
+**LabWatch** 输出面板。
+
+The one thing this cannot fix is a machine with no Python at all; the extension says
+so plainly and points at `labwatch.pythonPath` for an existing collector elsewhere.
+· 唯一无法自动解决的情况是机器上完全没有 Python，此时扩展会明确说明，并提示用
+`labwatch.pythonPath` 指向已有的采集器。
+
 The real end-to-end path is checked by `scripts/verify-extension-setup.py`, which
 builds a temporary environment with a real interpreter, installs the collector into
 it, and proves it answers. · 真实链路由 `scripts/verify-extension-setup.py` 验证：用真实
 解释器建临时环境并安装采集器，然后验证它可用。
+
+### The dashboard panel · 面板
+
+`LabWatch: Open Dashboard` opens the dashboard as a webview panel in the editor area;
+a browser tab remains available as **Open Dashboard in Browser**. The panel loads the
+bundle copied in from `labwatch/ui` by `scripts/sync-extension-dashboard.py`, so there
+is one dashboard implementation, not two.
+
+A webview page cannot reach `127.0.0.1:8123` itself - its origin is the webview, and
+over Remote-SSH there is no forwarded port either. So `src/webviewHtml.ts` injects a
+small bridge that reroutes the page's `/api/*` fetches over `postMessage`, and
+`src/apiBridge.ts` performs them from the extension host over loopback. Only `/api/`
+paths are accepted, so a bug in the bridge cannot become a tunnel.
+
+Verified by `scripts/verify-webview-panel.py`, which builds the real shell and sends
+every API path the dashboard uses through the real forwarder against a live collector.
+· 面板渲染的就是采集器的同一份构建产物；`/api/*` 请求由扩展宿主经回环地址代发，无需端口
+转发。仅放行 `/api/` 路径。`scripts/verify-webview-panel.py` 会构造真实 shell 并把面板
+用到的全部 API 路径经真实转发器打到真实采集器上验证。
 
 ### Packaging the extension for a release · 打包扩展发布
 
@@ -541,7 +595,7 @@ The Marketplace listing takes days of review, so the `.vsix` is also attached to
 GitHub release and can be installed straight from the URL:
 
 ```bash
-code --install-extension https://github.com/Galaxy-Chjs/LabWatch/releases/download/vscode-extension-v1.3.3/labwatch-gpu-status-1.3.3.vsix
+code --install-extension https://github.com/Galaxy-Chjs/LabWatch/releases/download/vscode-extension-v1.4.0/labwatch-gpu-status-1.4.0.vsix
 ```
 
 `scripts/publish-extension-release.py <tag> <vsix> [<title>]` creates the release and
@@ -561,7 +615,7 @@ message beats 34 MB built on a guess. · **VSIX 不内置 wheel。** 1.3.1 曾�
 ```powershell
 cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-gpu-status-1.3.3.vsix --force
+code --install-extension labwatch-gpu-status-1.4.0.vsix --force
 ```
 
 If the vendor-description variant is refused too, the trigger is not free text at
@@ -666,9 +720,11 @@ metadata problem, and the error messages are clearer in a terminal.
 
 - [ ] Try the extension in a **Remote-SSH** window pointing at `lab`. This is the
   one path that needs your eyes: the extension host runs on the server, so the
-  sidebar should show the server's 8 GPUs, and **Open Full Dashboard** should open
-  a forwarded `localhost` URL. I verified the data path programmatically, not the
-  rendering.
+  sidebar should show the server's 8 GPUs, and **LabWatch: Open Dashboard** should
+  open the panel inside the editor with the same numbers. `Open Dashboard in Browser`
+  should open the same page through a forwarded `localhost` URL. The data path is
+  verified programmatically (`scripts/verify-webview-panel.py` drives the shell
+  rewriting and the bridge against a live collector); the rendering is not.
 - [ ] Decide whether you want a second server-side copy anywhere else. The deployment
   notes and captured server output (`ssh config`, deploy scripts, `nvidia-smi`
   dumps) were removed from the repository and its history on your instruction:
@@ -731,7 +787,7 @@ uvx labwatch-lite --version && uvx labwatch-lite doctor
 # Rebuild and reinstall the extension locally
 cd vscode-extension && npm run compile \
   && npx --yes @vscode/vsce package --no-dependencies \
-  && code --install-extension labwatch-gpu-status-1.3.3.vsix --force
+  && code --install-extension labwatch-gpu-status-1.4.0.vsix --force
 ```
 
 ## What is already verified, so you do not have to · 已经验证过、你不必再验的部分

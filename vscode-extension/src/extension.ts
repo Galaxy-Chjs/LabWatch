@@ -32,15 +32,9 @@ import {
   type Guidance,
   type SetupState,
 } from './guidance'
-import {
-  diagnose,
-  looksUninstalled,
-  runCliCommand,
-  tidyError,
-  type CliCache,
-  type CliTrouble,
-} from './labwatchCli'
+import { diagnose, looksUninstalled, runCliCommand, tidyError, type CliCache, type CliTrouble } from './labwatchCli'
 import { setupManagedEnvironment, type SetupOutcome } from './pythonEnv'
+import { disposeDashboardPanel, openDashboardPanel } from './webview'
 
 const cache: CliCache = { command: null }
 const ASKED_KEY = 'labwatch.setup.asked'
@@ -73,6 +67,8 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('labwatch.refresh', () => refresh({ silent: true })),
     vscode.commands.registerCommand('labwatch.openDashboard', () => openDashboard()),
+    vscode.commands.registerCommand('labwatch.openInBrowser', () => openDashboardInBrowser()),
+    vscode.commands.registerCommand('labwatch.closeDashboard', () => disposeDashboardPanel()),
     vscode.commands.registerCommand('labwatch.start', () => startInstance()),
     vscode.commands.registerCommand('labwatch.stop', () => stopInstance()),
     vscode.commands.registerCommand('labwatch.doctor', () => runDoctor()),
@@ -353,6 +349,11 @@ async function showGuide(): Promise<void> {
   await vscode.window.showTextDocument(document, { preview: true })
 }
 
+/**
+ * The dashboard inside the editor. This is the default: the panel can be widened or
+ * maximised like any editor, and over Remote-SSH it needs no port forwarding.
+ * `openDashboardInBrowser` remains for anyone who wants a real browser tab.
+ */
 async function openDashboard(): Promise<void> {
   const port = config().get<number>('dashboardPort', 8123)
 
@@ -362,10 +363,26 @@ async function openDashboard(): Promise<void> {
       'Start in background',
       'Open anyway',
     )
-    if (choice === 'Start in background') return startInstance()
-    if (choice !== 'Open anyway') return
+    if (choice === 'Start in background') {
+      await startInstance()
+      if (lastStatus === null || !lastStatus.running) return
+    } else if (choice !== 'Open anyway') {
+      return
+    }
   }
 
+  openDashboardPanel({
+    context: contextRef,
+    port,
+    hostname: lastStatus?.hostname ?? undefined,
+    onBrowserFallback: () => void openDashboardInBrowser(),
+    log: (line) => output.appendLine(line),
+  })
+}
+
+/** The same dashboard in the system browser, for a second screen or a long look. */
+async function openDashboardInBrowser(): Promise<void> {
+  const port = config().get<number>('dashboardPort', 8123)
   const localUrl = lastStatus?.url ?? `http://127.0.0.1:${port}`
   try {
     // In a Remote-SSH window this asks the editor to forward the port and returns
