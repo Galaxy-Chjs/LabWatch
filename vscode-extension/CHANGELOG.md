@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.3.2
+
+Zero behaviour change, one crucial difference: failures now say *why*.
+
+- **The real reason is visible.** A failed install used to report
+  `Command failed: <the entire command line>`, which is unfixable from the
+  outside - and is exactly what the sidebar showed on the server. The
+  interpreter's own message is now the message (`ERROR: Could not find a version…`
+  · `ERROR: No matching distribution…`), and the complete output goes to the
+  **LabWatch** output channel, with a **Show log** button on the error.
+- Setup logs are marked and kept in full, so a failure on someone else's machine
+  can be diagnosed from the channel rather than from a screenshot.
+
+## 1.3.2（中文）
+
+行为零改动，但有一点至关重要：失败现在会说明**原因**。
+
+- **能看到真正的报错。** 安装失败原本只报 `Command failed: <整条命令行>`，从外部无法据此
+  修复 —— 这正是服务器上侧边栏显示的内容。现在直接使用解释器自己的信息
+  （`ERROR: Could not find a version…` · `ERROR: No matching distribution…`），完整输出写入
+  **LabWatch** 输出面板，并在报错弹窗提供 **Show log** 按钮。
+- 配置过程的日志会完整保留，别人机器上的失败可以直接从输出面板定位，而不用靠截图。
+
 ## 1.3.1
 
 Fixes found by running 1.3.0 on a real server.

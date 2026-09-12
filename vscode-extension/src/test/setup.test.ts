@@ -165,6 +165,31 @@ test('a failed install is reported with the offline route mentioned', async () =
   assert.match(outcome.detail, /No matching distribution/)
 })
 
+test('the reason survives: pip says what is wrong, and that is what is shown', async () => {
+  // The screenshot that started this investigation showed only
+  // "Command failed: <the whole command line>" - unfixable from the outside. pip
+  // puts the useful sentence on its own line, and not always the last one.
+  const stderr = [
+    'ERROR: Could not find a version that satisfies the requirement labwatch-lite (from versions: none)',
+    'ERROR: No matching distribution found for labwatch-lite',
+    'WARNING: You are using pip version 22.0.4; however, version 24.3.1 is available.',
+  ].join('\n')
+  const { run } = fakeRunner((_file, args) => {
+    if (args.includes('--version')) return { stdout: 'Python 3.11.14', stderr: '' }
+    if (args.includes('install')) {
+      throw Object.assign(new Error('Command failed: /venv/bin/python -m pip install labwatch-lite'), { stderr })
+    }
+    return { stdout: '', stderr: '' }
+  })
+  const outcome = await setupManagedEnvironment({ venvDir: '/tmp/lw-venv', platform: 'linux', run })
+  assert.equal(outcome.reason, 'install-failed')
+  assert.match(outcome.detail, /Could not find a version/)
+  assert.match(outcome.detail, /No matching distribution/)
+  assert.equal(outcome.detail.includes('Command failed'), false)
+  // The full output still reaches the log, which is what the output channel shows.
+  assert.ok(outcome.log.some((line) => line.includes('No matching distribution')))
+})
+
 test('managedEnvironmentWorks is false when the interpreter is gone', async () => {
   const { run } = fakeRunner(() => new Error('ENOENT'))
   assert.equal(await managedEnvironmentWorks('/tmp/lw-venv', run, 'linux'), false)

@@ -287,6 +287,9 @@ async function setupCollector(): Promise<void> {
         // outbound access.
         bundledWheelsDir: path.join(contextRef.extensionUri.fsPath, 'wheels'),
       })
+      // The whole log, not just the summary: when this fails on someone else's
+      // server, the output channel is the only place the real reason can be read.
+      output.appendLine('── set up the collector ──')
       for (const line of outcome.log) output.appendLine(line)
     },
   )
@@ -317,7 +320,13 @@ async function setupCollector(): Promise<void> {
   lastProblem = outcome.detail
   render()
 
-  const choice = await vscode.window.showErrorMessage(`LabWatch: ${outcome.detail}`, 'How to connect', 'Copy install command')
+  const choice = await vscode.window.showErrorMessage(
+    `LabWatch: ${outcome.detail}`,
+    'Show log',
+    'How to connect',
+    'Copy install command',
+  )
+  if (choice === 'Show log') output.show(true)
   if (choice === 'How to connect') await showGuide()
   if (choice === 'Copy install command') {
     await vscode.env.clipboard.writeText(MANUAL_COMMAND_TEXT)

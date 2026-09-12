@@ -291,11 +291,14 @@ export async function runCliCommand(options: {
     return { ok: true, stdout, stderr, error: null }
   } catch (error) {
     const failure = error as { stdout?: string; stderr?: string; message?: string }
+    const stderr = failure.stderr ?? ''
+    // Never hand back "Command failed: <the whole command line>" as the reason:
+    // the interpreter's own message is the only part worth showing.
     return {
       ok: false,
       stdout: failure.stdout ?? '',
-      stderr: failure.stderr ?? '',
-      error: failure.message ?? 'command failed',
+      stderr,
+      error: tidyError(stderr) || tidyError(failure.message ?? '') || 'command failed',
     }
   }
 }

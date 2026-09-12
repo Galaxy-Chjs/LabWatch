@@ -329,10 +329,29 @@ export async function managedEnvironmentWorks(
   }
 }
 
+/**
+ * The useful part of a failed command.
+ *
+ * pip's explanation is usually on the line *before* the last one, ("ERROR: Could
+ * not find a version…" followed by "ERROR: No matching distribution…"), so keeping
+ * only the final line - or worse, Node's "Command failed: <the whole invocation>" -
+ * throws away the one sentence that says what to do. The complete output still goes
+ * to the output channel.
+ */
 function message(error: unknown): string {
   if (error === null || error === undefined) return 'unknown error'
-  const failure = error as { stderr?: string; message?: string }
-  const stderr = failure.stderr?.trim()
-  if (stderr) return stderr.split('\n').slice(-1)[0] ?? stderr
+  const failure = error as { stderr?: string; stdout?: string; message?: string }
+  const lines = (text: string | undefined): string[] =>
+    (text ?? '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line !== '')
+
+  const errors = lines(failure.stderr).filter((line) => /^ERROR|error:|No matching|not found|cannot|denied/i.test(line))
+  if (errors.length > 0) {
+    return errors.slice(0, 3).join(' · ')
+  }
+  const stderr = lines(failure.stderr)
+  if (stderr.length > 0) return stderr.slice(-2).join(' · ')
   return failure.message ?? String(error)
 }
