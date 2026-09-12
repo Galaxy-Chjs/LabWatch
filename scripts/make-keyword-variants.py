@@ -1,20 +1,32 @@
-"""Build the bisection variants under names that are still free.
+"""Build the metadata bisection variants for one fixed extension identity.
 
-Two naming facts, both learned from refusals:
+Facts established so far, each one paid for with a failed upload:
 
-  * The Marketplace reserves an **extension name** permanently. Deleting
-    `labwatch-vscode` locked that name, so the new name is `labwatch-gpu`.
-  * It reserves the **display name** separately and just as permanently:
-    `labwatch-gpu` was refused with *"This extension display name is taken"* while
-    it still said `displayName: "LabWatch"`. So every variant below carries its own
-    display name, and a failure cannot burn the name the next variant needs.
+  * An inert probe extension uploads fine under this publisher, so the account is
+    not the problem.
+  * **A vendor-free description with an empty tag list passes.** That was variant
+    `kw0-neutral`, and it is now published (unpublished in the portal) as
+    `labwatch-gpu` 1.1.0.
+  * **The extension name and the display name are reserved permanently, and
+    changing either one means starting a new listing.** An earlier attempt to keep
+    the name `labwatch-gpu` but give the next variant a different display name was
+    refused as "display name is taken"; renaming the extension to get around it
+    would refuse as "extension already exists". So the only way to iterate is to
+    keep one identity and raise the version.
 
-What is already established: a vendor-free description with an empty tag list
-*passes*. The remaining question is which added term is blocked, so the variants
-differ only in description and keywords.
+    Consequence: **choose the identity once, before the first upload of a series.**
+    Both halves are already reserved to this publisher, so they are reused here and
+    never changed again:
 
-Versions increase with upload order because each attempt must outrank the last for
-the same extension entry.
+        name        : labwatch-gpu
+        displayName : LabWatch GPU
+
+  * `vsce` copies `keywords` into `extension.vsixmanifest` as `<Tags>` when it
+    packages, so a variant has to be produced by a real `vsce package` - editing
+    the keywords inside a built VSIX changes nothing.
+
+Versions must increase for each upload, so the sequence starts at 1.1.1 (1.1.0 is
+already on the listing) and the real release is cut later as 1.2.0.
 
 Usage:
     python scripts/make-keyword-variants.py
@@ -34,6 +46,7 @@ PKG = EXT / "package.json"
 OUT_DIR = REPO / "dist-vsix"
 
 EXTENSION_NAME = "labwatch-gpu"
+DISPLAY_NAME = "LabWatch GPU"
 
 NEUTRAL_DESCRIPTION = (
     "Show graphics accelerator utilisation, memory and temperature in the VS Code status bar and sidebar."
@@ -42,49 +55,38 @@ VENDOR_DESCRIPTION = (
     "Show NVIDIA GPU utilisation, memory and temperature in the VS Code status bar and sidebar."
 )
 
-# (label, version, display name, changes, what a refusal here means)
-VARIANTS: list[tuple[str, str, str, dict, str]] = [
-    (
-        "kw0-neutral",
-        "1.1.0",
-        "LabWatch GPU",
-        {"description": NEUTRAL_DESCRIPTION, "keywords": []},
-        "baseline under the new names - PASSED before (under the old name)",
-    ),
+# Nothing here changes the identity: only the two free-text fields under test, and
+# the version, which must increase. Ordered by upload sequence.
+VARIANTS: list[tuple[str, str, dict, str]] = [
     (
         "kw5-vendor-description",
         "1.1.1",
-        "LabWatch GPU Status",
         {"description": VENDOR_DESCRIPTION, "keywords": []},
-        "the *description* vocabulary (NVIDIA / GPU) is the trigger",
+        "description names the vendor -> if refused, the description vocabulary is the trigger",
     ),
     (
         "kw1-gpu",
         "1.1.2",
-        "LabWatch GPU Helper",
         {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu"]},
-        "the tag `gpu` is the trigger",
+        "tag `gpu` alone -> if refused, that tag is the trigger",
     ),
     (
         "kw2-gpu-nvidia",
         "1.1.3",
-        "LabWatch Accelerator",
         {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu", "nvidia"]},
-        "the tag `nvidia` is the trigger",
+        "adds tag `nvidia`",
     ),
     (
         "kw3-gpu-nvidia-cuda",
         "1.1.4",
-        "LabWatch Accelerator View",
         {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu", "nvidia", "cuda"]},
-        "the tag `cuda` is the trigger",
+        "adds tag `cuda`",
     ),
     (
         "kw4-monitoring",
         "1.1.5",
-        "LabWatch Status View",
         {"description": NEUTRAL_DESCRIPTION, "keywords": ["gpu", "monitoring"]},
-        "the tag `monitoring` is the trigger",
+        "adds tag `monitoring`",
     ),
 ]
 
@@ -106,28 +108,21 @@ def vsce(*args: str) -> None:
 def main() -> None:
     original = PKG.read_text(encoding="utf-8")
     OUT_DIR.mkdir(exist_ok=True)
-    used_names: set[str] = set()
 
     try:
-        print(f"extension name: {EXTENSION_NAME}\n")
-        for label, version, display, changes, meaning in VARIANTS:
-            if display.lower() in used_names:
-                raise SystemExit(f"display name {display!r} reused within one run")
-            used_names.add(display.lower())
-
+        print(f"identity (never varied): {EXTENSION_NAME} / {DISPLAY_NAME}\n")
+        for label, version, changes, meaning in VARIANTS:
             candidate = json.loads(original)
             candidate.update(changes)
             candidate["name"] = EXTENSION_NAME
             candidate["version"] = version
-            candidate["displayName"] = display
+            candidate["displayName"] = DISPLAY_NAME
             candidate["categories"] = ["Visualization"]
             candidate["contributes"].pop("viewsWelcome", None)
             candidate["contributes"].pop("configuration", None)
             candidate.pop("scripts", None)
             candidate.pop("devDependencies", None)
-            # The container title is shown in the Activity Bar; keep it distinct
-            # from the reserved "LabWatch" string as well.
-            candidate["contributes"]["viewsContainers"]["activitybar"][0]["title"] = display
+            candidate["contributes"]["viewsContainers"]["activitybar"][0]["title"] = DISPLAY_NAME
 
             target = OUT_DIR / f"{EXTENSION_NAME}-{version}-{label}.vsix"
             PKG.write_text(json.dumps(candidate, indent=2) + "\n", encoding="utf-8")
@@ -147,12 +142,15 @@ def main() -> None:
 
             expected = ",".join(changes["keywords"])
             actual = tags.replace("<Tags>", "").replace("</Tags>", "").strip()
+            problems = []
             if actual != expected:
-                raise SystemExit(f"{label}: tags mismatch, expected {expected!r} got {actual!r}")
+                problems.append(f"tags {actual!r} != {expected!r}")
             if inner["name"] != EXTENSION_NAME or inner["version"] != version:
-                raise SystemExit(f"{label}: identity mismatch in the built package")
-            if inner["displayName"] != display:
-                raise SystemExit(f"{label}: display name mismatch in the built package")
+                problems.append("identity mismatch")
+            if inner["displayName"] != DISPLAY_NAME:
+                problems.append(f"display name {inner['displayName']!r}")
+            if problems:
+                raise SystemExit(f"{label}: " + "; ".join(problems))
 
             print(f"{version}  {target.name}  ({target.stat().st_size} bytes)")
             print(f"   {shown}")
@@ -163,8 +161,7 @@ def main() -> None:
 
     print(
         f"\nwrote {len(VARIANTS)} packages to {OUT_DIR}\n"
-        "upload in version order; UNPUBLISH a successful one (never Remove/Delete)\n"
-        "and never reuse a display name from a refused variant"
+        "identity is fixed for all of them: upload by version, never rename"
     )
 
 

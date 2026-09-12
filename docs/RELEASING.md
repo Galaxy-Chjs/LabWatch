@@ -414,46 +414,51 @@ empty tag list is accepted, a vendor-free description is accepted, and the trigg
 is in the vocabulary the later variants add back: *NVIDIA*, *GPU*, *CUDA*,
 *monitoring*.
 
-**Two hard constraints, both learned the hard way.**
+**Three hard constraints, each paid for with a failed upload.**
 
-1. **Both names are reserved permanently, and they are reserved separately.** The
-   first successful upload used the extension name `labwatch-vscode` **and** the
-   display name `LabWatch`. Deleting it in the portal locked *both*: the next
-   upload was refused with *"The extension 'labwatch-vscode' already exists"*, and
-   after renaming the package to `labwatch-gpu`, the following attempt was refused
-   with *"This extension display name is taken"* - it was still sending
-   `displayName: "LabWatch"`.
+1. **An extension listing's identity is fixed at its first upload.** Both halves are
+   reserved permanently, and neither can be changed afterwards:
 
-   Consequences for the bisection:
+   - changing the extension **name** gives *"The extension 'labwatch-gpu' already
+     exists in the Marketplace. Please use a different 'name'"* - because the name
+     still belongs to the existing listing;
+   - keeping the name but changing the **display name** gives *"This extension
+     display name is taken"*;
+   - and **unpublishing or even removing the listing frees neither**: after variant
+     1 was unpublished *and* removed, uploads still named `labwatch-gpu` were
+     refused, because the entry in the portal is what holds the name.
 
-   - the extension name is now `labwatch-gpu`;
-   - **every variant carries its own display name**, so a refused variant cannot
-     burn the name the next one needs;
-   - **Unpublish successful attempts; never Remove or Delete them.**
+   So the identity must be chosen once, before the first upload of a series, and
+   after that the **only** thing that may change is the version, which must go up.
+   The identity used from here on is:
 
-   · **两个名字都会被永久保留，而且是分别保留的。** 第一次成功上传占用的是扩展名
-   `labwatch-vscode` 加显示名 `LabWatch`；在门户里删除后两者都被锁死，于是后续先报
-   "扩展名已存在"、改名 `labwatch-gpu` 后又报"显示名已被占用"。因此：扩展名改为
-   `labwatch-gpu`；**每个变体各带一个独立显示名**，避免失败的那次把下一个要用的名字
-   烧掉；成功的那次务必用 **Unpublish**。
+       name         labwatch-gpu
+       displayName  LabWatch GPU
+
+   · **一个扩展条目的身份在首次上传时就固定了**：改名会报"扩展名已存在"，保留扩展名但改
+   显示名会报"显示名已被占用"，而且 **Unpublish 甚至 Remove 都不会释放这两个名字** ——
+   持有名字的是门户里那个条目本身。因此身份必须在上传前一次选定，之后**只能提高版本号**。
+   本轮固定为 `labwatch-gpu` / `LabWatch GPU`。
 2. **A variant must be produced by a real `vsce package`.** Editing `keywords` in
    the `package.json` inside an already-built VSIX changes nothing, because `vsce`
    had already copied them into `extension.vsixmanifest` as `<Tags>` - the file the
    Marketplace actually reads.
+3. **The version on the listing only goes up.** 1.1.0 is already on it, so the
+   bisection continues from 1.1.1 and the real release is cut afterwards as 1.2.0.
 
-| Order | Version | File | Display name | `<Tags>` | A refusal would mean |
+| Order | Version | File | `<Tags>` | Description | A refusal would mean |
 |---|---|---|---|---|---|
-| 1 | 1.1.0 | `kw0-neutral` | LabWatch GPU | *(empty)* | ✅ this shape **passed** under the old names |
-| 2 | 1.1.1 | `kw5-vendor-description` | LabWatch GPU Status | *(empty)* | the description vocabulary |
-| 3 | 1.1.2 | `kw1-gpu` | LabWatch GPU Helper | `gpu` | the tag `gpu` |
-| 4 | 1.1.3 | `kw2-gpu-nvidia` | LabWatch Accelerator | `gpu,nvidia` | the tag `nvidia` |
-| 5 | 1.1.4 | `kw3-gpu-nvidia-cuda` | LabWatch Accelerator View | `gpu,nvidia,cuda` | the tag `cuda` |
-| 6 | 1.1.5 | `kw4-monitoring` | LabWatch Status View | `gpu,monitoring` | the tag `monitoring` |
+| - | 1.1.0 | *(already on the listing)* | *(empty)* | vendor-free | ✅ **passed** |
+| 1 | 1.1.1 | `kw5-vendor-description` | *(empty)* | names the vendor | the **description** vocabulary |
+| 2 | 1.1.2 | `kw1-gpu` | `gpu` | neutral | the tag `gpu` |
+| 3 | 1.1.3 | `kw2-gpu-nvidia` | `gpu,nvidia` | neutral | the tag `nvidia` |
+| 4 | 1.1.4 | `kw3-gpu-nvidia-cuda` | `gpu,nvidia,cuda` | neutral | the tag `cuda` |
+| 5 | 1.1.5 | `kw4-monitoring` | `gpu,monitoring` | neutral | the tag `monitoring` |
 
-All six use the same description as variant 1 except variant 2, which names the
-vendor. Read it pairwise: 1 vs 2 asks whether the description is matched at all;
-2 vs 3 isolates `gpu`; 3 vs 4 `nvidia`; 4 vs 5 `cuda`; 4 vs 6 `monitoring`. · 除第 2
-版外，各版描述与第 1 版相同，第 2 版写出厂商名。按相邻两两比较即可定位到具体那个词。
+Every variant keeps the same identity and only the free text changes, so read it
+pairwise: 1.1.0 vs 1.1.1 asks whether the description is matched at all; 1.1.1 vs
+1.1.2 isolates `gpu`; 1.1.2 vs 1.1.3 `nvidia`; 1.1.3 vs 1.1.4 `cuda`; 1.1.3 vs
+1.1.5 `monitoring`. · 各版身份完全相同、只改自由文本，按相邻两两比较即可定位。
 
 If the vendor-description variant is refused too, the trigger is not free text at
 all, and the ask to Microsoft becomes a single line: *which term or field is
