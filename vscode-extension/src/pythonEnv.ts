@@ -11,8 +11,6 @@
  */
 
 import { execFile } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import * as path from 'node:path'
 import { promisify } from 'node:util'
 
 const defaultRun = promisify(execFile)
@@ -155,66 +153,50 @@ export interface SetupOptions {
   venvDir: string
   distribution?: string
   indexUrl?: string
-  /**
-   * Directory of wheels shipped inside the extension, laid out as `cp310`,
-   * `cp311`, … Setup prefers the one matching the interpreter, which is what makes
-   * a server with no outbound access work at all.
-   */
-  bundledWheelsDir?: string
   platform?: NodeJS.Platform
   run?: Runner
 }
 
-/** `[3, 11, 4]` -> `cp311`, the interpreter half of a wheel directory name. */
+/** `[3, 11, 4]` -> `cp311`, used in log lines to say which interpreter was chosen. */
 export function abiTag(version: [number, number, number]): string {
   return `cp${version[0]}${version[1]}`
 }
 
 /**
- * The platform half of a wheel directory name.
+ * Interpreters conda knows about, so a collector already installed in one of them
+ * is found instead of a second one being built for no reason.
  *
- * Wheels are compiled per platform, so a bundle that ignores this hands Linux
- * wheels to a Windows interpreter and pip answers "No matching distribution" -
- * which reads like a packaging bug and is not one. Musl needs its own tag too.
+ * People who configure Python day to day tend to keep their working environment in
+ * conda, and `conda info --envs` is the only reliable way to learn its path: `PATH`
+ * frequently points at `base`, which is not where anything is installed.
+ *
+ * Each line is `<name> <path>`, with the active environment marked `*` after the
+ * name - `mlenv  *  /home/u/miniconda3/envs/mlenv`. The path is the last field, so
+ * the whole line is not a path and must not be treated as one.
  */
-export function wheelPlatformTag(
-  platform: NodeJS.Platform = process.platform,
-  arch: string = process.arch,
-  musl = false,
-): string {
-  if (platform === 'win32') {
-    return arch === 'arm64' ? 'win_arm64' : 'win_amd64'
+export async function condaEnvironments(run: Runner): Promise<string[]> {
+  try {
+    const { stdout } = await run('conda', ['info', '--envs'], { timeout: 30_000 })
+    const found: string[] = []
+    for (const line of stdout.split('\n')) {
+      const trimmed = line.trim()
+      if (trimmed === '' || trimmed.startsWith('#')) continue
+      const fields = trimmed.split(/\s+/)
+      const candidate = fields[fields.length - 1]
+      if (fields.length < 2 || candidate === '*' || candidate === '') continue
+      if (candidate.startsWith('/') || /^[A-Za-z]:\\/.test(candidate)) found.push(candidate)
+    }
+    return found
+  } catch {
+    return []
   }
-  const machine = arch === 'arm64' ? 'aarch64' : arch === 'ia32' ? 'i686' : 'x86_64'
-  return `${musl ? 'musllinux_1_2' : 'manylinux2014'}_${machine}`
-}
-
-/** Directory name for one platform + interpreter combination. */
-export function wheelDirName(version: [number, number, number], platformTag: string): string {
-  return `${platformTag}-${abiTag(version)}`
-}
-
-/** The bundled wheel directory matching this interpreter, if the bundle has one. */
-export function bundledWheelsFor(
-  bundledWheelsDir: string | undefined,
-  version: [number, number, number],
-  platformTag?: string,
-): string | null {
-  if (!bundledWheelsDir) return null
-  const tags = platformTag ? [platformTag] : [wheelPlatformTag()]
-  for (const tag of tags) {
-    const candidate = path.join(bundledWheelsDir, wheelDirName(version, tag))
-    if (existsSync(candidate)) return candidate
-  }
-  return null
 }
 
 /**
  * Create `<venvDir>`, install the collector into it, and prove it answers.
  *
- * Install order: the wheels bundled in the extension first with `--no-index`, so
- * nothing touches the network; then PyPI (or `indexUrl`) with the bundle as a
- * fallback, which also lets pip reuse its own cache. Unpinned throughout.
+ * Unpinned deliberately: pip resolves whatever the machine can reach, and reuses
+ * its own cache, so a second setup on the same host needs no network at all.
  */
 export async function setupManagedEnvironment(options: SetupOptions): Promise<SetupOutcome> {
   const run = options.run ?? nodeRunner
@@ -260,45 +242,23 @@ export async function setupManagedEnvironment(options: SetupOptions): Promise<Se
   }
 
   const python = venvPythonPath(options.venvDir, platform)
-  const localWheels = bundledWheelsFor(options.bundledWheelsDir, found.version, wheelPlatformTag(platform))
-  if (localWheels !== null) note(`bundled wheels for ${abiTag(found.version)}: ${localWheels}`)
-
-  const base = ['-m', 'pip', 'install', '--upgrade', '--disable-pip-version-check']
-  const attempts: { label: string; args: string[] }[] = []
-  if (localWheels !== null) {
-    attempts.push({
-      label: 'the bundled wheels',
-      args: [...base, '--no-index', '--find-links', localWheels, distribution],
-    })
+  const pipArgs = ['-m', 'pip', 'install', '--upgrade', '--disable-pip-version-check']
+  if (options.indexUrl) {
+    pipArgs.push('--index-url', options.indexUrl)
+    note(`using index ${options.indexUrl}`)
   }
-  attempts.push({
-    label: options.indexUrl ? `the index ${options.indexUrl}` : 'PyPI',
-    args: options.indexUrl
-      ? [...base, '--index-url', options.indexUrl, distribution]
-      : [...base, distribution],
-  })
+  pipArgs.push(distribution)
 
-  let failure = ''
-  for (const attempt of attempts) {
-    try {
-      note(`installing ${distribution} from ${attempt.label}`)
-      const { stdout } = await run(python, attempt.args, { timeout: 600_000 })
-      note(stdout.trim().split('\n').slice(-2).join('\n'))
-      failure = ''
-      break
-    } catch (error) {
-      failure = message(error)
-      note(`${attempt.label} failed: ${failure}`)
-    }
-  }
-
-  if (failure !== '') {
+  try {
+    note(`installing ${distribution}`)
+    const { stdout } = await run(python, pipArgs, { timeout: 600_000 })
+    note(stdout.trim().split('\n').slice(-2).join('\n'))
+  } catch (error) {
     const detail =
-      localWheels !== null
-        ? `Installing ${distribution} failed: ${failure}`
-        : `Installing ${distribution} failed: ${failure}. This machine cannot reach ` +
-          'PyPI and no matching bundled wheels were found; see "How to connect" for ' +
-          'the offline route.'
+      `Installing ${distribution} failed: ${message(error)}. If this machine uses an ` +
+      'internal mirror, set `labwatch.pipIndexUrl`; if it already has a working ' +
+      'collector, point `labwatch.pythonPath` at it instead — see "How to connect".'
+    note(detail)
     return { ok: false, python: null, reason: 'install-failed', detail, log }
   }
 

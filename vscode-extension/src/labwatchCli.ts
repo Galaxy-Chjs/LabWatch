@@ -11,7 +11,9 @@
  *   1. `labwatch.pythonPath`, if the user set one;
  *   2. `labwatch` on PATH, which covers pipx / uv tool / a distro package;
  *   3. `python3 -m labwatch`, for a plain `pip install --user`;
- *   4. this extension's own private environment, if one has been created.
+ *   4. interpreters conda knows about, since that is where a deliberately managed
+ *      environment usually lives and where `PATH` usually does not point;
+ *   5. this extension's own private environment, if one has been created.
  */
 
 import { execFile } from 'node:child_process'
@@ -20,6 +22,7 @@ import { promisify } from 'node:util'
 
 import { parseStatus, type LabwatchStatus } from './format'
 import {
+  condaEnvironments,
   findPython,
   managedEnvironmentWorks,
   nodeRunner,
@@ -133,6 +136,17 @@ export async function diagnose(options: ResolveOptions): Promise<CliDiagnosis> {
     if (await respondsToVersion(runner, candidate)) {
       options.cache.command = candidate
       return { trouble: 'ok', command: candidate, detail: 'found on this machine' }
+    }
+  }
+
+  // Deliberately configured environments - conda, most often - before building a
+  // second one. A collector installed there is more likely to be the one the user
+  // meant, and it already has whatever mirror or proxy configuration they use.
+  for (const env of await condaEnvironments(runner)) {
+    const candidate = [venvPythonPath(env, platform), '-m', 'labwatch']
+    if (await respondsToVersion(runner, candidate)) {
+      options.cache.command = candidate
+      return { trouble: 'ok', command: candidate, detail: `found in the conda environment ${env}` }
     }
   }
 

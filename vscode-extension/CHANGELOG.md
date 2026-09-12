@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.3.3
+
+Size and correctness.
+
+- **The bundled wheels are gone.** Shipping 29 MB of wheels was built on my wrong
+  guess that the lab server has no outbound access; it does. The VSIX is back to
+  under a megabyte, and a failed install now says what pip said.
+- **A conda environment is found before anything is installed.** Interpreters from
+  `conda info --envs` are probed after `PATH` and before the private environment, so
+  a collector you installed deliberately is used instead of a second copy being
+  created. This is also the likely fix for a machine that already runs LabWatch.
+- Fixed the conda parsing: each line is `<name> <path>`, and treating the whole line
+  as a path matched nothing.
+
+## 1.3.3（中文）
+
+体积与正确性。
+
+- **移除内置 wheel。** 内置 29 MB wheel 建立在我"服务器没有外网"的错误猜测上，而事实并非
+  如此。VSIX 回到 1 MB 以内；安装失败时也会直接给出 pip 的原话。
+- **安装之前先找 conda 环境。** 现在会依次探测 `PATH`、`conda info --envs` 中的解释器，
+  最后才考虑私有环境。因此你刻意装好的采集器会被直接使用，不会再建第二份 —— 这也很可能是
+  你这台已能运行 LabWatch 的机器上问题的正解。
+- 修正了 conda 输出解析：每行是 `<名字> <路径>`，此前把整行当路径，导致一个都匹配不到。
+
 ## 1.3.2
 
 Zero behaviour change, one crucial difference: failures now say *why*.

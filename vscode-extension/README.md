@@ -6,7 +6,7 @@ when you need detail.
 **Install without the Marketplace**, while the listing is in review:
 
 ```bash
-code --install-extension https://github.com/Galaxy-Chjs/LabWatch/releases/latest/download/labwatch-gpu-status-1.3.1.vsix
+code --install-extension https://github.com/Galaxy-Chjs/LabWatch/releases/latest/download/labwatch-gpu-status-1.3.3.vsix
 ```
 
 - **Status bar** — `GPU 3 busy / 8`, or `GPU 0 98% · 33GB/48GB` on a single-GPU
@@ -41,18 +41,25 @@ The distribution is called `labwatch-lite` because `labwatch` on PyPI belongs to
 unrelated project; what these commands install is the `labwatch` command used below.
 发行名是 `labwatch-lite`（PyPI 上的 `labwatch` 属于别的项目），装出来的命令仍是 `labwatch`。
 
-Already running the collector somewhere specific — a conda environment, say? Point
-`labwatch.pythonPath` at it (`/home/you/.conda/envs/mlenv/bin/python -m labwatch`)
-and it is used in preference to everything else.
+Already running the collector somewhere specific — a conda environment, say? You do
+not even have to configure it: interpreters conda knows about are searched before
+anything is installed. Setting `labwatch.pythonPath` simply puts one first.
 
-### A server without PyPI access
+### Where the collector is looked for
 
-**Already covered.** The wheels ship inside the extension — Linux x86_64 for Python
-3.10, 3.11 and 3.12, plus Windows x64 for 3.12 — so the one-click setup installs
-from them with `--no-index` and never touches the network. Only when the
-interpreter is a combination the bundle does not cover does setup fall back to
-PyPI, or to `labwatch.pipIndexUrl` if you set one. Run **LabWatch: How to Connect**
-for the whole picture in English and 中文.
+1. `labwatch.pythonPath`, if you set it;
+2. `labwatch` on `PATH` — pipx, `uv tool`, a distro package;
+3. `python3 -m labwatch` — a plain `pip install --user`;
+4. interpreters **conda** knows about, because that is where a deliberately managed
+   environment usually lives and where `PATH` frequently does not point;
+5. its own private environment, built inside the extension's storage folder **only
+   when nothing above exists** and you agree to it.
+
+So a machine that can already run `labwatch` never gets a second copy. When the
+private environment *does* have to be built, it installs from PyPI or from
+`labwatch.pipIndexUrl` (an internal mirror behaves exactly as it would by hand), and
+the whole log goes to the **LabWatch** output channel with the interpreter's own
+error message rather than "command failed".
 
 ## When something is wrong
 
@@ -106,7 +113,7 @@ cd vscode-extension
 npm install
 npm run compile
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-gpu-status-1.3.0.vsix --force
+code --install-extension labwatch-gpu-status-1.3.3.vsix --force
 ```
 
 For development, open the repository in VS Code and press <kbd>F5</kbd> —

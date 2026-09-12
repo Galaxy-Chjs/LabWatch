@@ -8,17 +8,13 @@
  */
 
 import { strict as assert } from 'node:assert'
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { test } from 'node:test'
 
 import { guidanceFor, connectionGuide, MANUAL_COMMANDS } from '../guidance'
 import { actionsFor, NOT_RUNNING_ACTIONS } from '../stateActions'
 import { diagnose, looksUninstalled, tidyError } from '../labwatchCli'
 import {
-  abiTag,
-  bundledWheelsFor,
+  condaEnvironments,
   findPython,
   isSupported,
   managedEnvironmentWorks,
@@ -26,7 +22,6 @@ import {
   pythonCandidates,
   setupManagedEnvironment,
   venvPythonPath,
-  wheelPlatformTag,
   type RunOutput,
   type Runner,
 } from '../pythonEnv'
@@ -161,7 +156,10 @@ test('a failed install is reported with the offline route mentioned', async () =
   })
   const outcome = await setupManagedEnvironment({ venvDir: '/tmp/lw-venv', platform: 'linux', run })
   assert.equal(outcome.reason, 'install-failed')
-  assert.match(outcome.detail, /cannot reach PyPI/)
+  // Both escape routes are named, because either may be the right one: a mirror,
+  // or a collector that already works somewhere the user chose.
+  assert.match(outcome.detail, /pipIndexUrl/)
+  assert.match(outcome.detail, /pythonPath/)
   assert.match(outcome.detail, /No matching distribution/)
 })
 
@@ -295,81 +293,56 @@ test('the failure state shows the real reason rather than a generic apology', ()
   assert.match(guidance.steps[0], /no matching distribution/)
 })
 
-test('the bundled wheel directory is chosen by platform and interpreter', () => {
-  assert.equal(abiTag([3, 11, 4]), 'cp311')
-  assert.equal(wheelPlatformTag('linux', 'x64', false), 'manylinux2014_x86_64')
-  assert.equal(wheelPlatformTag('linux', 'arm64', false), 'manylinux2014_aarch64')
-  assert.equal(wheelPlatformTag('linux', 'x64', true), 'musllinux_1_2_x86_64')
-  assert.equal(wheelPlatformTag('win32', 'x64'), 'win_amd64')
-  assert.equal(wheelPlatformTag('win32', 'arm64'), 'win_arm64')
+test('conda environments are discovered, and a broken conda is not fatal', async () => {
+  const { run } = fakeRunner((file, args) => {
+    if (file === 'conda' && args.includes('--envs')) {
+      return {
+        stdout: [
+          '# conda environments:',
+          '#',
+          'base                     /home/u/miniconda3',
+          'mlenv                 *  /home/u/miniconda3/envs/mlenv',
+          '',
+        ].join('\n'),
+        stderr: '',
+      }
+    }
+    return new Error('ENOENT')
+  })
+  const envs = await condaEnvironments(run)
+  // The trailing asterisk marks the active environment and is not part of its path.
+  assert.deepEqual(envs, ['/home/u/miniconda3', '/home/u/miniconda3/envs/mlenv'])
 
-  assert.equal(bundledWheelsFor(undefined, [3, 11, 4]), null)
-  assert.equal(bundledWheelsFor(join(tmpdir(), 'nope-does-not-exist'), [3, 11, 4]), null)
-
-  const root = mkdtempSync(join(tmpdir(), 'lw-wheels-'))
-  try {
-    // Linux wheels must never be handed to a Windows interpreter: that mismatch
-    // made pip answer "No matching distribution" for an otherwise valid bundle.
-    mkdirSync(join(root, 'manylinux2014_x86_64-cp311'))
-    mkdirSync(join(root, 'win_amd64-cp311'))
-    assert.equal(
-      bundledWheelsFor(root, [3, 11, 4], 'manylinux2014_x86_64'),
-      join(root, 'manylinux2014_x86_64-cp311'),
-    )
-    assert.equal(bundledWheelsFor(root, [3, 11, 4], 'win_amd64'), join(root, 'win_amd64-cp311'))
-    // Combinations the bundle does not cover fall through to PyPI rather than fail.
-    assert.equal(bundledWheelsFor(root, [3, 13, 0], 'manylinux2014_x86_64'), null)
-    assert.equal(bundledWheelsFor(root, [3, 11, 4], 'musllinux_1_2_x86_64'), null)
-  } finally {
-    rmSync(root, { recursive: true, force: true })
-  }
+  const { run: broken } = fakeRunner(() => new Error('conda: command not found'))
+  assert.deepEqual(await condaEnvironments(broken), [])
 })
 
-test('setup installs from the bundled wheels with --no-index, so no network is needed', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'lw-wheels-'))
-  mkdirSync(join(root, 'manylinux2014_x86_64-cp311'))
-  const { run, calls } = fakeRunner((_file, args) => {
-    if (args.includes('--version')) return { stdout: 'Python 3.11.14', stderr: '' }
-    if (args.includes('install')) return { stdout: 'Successfully installed labwatch-lite', stderr: '' }
-    if (args.includes('version')) return { stdout: VERSION_JSON, stderr: '' }
-    return { stdout: '', stderr: '' }
+test('a collector inside a conda environment is used instead of building a new one', async () => {
+  const { run, calls } = fakeRunner((file, args) => {
+    if (file === 'conda' && args.includes('--envs')) {
+      return { stdout: 'base  /home/u/miniconda3\nmlenv  /home/u/miniconda3/envs/mlenv\n', stderr: '' }
+    }
+    if (file === '/home/u/miniconda3/envs/mlenv/bin/python' && args.includes('version')) {
+      return { stdout: VERSION_JSON, stderr: '' }
+    }
+    return new Error('ENOENT')
   })
-
-  try {
-    const outcome = await setupManagedEnvironment({
-      venvDir: '/tmp/lw-venv',
-      platform: 'linux',
-      run,
-      bundledWheelsDir: root,
-    })
-    assert.equal(outcome.ok, true)
-    const install = calls.find((call) => call.includes('install'))
-    assert.ok(install, 'pip install ran')
-    const line = install?.join(' ') ?? ''
-    assert.match(line, /--no-index/)
-    assert.match(line, /--find-links/)
-    assert.match(line, /manylinux2014_x86_64-cp311/)
-  } finally {
-    rmSync(root, { recursive: true, force: true })
-  }
-})
-
-test('a missing bundle for this interpreter still reaches for PyPI', async () => {
-  const { run, calls } = fakeRunner((_file, args) => {
-    if (args.includes('--version')) return { stdout: 'Python 3.13.1', stderr: '' }
-    if (args.includes('install')) return { stdout: 'ok', stderr: '' }
-    if (args.includes('version')) return { stdout: VERSION_JSON, stderr: '' }
-    return { stdout: '', stderr: '' }
-  })
-  const outcome = await setupManagedEnvironment({
+  const cache: { command: string[] | null } = { command: null }
+  const result = await diagnose({
+    preferred: '',
     venvDir: '/tmp/lw-venv',
+    cache,
+    runner: run,
     platform: 'linux',
-    run,
-    bundledWheelsDir: join(tmpdir(), 'nope-does-not-exist'),
   })
-  assert.equal(outcome.ok, true)
-  const install = calls.find((call) => call.includes('install'))
-  assert.equal((install?.join(' ') ?? '').includes('--no-index'), false)
+  assert.equal(result.trouble, 'ok')
+  assert.deepEqual(result.command, ['/home/u/miniconda3/envs/mlenv/bin/python', '-m', 'labwatch'])
+  assert.match(result.detail, /conda environment/)
+  // Nothing was installed: the private environment was never needed.
+  assert.equal(
+    calls.some((call) => call.join(' ').includes('venv')),
+    false,
+  )
 })
 
 test('the connection guide covers all four routes and both languages', () => {

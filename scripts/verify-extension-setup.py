@@ -28,13 +28,11 @@ venv_dir = pathlib.Path(tempfile.mkdtemp(prefix="labwatch-venv-")) / "venv"
 print(f"target venv: {venv_dir}")
 
 driver = f"""
-const {{ setupManagedEnvironment }} = require({json.dumps(str(SCRIPT))});
-setupManagedEnvironment({{
-  venvDir: {json.dumps(str(venv_dir))},
-  bundledWheelsDir: {json.dumps(str(EXT / "wheels"))},
-}})
-  .then((outcome) => {{
+const {{ setupManagedEnvironment, managedEnvironmentWorks, nodeRunner }} = require({json.dumps(str(SCRIPT))});
+setupManagedEnvironment({{ venvDir: {json.dumps(str(venv_dir))} }})
+  .then(async (outcome) => {{
     console.log(JSON.stringify(outcome, null, 2));
+    console.log("managedEnvironmentWorks:", await managedEnvironmentWorks({json.dumps(str(venv_dir))}, nodeRunner));
     process.exit(outcome.ok ? 0 : 1);
   }})
   .catch((error) => {{ console.error(error); process.exit(2); }});
@@ -42,17 +40,6 @@ setupManagedEnvironment({{
 
 driver_path = venv_dir.parent / "driver.js"
 driver_path.write_text(driver, encoding="utf-8")
-
-# Prove the offline route properly: no proxy, no index reachable.
-offline = {
-    **os.environ,
-    "PIP_NO_INDEX": "1",
-    "PIP_DISABLE_PIP_VERSION_CHECK": "1",
-    "HTTP_PROXY": "",
-    "HTTPS_PROXY": "",
-    "http_proxy": "",
-    "https_proxy": "",
-}
 
 try:
     result = subprocess.run(
@@ -62,7 +49,6 @@ try:
         encoding="utf-8",
         errors="replace",
         timeout=900,
-        env=offline,
     )
     print("--- setup outcome ---")
     print(result.stdout.strip() or "(no stdout)")

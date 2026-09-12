@@ -120,17 +120,17 @@ browser automatically. LabWatch is never reimplemented inside the editor — the
 extension is a view onto the same collector.
 
 See [`vscode-extension/README.md`](https://github.com/Galaxy-Chjs/LabWatch/blob/main/vscode-extension/README.md) to build it,
-or install the packaged `labwatch-gpu-status-1.3.1.vsix` with
+or install the packaged `labwatch-gpu-status-1.3.3.vsix` with
 `code --install-extension`. The Marketplace listing is in review.
 
-**No separate install step.** The collector is a small Python program, and on first
-use the extension offers to build a private environment for it inside its own
-storage folder — no global installs, no `PATH` edits. **The wheels ship inside the
-extension** (Linux x86_64 for Python 3.10–3.12, Windows x64 for 3.12), so a GPU
-server with no outbound access works too; `labwatch.pipIndexUrl` covers anything the
-bundle does not. · **无需单独安装**：采集器是个小型 Python 程序，扩展首次使用时会询问
-并在自己的存储目录里创建私有环境，不写全局、不改 `PATH`；**wheel 已内置在扩展中**
-（Linux x86_64 覆盖 Python 3.10–3.12），因此没有外网的 GPU 服务器同样可用。
+**No separate install step.** The collector is a small Python program. If you already
+run one — any `labwatch` on `PATH`, or a conda environment — the extension finds it
+and installs nothing. Otherwise it offers to build a private environment inside its
+own storage folder, with no global installs and no `PATH` edits, and uses PyPI or
+your own mirror via `labwatch.pipIndexUrl`. · **无需单独安装**：采集器是个小型 Python
+程序。若机器上已有（`PATH` 上的 `labwatch`，或 conda 环境里的），扩展会直接使用、不做任何
+安装；否则它会在自己的存储目录里创建私有环境，不写全局、不改 `PATH`，包源用 PyPI 或你通过
+`labwatch.pipIndexUrl` 指定的镜像。
 
 ## What it shows
 

@@ -220,7 +220,7 @@ cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
 npm install
 npm run compile
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-gpu-status-1.3.1.vsix --force
+code --install-extension labwatch-gpu-status-1.3.3.vsix --force
 ```
 
 Then reload the VS Code window: `Ctrl+Shift+P` → **Developer: Reload Window**.
@@ -327,7 +327,7 @@ npx --yes @vscode/vsce package --no-dependencies
 ```
 
 Then <https://marketplace.visualstudio.com/manage> → your publisher → **New
-extension → Visual Studio Code** → upload `labwatch-gpu-status-1.3.1.vsix`.
+extension → Visual Studio Code** → upload `labwatch-gpu-status-1.3.3.vsix`.
 
 Or by command line, once the token works:
 
@@ -530,9 +530,10 @@ so plainly and points at `labwatch.pythonPath` for an existing collector elsewhe
 
 The real end-to-end path is checked by `scripts/verify-extension-setup.py`, which
 builds a temporary environment with a real interpreter, installs from the bundled
-wheels with `PIP_NO_INDEX=1` and no proxy, and proves the collector answers. ·
-真实链路由 `scripts/verify-extension-setup.py` 验证：用真实解释器建临时环境，在
-`PIP_NO_INDEX=1` 且无代理的条件下从内置 wheel 安装，并验证采集器可用。
+The real end-to-end path is checked by `scripts/verify-extension-setup.py`, which
+builds a temporary environment with a real interpreter, installs the collector into
+it, and proves it answers. · 真实链路由 `scripts/verify-extension-setup.py` 验证：用真实
+解释器建临时环境并安装采集器，然后验证它可用。
 
 ### Packaging the extension for a release · 打包扩展发布
 
@@ -540,7 +541,7 @@ The Marketplace listing takes days of review, so the `.vsix` is also attached to
 GitHub release and can be installed straight from the URL:
 
 ```bash
-code --install-extension https://github.com/Galaxy-Chjs/LabWatch/releases/download/vscode-extension-v1.3.1/labwatch-gpu-status-1.3.1.vsix
+code --install-extension https://github.com/Galaxy-Chjs/LabWatch/releases/download/vscode-extension-v1.3.3/labwatch-gpu-status-1.3.3.vsix
 ```
 
 `scripts/publish-extension-release.py <tag> <vsix> [<title>]` creates the release and
@@ -550,19 +551,17 @@ writes it nowhere else; with no such credential it prints the web-UI URL for a m
 upload instead. The tag is `vscode-extension-v<version>`, keeping the extension's
 releases separate from the Python package's `v<version>`.
 
-**The VSIX is 34 MB on purpose.** It carries wheels for Linux x86_64 (Python
-3.10–3.12) and Windows x64 (3.12) so one-click setup works on a GPU server with no
-outbound access - the case this extension exists for. Regenerate them with
-`scripts/bundle-extension-wheels.py` after a dependency change; they are committed,
-because regenerating needs PyPI. · **VSIX 有 34 MB，是刻意为之**：内置 Linux x86_64
-（Python 3.10–3.12）与 Windows x64（3.12）的 wheel，好让没有外网的 GPU 服务器也能一键
-装好采集器。依赖变化后用 `scripts/bundle-extension-wheels.py` 重新生成；这些 wheel 提交
-进仓库，因为重新生成需要 PyPI。
+**The VSIX carries no wheels.** Shipping them was tried (1.3.1, 34 MB) on the theory
+that the lab server had no outbound access; that theory was wrong, the user's own
+words settled it, and the bundle was removed again. 0.4 MB with an honest error
+message beats 34 MB built on a guess. · **VSIX 不内置 wheel。** 1.3.1 曾按"服务器没有
+外网"的猜测内置（34 MB），该猜测是错的，已按你要求移除。0.4 MB 加上一句真实的报错，胜过
+建立在猜测上的 34 MB。
 
 ```powershell
 cd D:\IDE\vscode\MyDemo\LabWatch-lite\vscode-extension
 npx --yes @vscode/vsce package --no-dependencies
-code --install-extension labwatch-gpu-status-1.3.1.vsix --force
+code --install-extension labwatch-gpu-status-1.3.3.vsix --force
 ```
 
 If the vendor-description variant is refused too, the trigger is not free text at
@@ -732,7 +731,7 @@ uvx labwatch-lite --version && uvx labwatch-lite doctor
 # Rebuild and reinstall the extension locally
 cd vscode-extension && npm run compile \
   && npx --yes @vscode/vsce package --no-dependencies \
-  && code --install-extension labwatch-gpu-status-1.3.1.vsix --force
+  && code --install-extension labwatch-gpu-status-1.3.3.vsix --force
 ```
 
 ## What is already verified, so you do not have to · 已经验证过、你不必再验的部分

@@ -283,9 +283,6 @@ async function setupCollector(): Promise<void> {
       outcome = await setupManagedEnvironment({
         venvDir: venvDir(),
         indexUrl: config().get<string>('pipIndexUrl', '') || undefined,
-        // Wheels shipped inside the VSIX: the route that works on a server with no
-        // outbound access.
-        bundledWheelsDir: path.join(contextRef.extensionUri.fsPath, 'wheels'),
       })
       // The whole log, not just the summary: when this fails on someone else's
       // server, the output channel is the only place the real reason can be read.

@@ -2,7 +2,7 @@
   "name": "labwatch-gpu-status",
   "displayName": "LabWatch GPU Monitor",
   "description": "See your NVIDIA GPU state in the status bar and sidebar, and open the LabWatch dashboard. Works locally and over Remote-SSH.",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "publisher": "galaxy-chjs",
   "license": "MIT",
   "repository": {
